@@ -116,17 +116,70 @@ def fetch_trending(country):
 
 
 # ============ CLAUDE CURATION ============
-def curate_news(user_name, topics_with_news, learned_profile=""):
-    """Curadoria de notícias com personalização baseada no perfil aprendido."""
+MAX_NEWS_INPUT_PER_TOPIC = 6   # quantas notícias brutas mandar pro Claude por tema
+MAX_TOPICS_PER_BATCH = 6       # quantos temas processar numa chamada (evita JSON gigante)
+
+
+def _robust_json_parse(text):
+    """
+    Tenta parsear JSON com várias estratégias de fallback.
+    Retorna dict vazio se tudo falhar (não quebra o fluxo).
+    """
+    # 1) Limpa markdown
+    text = re.sub(r"^```(?:json)?\s*", "", text.strip())
+    text = re.sub(r"\s*```$", "", text)
+
+    # 2) Tentativa direta
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # 3) Extrai bloco {...} mais externo
+    i, j = text.find("{"), text.rfind("}")
+    if i >= 0 and j > i:
+        try:
+            return json.loads(text[i:j+1])
+        except json.JSONDecodeError:
+            pass
+
+    # 4) Tenta reparar: trunca no último objeto válido fechado
+    # Encontra a última posição onde temos um JSON parcial válido tipo {"secoes":[{...},{...},
+    if '"secoes"' in text:
+        # tenta cortar antes do último objeto incompleto
+        partial = text[i:] if i >= 0 else text
+        # remove possíveis lixos no final
+        for cutoff in range(len(partial), 100, -100):
+            candidate = partial[:cutoff]
+            # tenta fechar manualmente: ]}
+            for ending in [']}', '"}]}', '"}]}']:
+                try:
+                    test = candidate.rstrip(',\n\r ') + ending
+                    parsed = json.loads(test)
+                    if "secoes" in parsed:
+                        log(f"  ⚠ JSON reparado parcialmente em cutoff={cutoff}")
+                        return parsed
+                except json.JSONDecodeError:
+                    continue
+
+    # 5) Desistiu — retorna vazio (o email vai sair sem essas seções, em vez de quebrar tudo)
+    log(f"  ✗ JSON do Claude irrecuperável, pulando esse batch")
+    return {}
+
+
+def _curate_news_batch(user_name, topics_with_news, learned_profile=""):
+    """Processa UM batch de temas (até MAX_TOPICS_PER_BATCH)."""
     payload = []
     for t in topics_with_news:
+        # Trunca: passa só as primeiras N notícias por tema pro Claude
+        news_truncated = t["news"][:MAX_NEWS_INPUT_PER_TOPIC]
         payload.append({
             "tema": t["label"],
             "pais": COUNTRY_NAMES.get(t["country"], t["country"]),
             "noticias_brutas": [
                 {"titulo": n["title"], "fonte": n["source"], "preview": n["summary"],
                  "link": n["link"], "origem": n.get("origin","")}
-                for n in t["news"]
+                for n in news_truncated
             ]
         })
 
@@ -143,14 +196,14 @@ Priorize notícias que casem com o que ele gosta. Evite (ou despriorize) o que e
 {profile_section}
 Para cada tema abaixo, selecione as **até {MAX_NEWS_OUT_PER_TOPIC} notícias mais relevantes** do dia (priorize: impacto real, novidade, alinhamento com perfil; evite duplicatas e clickbait).
 
-🇧🇷 **REGRA CRÍTICA DE IDIOMA**: TODO o conteúdo gerado (manchete, resumo, why_matters) DEVE estar em **português brasileiro natural**, MESMO QUE a matéria original esteja em inglês, espanhol ou qualquer outro idioma. Traduza com fluência — não use construções estrangeiras tipo "Apple anunciou hoje que…". Use português direto, jornalístico, vivo.
+🇧🇷 **REGRA CRÍTICA DE IDIOMA**: TODO o conteúdo gerado (manchete, resumo, why_matters) DEVE estar em **português brasileiro natural**, MESMO QUE a matéria original esteja em inglês, espanhol ou qualquer outro idioma. Traduza com fluência.
+
+⚠️ **REGRA CRÍTICA DE FORMATO**: Retorne APENAS JSON VÁLIDO, sem markdown, sem ```. Escape TODAS as aspas duplas dentro de strings com \\". Não use quebras de linha dentro de strings (use espaço).
 
 Para cada notícia selecionada, retorne:
 - **manchete**: título em PT-BR direto, máx 90 caracteres, sem clickbait
-- **resumo**: 2 frases curtas (40-60 palavras) em PT-BR — o que aconteceu E por que importa. Tom Morning Brew (direto, esperto, sem ser bobão)
-- **why_matters** (opcional, mas FORTE quando o perfil casa): 1 frase em PT-BR ligando a notícia AO INTERESSE ESPECÍFICO do usuário (baseado no perfil acima). Ex: "Você acompanha M&A no varejo: custo de capital travado adia rodadas previstas pro 2º semestre." Omita se o link for forçado.
-- **bias** (opcional): se for matéria política ou opinativa, classifique como "esquerda", "centro" ou "direita". Para matérias factuais neutras, use "centro" ou omita.
-- **coverage_count** (opcional): se você identificar que múltiplas fontes diferentes (no input ou pelo seu conhecimento) cobrem o mesmo evento, estime quantas. Ex: 6. Omita se único.
+- **resumo**: 2 frases curtas (40-60 palavras) em PT-BR
+- **why_matters** (opcional): 1 frase em PT-BR ligando ao interesse do usuário (omita se forçado)
 - **link**: copie o link original
 - **fonte**: nome do veículo
 
@@ -159,19 +212,41 @@ Se um tema tiver pouca notícia relevante, retorne menos itens. Se nada for rele
 Dados:
 {json.dumps(payload, ensure_ascii=False, indent=2)}
 
-**RESPONDA APENAS JSON VÁLIDO**, sem markdown:
-{{"secoes":[{{"tema":"<nome>","pais":"<rótulo>","noticias":[{{"manchete":"...","resumo":"...","why_matters":"...","bias":"centro","coverage_count":3,"link":"...","fonte":"..."}}]}}]}}"""
+**RESPONDA APENAS JSON VÁLIDO**:
+{{"secoes":[{{"tema":"<nome>","noticias":[{{"manchete":"...","resumo":"...","link":"...","fonte":"..."}}]}}]}}"""
 
-    resp = claude.messages.create(model=MODEL, max_tokens=4000,
-                                   messages=[{"role": "user", "content": prompt}])
-    text = resp.content[0].text.strip()
-    text = re.sub(r"^```(?:json)?\s*", "", text)
-    text = re.sub(r"\s*```$", "", text)
     try:
-        return json.loads(text).get("secoes", [])
-    except json.JSONDecodeError:
-        i, j = text.find("{"), text.rfind("}")
-        return json.loads(text[i:j+1]).get("secoes", [])
+        resp = claude.messages.create(model=MODEL, max_tokens=8000,
+                                       messages=[{"role": "user", "content": prompt}])
+        text = resp.content[0].text.strip()
+        parsed = _robust_json_parse(text)
+        return parsed.get("secoes", [])
+    except Exception as e:
+        log(f"  ✗ Claude API erro no batch: {e}")
+        return []
+
+
+def curate_news(user_name, topics_with_news, learned_profile=""):
+    """
+    Curadoria com batching: divide temas em grupos de até MAX_TOPICS_PER_BATCH
+    pra evitar JSON gigante que pode quebrar.
+    """
+    if not topics_with_news:
+        return []
+
+    all_sections = []
+    batches = [
+        topics_with_news[i:i+MAX_TOPICS_PER_BATCH]
+        for i in range(0, len(topics_with_news), MAX_TOPICS_PER_BATCH)
+    ]
+    log(f"  curando em {len(batches)} batch(es) de até {MAX_TOPICS_PER_BATCH} temas")
+
+    for idx, batch in enumerate(batches, 1):
+        log(f"  batch {idx}/{len(batches)}: {len(batch)} temas")
+        sections = _curate_news_batch(user_name, batch, learned_profile)
+        all_sections.extend(sections)
+
+    return all_sections
 
 
 def curate_trends(user_name, scope_label, trends, learned_profile=""):
