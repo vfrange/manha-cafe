@@ -1,0 +1,28 @@
+name: Weekly Profile Consolidation
+
+on:
+  schedule:
+    - cron: '0 1 * * 6'   # sexta 22h BRT = sábado 01h UTC
+  workflow_dispatch:
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: scripts/requirements.txt
+      - name: Install deps
+        working-directory: scripts
+        run: pip install -r requirements.txt
+      - name: Run profile consolidation
+        working-directory: scripts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python weekly_profile.py
