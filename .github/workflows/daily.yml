@@ -1,0 +1,64 @@
+name: Daily Digest
+
+on:
+  schedule:
+    - cron: '0 9 * * *'   # 06:00 BRT
+    - cron: '0 10 * * *'  # 07:00 BRT
+    - cron: '0 11 * * *'  # 08:00 BRT
+    - cron: '0 12 * * *'  # 09:00 BRT
+  workflow_dispatch:
+    inputs:
+      target_hour:
+        description: 'Hora BRT (0-23) — vazio = atual'
+        required: false
+        default: ''
+      dry_run:
+        description: 'DRY RUN (não envia, gera preview)'
+        type: boolean
+        default: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: scripts/requirements.txt
+      - name: Install deps
+        working-directory: scripts
+        run: pip install -r requirements.txt
+      - name: Compute target hour
+        id: hour
+        run: |
+          if [ -n "${{ inputs.target_hour }}" ]; then
+            echo "h=${{ inputs.target_hour }}" >> $GITHUB_OUTPUT
+          else
+            UTC_H=$(date -u +%H | sed 's/^0//')
+            BRT_H=$(( (UTC_H - 3 + 24) % 24 ))
+            echo "h=$BRT_H" >> $GITHUB_OUTPUT
+          fi
+      - name: Run digest
+        working-directory: scripts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          FEEDBACK_SECRET: ${{ secrets.FEEDBACK_SECRET }}
+          FEEDBACK_BASE_URL: ${{ secrets.FEEDBACK_BASE_URL }}
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+          MANAGE_URL: ${{ secrets.MANAGE_URL }}
+          TARGET_HOUR_BRT: ${{ steps.hour.outputs.h }}
+          DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
+        run: python daily_digest.py
+      - name: Upload preview (dry run)
+        if: ${{ inputs.dry_run }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: email-previews
+          path: scripts/preview_*.html
+          if-no-files-found: ignore
