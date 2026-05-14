@@ -197,18 +197,6 @@ def _render_news_sections(sections):
                       </table>
                     </td></tr>"""
 
-            # "Por que importa" — opcional
-            why_html = ""
-            if n.get("why_matters"):
-                why_html = f"""<tr><td style="padding-bottom:16px;">
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{COLORS['mint_bg_light']};border-left:4px solid {COLORS['mint_deep']};">
-                    <tr><td style="padding:14px 18px;">
-                      <div style="font-family:{SANS_FONT};font-weight:800;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:{COLORS['mint_dark']};margin-bottom:5px;">↳ Por que importa pra você</div>
-                      <div style="font-family:{SERIF_FONT};font-style:italic;font-size:15px;line-height:1.5;color:{COLORS['ink']};">{_esc(n['why_matters'])}</div>
-                    </td></tr>
-                  </table>
-                </td></tr>"""
-
             # Feedback +/-
             fb_btns = ""
             if n.get("fb_more_url") and n.get("fb_less_url"):
@@ -218,12 +206,18 @@ def _render_news_sections(sections):
                   <a href="{_esc(n['fb_less_url'])}" style="color:{COLORS['red']};text-decoration:none;">— menos como essa</a>
                 </td></tr>"""
 
-            # Bias chips
+            # Chip de viés político (apenas em notícias políticas)
             bias_chips = ""
-            if n.get("bias"):
-                bias_chips += f"""<span style="display:inline-block;background:{COLORS['bg']};border:1px solid {COLORS['line']};color:{COLORS['ink_soft']};font-family:{SANS_FONT};font-weight:700;font-size:10px;letter-spacing:0.04em;padding:3px 8px;margin-right:4px;">⚖ {_esc(n['bias'])}</span>"""
-            if n.get("coverage_count"):
-                bias_chips += f"""<span style="display:inline-block;background:{COLORS['mint_deep']};border:1px solid {COLORS['mint_deep']};color:#FFFFFF;font-family:{SANS_FONT};font-weight:700;font-size:10px;letter-spacing:0.04em;padding:3px 8px;">↔ {_esc(str(n['coverage_count']))} fontes</span>"""
+            pol_bias = (n.get("pol_bias") or "").lower().strip()
+            POL_LABELS = {
+                "esq":     ("Esquerda", "#7C2D12"),
+                "centro":  ("Centro",   "#334155"),
+                "dir":     ("Direita",  "#1E3A8A"),
+                "factual": ("Factual",  "#047857"),
+            }
+            if pol_bias in POL_LABELS:
+                label, txt_color = POL_LABELS[pol_bias]
+                bias_chips = f'<span style="display:inline-block;background:{COLORS["bg_2"]};border:1px solid {COLORS["line"]};color:{txt_color};font-family:{SANS_FONT};font-weight:800;font-size:10px;letter-spacing:0.04em;padding:3px 9px;margin-right:6px;">⚖ {label}</span>'
 
             # Chip de idioma — só aparece se NÃO for PT (default assumido)
             lang_chip = ""
@@ -242,7 +236,6 @@ def _render_news_sections(sections):
                 <tr><td style="font-family:{SERIF_FONT};font-weight:700;font-size:26px;line-height:1.18;color:{COLORS['ink']};letter-spacing:-0.02em;padding-bottom:14px;">{_esc(n['manchete'])}</td></tr>
                 <tr><td style="font-family:{SANS_FONT};font-size:16px;line-height:1.6;color:{COLORS['ink_soft']};padding-bottom:16px;">{_esc(n['resumo'])}</td></tr>
                 {fatos_html}
-                {why_html}
                 <tr><td style="font-family:{SANS_FONT};font-size:12px;color:{COLORS['ink_muted']};padding-bottom:8px;">
                   <a href="{_esc(n['link'])}" style="color:{COLORS['ink']};text-decoration:none;font-weight:800;border-bottom:2.5px solid {COLORS['mint_deep']};padding-bottom:1px;margin-right:12px;">Ler matéria →</a>
                   <span style="color:{COLORS['ink']};font-weight:800;">{_esc(n.get('fonte','') or 'Fonte')}</span>
@@ -260,7 +253,7 @@ def _render_news_sections(sections):
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-                    <td style="background:{COLORS['mint_bg_light']};border:1.5px solid {COLORS['mint_deep']};padding:4px 12px;font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:{COLORS['mint_dark']};">★ {_esc(sec['topic'])}</td>
+                    <td style="background:{COLORS['ink']};border:1.5px solid {COLORS['ink']};padding:4px 12px;font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:{COLORS['mint']};">★ {_esc(sec['topic'])}</td>
                     <td>{country_chip}</td>
                   </tr></table></td>
                   {pause_btn}
