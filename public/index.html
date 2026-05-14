@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manhã ☕ — Sua newsletter sob medida</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800;9..144,900&family=Mulish:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --mint:          #6EE7B7;
+    --mint-bg-light: #D1FAE5;
+    --mint-deep:     #10B981;
+    --mint-dark:     #047857;
+    --yellow:        #FFD60A;
+    --yellow-bg:     #FFF5BD;
+    --ink:           #0A2540;
+    --ink-soft:      #4A5568;
+    --ink-muted:     #8A95A8;
+    --bg:            #FFFAF0;
+    --bg-card:       #FFFFFF;
+    --bg-2:          #F4F1EA;
+    --line:          #E8E1D0;
+    --red:           #C8102E;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Mulish', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background: var(--bg); color: var(--ink);
+    min-height: 100vh; line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3CfeColorMatrix values='0 0 0 0 0.04 0 0 0 0 0.15 0 0 0 0 0.27 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 1;
+  }
+
+  /* MASTHEAD */
+  .masthead {
+    background: var(--mint); padding: 22px 0;
+    border-bottom: 2px solid var(--ink);
+    position: relative; z-index: 2;
+  }
+  .masthead-inner {
+    max-width: 720px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 900; font-size: 28px; letter-spacing: -0.04em;
+    display: flex; align-items: center; gap: 12px;
+    color: var(--ink);
+    font-variation-settings: "SOFT" 50, "WONK" 1;
+  }
+  .logo-cup {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: var(--ink); color: var(--yellow);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; position: relative;
+  }
+  .logo-cup::after {
+    content: ''; position: absolute; right: -5px; top: 11px;
+    width: 7px; height: 11px;
+    border: 2px solid var(--ink);
+    border-left: none; border-radius: 0 50% 50% 0;
+    background: var(--mint);
+  }
+  .date-pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em;
+    font-weight: 500; color: var(--mint-dark);
+  }
+  .tricolor { display: flex; height: 4px; }
+  .tricolor span { flex: 1; }
+  .tricolor span:nth-child(1) { background: var(--mint-deep); }
+  .tricolor span:nth-child(2) { background: var(--yellow); }
+  .tricolor span:nth-child(3) { background: var(--ink); }
+
+  .container { max-width: 720px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 2; }
+
+  /* HERO */
+  .hero { padding: 60px 0 40px; position: relative; }
+  .kicker {
+    display: inline-block; background: var(--ink); color: var(--mint);
+    font-family: 'Mulish', sans-serif;
+    font-size: 11px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase;
+    padding: 6px 12px; margin-bottom: 24px;
+  }
+  .hero h1 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 900; font-size: clamp(44px, 8vw, 84px);
+    line-height: 1.08; letter-spacing: -0.04em; margin-bottom: 20px;
+    font-variation-settings: "SOFT" 60, "WONK" 1, "opsz" 100;
+  }
+  .hero h1 em { font-style: italic; font-weight: 600; color: var(--mint-dark); }
+  .hero h1 .hl-m {
+    background: var(--mint);
+    padding: 0.04em 0.12em;
+    box-decoration-break: clone; -webkit-box-decoration-break: clone;
+  }
+  .hero p { font-size: 19px; color: var(--ink-soft); max-width: 540px; margin-bottom: 32px; }
+  .hero-meta {
+    display: flex; gap: 28px; flex-wrap: wrap;
+    font-family: 'Mulish', sans-serif;
+    font-size: 14px; color: var(--ink-muted);
+  }
+  .hero-meta div { display: flex; align-items: center; gap: 8px; }
+  .hero-meta strong { color: var(--ink); font-weight: 700; }
+  .quote-mark {
+    position: absolute;
+    font-family: 'Fraunces', serif; font-style: italic;
+    font-size: 280px; line-height: 0.8;
+    color: var(--mint); opacity: 0.5; pointer-events: none; z-index: -1;
+    top: 40px; right: -40px;
+  }
+
+  /* "Como funciona" banner */
+  .how-banner {
+    background: var(--yellow-bg);
+    border: 2px solid var(--ink);
+    padding: 14px 18px;
+    margin-bottom: 24px;
+    display: flex; align-items: center; gap: 12px;
+    font-family: 'Mulish', sans-serif;
+    font-size: 13px; line-height: 1.5; color: var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+  .how-banner .how-icon { font-size: 22px; flex-shrink: 0; }
+  .how-banner strong { font-weight: 800; }
+
+  /* FORM */
+  .form-card {
+    background: var(--bg-card); border: 2px solid var(--ink);
+    box-shadow: 8px 8px 0 var(--mint-deep);
+    padding: 40px; margin-bottom: 60px;
+  }
+  @media (max-width: 560px) { .form-card { padding: 28px 20px; box-shadow: 6px 6px 0 var(--mint-deep); } }
+
+  .step { border-bottom: 1px solid var(--line); padding: 28px 0; }
+  .step:first-child { padding-top: 0; }
+  .step:last-child { border-bottom: none; padding-bottom: 0; }
+  .step-header { display: flex; align-items: baseline; gap: 14px; margin-bottom: 18px; }
+  .step-num {
+    font-family: 'Fraunces', serif;
+    font-weight: 900; font-size: 32px; line-height: 1;
+    color: var(--mint-dark); font-style: italic;
+    font-variation-settings: "SOFT" 30, "opsz" 36;
+  }
+  .step-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 700; font-size: 22px; letter-spacing: -0.02em;
+    color: var(--ink);
+    font-variation-settings: "SOFT" 50, "opsz" 30;
+  }
+  .step-hint { font-size: 13px; color: var(--ink-muted); margin-top: 2px; line-height: 1.5; }
+  .step-hint strong { color: var(--ink); font-weight: 700; }
+
+  .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 560px) { .input-row { grid-template-columns: 1fr; } }
+
+  /* PHONE ROW: país + DDD + número */
+  .phone-row {
+    display: grid;
+    grid-template-columns: 130px 80px 1fr;
+    gap: 10px;
+    margin-top: 14px;
+  }
+  @media (max-width: 560px) {
+    .phone-row {
+      grid-template-columns: 1fr 1fr;
+      grid-template-areas: "country area" "number number";
+    }
+    .phone-row .field-country { grid-area: country; }
+    .phone-row .field-area    { grid-area: area; }
+    .phone-row .field-number  { grid-area: number; }
+  }
+  .country-select {
+    -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%230A2540' stroke-width='2' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+    padding-right: 32px; cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px; font-weight: 600;
+  }
+
+  .field {
+    width: 100%; padding: 14px 16px;
+    border: 2px solid var(--ink); background: var(--bg);
+    font-family: 'Mulish', sans-serif; font-size: 16px; color: var(--ink);
+    transition: background 0.15s, box-shadow 0.15s, transform 0.15s;
+  }
+  .field:focus {
+    outline: none; background: #FFF;
+    box-shadow: 4px 4px 0 var(--mint-deep);
+    transform: translate(-2px, -2px);
+  }
+
+  /* TRENDING TOGGLE */
+  .toggle-row { display: flex; align-items: center; gap: 14px; padding: 14px 0; }
+  .toggle {
+    position: relative; width: 56px; height: 30px;
+    background: var(--bg); border: 2px solid var(--ink);
+    cursor: pointer; transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .toggle::after {
+    content: ''; position: absolute;
+    width: 20px; height: 20px;
+    background: var(--ink); top: 3px; left: 3px;
+    transition: left 0.15s, background 0.15s;
+  }
+  .toggle.on { background: var(--mint); }
+  .toggle.on::after { left: 29px; background: var(--ink); }
+  .toggle-label { font-size: 15px; font-weight: 600; color: var(--ink); }
+  .toggle-sub { font-size: 13px; color: var(--ink-muted); }
+
+  /* TOPIC CHIPS */
+  .topics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+  .topic-chip { position: relative; cursor: pointer; user-select: none; }
+  .topic-chip input { position: absolute; opacity: 0; pointer-events: none; }
+  .topic-chip-label {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px;
+    border: 2px solid var(--ink); background: var(--bg-card);
+    font-family: 'Mulish', sans-serif;
+    font-size: 14px; font-weight: 600; color: var(--ink);
+    transition: all 0.15s;
+  }
+  .topic-chip:hover .topic-chip-label {
+    background: var(--mint-bg-light);
+    transform: translate(-1px, -1px);
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+  .topic-chip input:checked + .topic-chip-label {
+    background: var(--mint);
+    box-shadow: 3px 3px 0 var(--ink);
+    transform: translate(-1px, -1px);
+  }
+  .topic-emoji { font-size: 18px; }
+
+  /* CUSTOM TOPIC */
+  .custom-input-row {
+    display: grid; grid-template-columns: 1fr auto;
+    gap: 8px; margin-bottom: 12px; align-items: stretch;
+  }
+  @media (max-width: 560px) { .custom-input-row { grid-template-columns: 1fr; } }
+  .custom-input-row input { padding: 12px 14px; }
+  .btn-add {
+    padding: 0 18px;
+    background: var(--bg); border: 2px solid var(--ink);
+    font-family: 'Mulish', sans-serif;
+    font-size: 13px; font-weight: 700; color: var(--ink);
+    cursor: pointer; transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-add:hover {
+    background: var(--mint);
+    transform: translate(-1px, -1px);
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+  .tags-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--mint-deep); color: #FFF;
+    padding: 4px 8px 4px 4px;
+    font-family: 'Mulish', sans-serif;
+    font-size: 13px; font-weight: 700;
+  }
+  .tag-flag {
+    background: rgba(255,255,255,0.18); border: none;
+    color: #FFF; cursor: pointer;
+    padding: 3px 6px; font-size: 12px; line-height: 1;
+    transition: all 0.12s;
+    opacity: 0.4;
+  }
+  .tag-flag.active { opacity: 1; background: rgba(255,255,255,0.35); }
+  .tag-flag:hover { opacity: 1; }
+  .tag-label { padding: 0 4px; }
+  .tag button.tag-remove {
+    background: none; border: none; color: #FFF;
+    cursor: pointer; font-size: 16px; padding: 0 0 0 4px; line-height: 1;
+    opacity: 0.7;
+  }
+  .tag button.tag-remove:hover { opacity: 1; }
+
+  /* Feedback do detector */
+  .scope-hint {
+    margin-top: -6px; margin-bottom: 12px;
+    font-family: 'Mulish', sans-serif;
+    font-size: 12px; color: var(--ink-muted);
+    padding-left: 2px;
+    min-height: 18px;
+    transition: color 0.15s;
+  }
+  .scope-hint strong { color: var(--mint-dark); font-weight: 700; }
+
+  /* TIME PILLS */
+  .time-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+  .time-pill { position: relative; cursor: pointer; }
+  .time-pill input { position: absolute; opacity: 0; }
+  .time-pill-label {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 12px 18px;
+    border: 2px solid var(--ink); background: var(--bg-card);
+    min-width: 80px;
+    transition: all 0.15s;
+  }
+  .time-pill-label strong {
+    font-family: 'Fraunces', serif;
+    font-size: 22px; font-weight: 800; color: var(--ink);
+    font-variation-settings: "SOFT" 30, "opsz" 24;
+  }
+  .time-pill-label span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.12em; color: var(--ink-muted);
+    margin-top: 2px;
+  }
+  .time-pill:hover .time-pill-label {
+    transform: translate(-1px, -1px);
+    box-shadow: 2px 2px 0 var(--ink);
+    background: var(--yellow-bg);
+  }
+  .time-pill input:checked + .time-pill-label {
+    background: var(--yellow);
+    box-shadow: 3px 3px 0 var(--ink);
+    transform: translate(-1px, -1px);
+  }
+  .time-pill input:checked + .time-pill-label strong { color: var(--ink); }
+  .time-pill input:checked + .time-pill-label span { color: var(--ink); opacity: 0.7; }
+
+  /* SUBMIT */
+  .submit-row {
+    margin-top: 40px; padding-top: 28px;
+    border-top: 2px solid var(--ink);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+  }
+  .submit-info { font-size: 13px; color: var(--ink-muted); max-width: 280px; }
+  .btn-submit {
+    background: var(--mint); color: var(--ink); border: 2px solid var(--ink);
+    padding: 18px 32px;
+    font-family: 'Fraunces', serif;
+    font-weight: 800; font-size: 18px; letter-spacing: -0.01em;
+    cursor: pointer; transition: all 0.15s;
+    box-shadow: 4px 4px 0 var(--ink);
+    font-variation-settings: "SOFT" 40;
+  }
+  .btn-submit:hover {
+    background: var(--mint-deep); color: #FFF;
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--ink);
+  }
+  .btn-submit:active { transform: translate(0,0); box-shadow: 2px 2px 0 var(--ink); }
+  .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* SUCCESS */
+  .success { display: none; text-align: center; padding: 60px 20px; }
+  .success.active { display: block; }
+  .success-icon {
+    width: 80px; height: 80px; margin: 0 auto 24px;
+    background: var(--mint); border: 2px solid var(--ink); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px; box-shadow: 6px 6px 0 var(--ink);
+  }
+  .success h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 900; font-size: 42px; letter-spacing: -0.04em;
+    margin-bottom: 12px; color: var(--ink);
+    font-variation-settings: "SOFT" 60, "WONK" 1, "opsz" 60;
+  }
+  .success p {
+    font-size: 17px; color: var(--ink-soft);
+    max-width: 460px; margin: 0 auto 28px;
+  }
+
+  /* FOOTER */
+  .footer {
+    text-align: center; padding: 40px 0 60px;
+    font-family: 'Mulish', sans-serif;
+    font-size: 13px; color: var(--ink-muted);
+    border-top: 1px solid var(--line);
+  }
+  .footer strong { color: var(--ink); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="logo">
+      <span class="logo-cup">☕</span>
+      <span>Manhã</span>
+    </div>
+    <div class="date-pill" id="todayDate">—</div>
+  </div>
+</header>
+<div class="tricolor"><span></span><span></span><span></span></div>
+
+<div class="container">
+
+  <section class="hero">
+    <span class="quote-mark">“</span>
+    <span class="kicker">★ Newsletter diária por e-mail</span>
+    <h1>Sua manhã,<br><em>sob medida.</em><br><span class="hl-m">Todo dia.</span></h1>
+    <p>Os assuntos que <strong>você</strong> escolhe — do Brasil <strong>e</strong> do mundo — resumidos por IA antes do café.</p>
+    <div class="hero-meta">
+      <div>☕ <span><strong>5 min</strong> de leitura</span></div>
+      <div>🇧🇷🌍 <span>Brasil <strong>+</strong> Mundo</span></div>
+      <div>🤖 <span>Curado por <strong>Claude AI</strong></span></div>
+    </div>
+  </section>
+
+  <form id="signupForm" class="form-card">
+
+    <div class="how-banner">
+      <span class="how-icon">💡</span>
+      <div>
+        <strong>Como funciona:</strong> você marca os temas; eu busco notícias no Brasil <strong>e</strong> no mundo, traduzo pro português, e mando todo dia no seu horário.
+      </div>
+    </div>
+
+    <!-- 01 IDENTIDADE -->
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">01</span>
+        <div>
+          <div class="step-title">Quem é você?</div>
+          <div class="step-hint">Nome pra te chamar todo dia, e-mail pra entregar o briefing. O telefone fica salvo pra <strong>recursos futuros</strong> (WhatsApp, recovery). <strong>Nunca</strong> uso pra ads.</div>
+        </div>
+      </div>
+      <div class="input-row">
+        <input type="text" id="name" class="field" placeholder="Seu primeiro nome" required>
+        <input type="email" id="email" class="field" placeholder="seu@email.com" required>
+      </div>
+      <div class="phone-row">
+        <select id="phoneCountry" class="field country-select field-country" required></select>
+        <input type="tel" id="phoneArea" class="field field-area" placeholder="DDD" maxlength="4" inputmode="numeric" required>
+        <input type="tel" id="phoneNumber" class="field field-number" placeholder="9 1234 5678" maxlength="15" inputmode="numeric" required>
+      </div>
+    </div>
+
+    <!-- 02 TRENDING TOPICS -->
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">02</span>
+        <div>
+          <div class="step-title">Trending Topics 🔥</div>
+          <div class="step-hint">Os termos mais buscados do dia no <strong>Brasil e no mundo</strong> — aparecem no topo do e-mail, antes das suas notícias.</div>
+        </div>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle on" id="trendingToggle" onclick="toggleTrending()"></div>
+        <div>
+          <div class="toggle-label" id="trendingLabel">Incluir Trending Topics</div>
+          <div class="toggle-sub">~10 termos no topo do e-mail (5 do BR + 5 do mundo)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 03 TEMAS CURADOS -->
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">03</span>
+        <div>
+          <div class="step-title">Temas curados</div>
+          <div class="step-hint">Marque os temas que te interessam. Pra cada um, eu trago notícias do <strong>Brasil e do mundo</strong> automaticamente, traduzidas em PT-BR.</div>
+        </div>
+      </div>
+      <div class="topics-grid" id="topicsGrid"></div>
+    </div>
+
+    <!-- 04 PERSONALIZADO -->
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">04</span>
+        <div>
+          <div class="step-title">Seus temas próprios</div>
+          <div class="step-hint">Empresas, marcas, concorrentes, segmentos. Eu <strong>detecto automaticamente</strong> se é tema brasileiro ou global. Clique nas bandeirinhas pra ajustar se eu errar.</div>
+        </div>
+      </div>
+      <div class="custom-input-row">
+        <input type="text" id="customTopicInput" class="field" placeholder="ex: Cabana Burger, FIIs, OpenAI…">
+        <button type="button" class="btn-add" onclick="addCustomTopic()">+ Adicionar</button>
+      </div>
+      <div class="scope-hint" id="scopeHint">↳ digite acima e eu detecto o escopo</div>
+      <div class="tags-list" id="tagsList"></div>
+    </div>
+
+    <div class="submit-row">
+      <div class="submit-info">O e-mail chega <strong>todo dia às 6h da manhã</strong> (horário de Brasília). Você pode <strong>ajustar seus temas</strong> a qualquer momento — basta voltar a essa página com o mesmo e-mail.</div>
+      <button type="submit" class="btn-submit" id="submitBtn">Começar a receber →</button>
+    </div>
+
+  </form>
+
+  <div class="success" id="successScreen">
+    <div class="success-icon">☕</div>
+    <h2>Tá no jeito!</h2>
+    <p>Sua primeira edição chega nos próximos minutos. Daí pra frente, todo dia às 6h da manhã.</p>
+    <div class="submit-info" style="margin: 0 auto; text-align: center;">
+      <strong id="successEmail"></strong><br>
+      <span style="color: var(--ink-muted);">Olha a pasta de spam / promoções na primeira vez ;)</span>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <strong>Manhã ☕</strong> · feito com 💚 e café<br>
+    Newsletter diária personalizada · sem rastreio, sem ads.
+  </footer>
+
+</div>
+
+<script>
+  // ===== CONFIG =====
+  const SUPABASE_URL = 'https://jegvgviwbkbrmuhcivle.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_Q9FiImNakeN-DdGIbWIDjQ_v50JUNSS';
+  const WELCOME_FN_URL = SUPABASE_URL + '/functions/v1/welcome';
+  const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ===== TEMAS CURADOS =====
+  // Cada tema tem 2 queries (PT pro fetch no Brasil, EN pro fetch global).
+  const CURATED_TOPICS = [
+    { emoji: '💰', label: 'Economia',                 query_pt: 'economia inflação juros',           query_en: 'economy inflation markets' },
+    { emoji: '📈', label: 'Mercados financeiros',     query_pt: 'bolsa mercado financeiro ações',    query_en: 'stock market wall street trading' },
+    { emoji: '🚀', label: 'Tech & IA',                query_pt: 'tecnologia inteligência artificial',query_en: 'artificial intelligence tech' },
+    { emoji: '🌍', label: 'Geopolítica',              query_pt: 'geopolítica relações internacionais',query_en: 'geopolitics world affairs' },
+    { emoji: '🏛️', label: 'Política',                 query_pt: 'política congresso governo',       query_en: 'politics congress government' },
+    { emoji: '🍔', label: 'Food service & varejo',    query_pt: 'food service varejo restaurantes', query_en: 'food service retail restaurants' },
+    { emoji: '🏢', label: 'Negócios & M&A',           query_pt: 'fusões aquisições negócios',       query_en: 'mergers acquisitions M&A business' },
+    { emoji: '🏘️', label: 'Imobiliário',              query_pt: 'mercado imobiliário FII',          query_en: 'real estate REIT housing' },
+    { emoji: '⚽', label: 'Esportes',                 query_pt: 'esportes futebol',                  query_en: 'sports football basketball' },
+    { emoji: '🎬', label: 'Cultura & entretenimento', query_pt: 'cultura cinema entretenimento',    query_en: 'culture entertainment movies' },
+    { emoji: '🧠', label: 'Ciência & saúde',          query_pt: 'ciência saúde pesquisa',           query_en: 'science health research' },
+    { emoji: '🌱', label: 'Sustentabilidade & ESG',   query_pt: 'sustentabilidade ESG clima',       query_en: 'sustainability ESG climate' },
+    { emoji: '🚗', label: 'Auto & mobilidade',        query_pt: 'automóveis carros elétricos',      query_en: 'automotive EV mobility' },
+    { emoji: '🎓', label: 'Educação',                 query_pt: 'educação universidade ensino',     query_en: 'education university schools' },
+    { emoji: '💼', label: 'Trabalho & carreira',      query_pt: 'mercado de trabalho carreira RH',  query_en: 'labor market career work' },
+    { emoji: '🛒', label: 'Consumo & marcas',         query_pt: 'consumo marcas marketing',         query_en: 'consumer brands marketing retail' },
+    { emoji: '💡', label: 'Curiosidades',              query_pt: 'curiosidades fatos descobertas insólito',    query_en: 'today I learned interesting facts trivia discoveries' },
+  ];
+
+  // ===== STATE =====
+  let trendingEnabled = true;
+  let customTopics = []; // [{ label, query }]
+
+  // ===== PAÍSES (código de discagem) =====
+  // BR sempre primeiro (default). Demais em ordem crescente de DDI.
+  // Em caso de DDI igual (+1: Canadá e EUA), ordem alfabética por nome.
+  const PHONE_COUNTRIES = [
+    { code: 'BR', flag: '🇧🇷', dial: '+55',  name: 'Brasil' },
+
+    { code: 'CA', flag: '🇨🇦', dial: '+1',   name: 'Canadá' },
+    { code: 'US', flag: '🇺🇸', dial: '+1',   name: 'Estados Unidos' },
+    { code: 'ZA', flag: '🇿🇦', dial: '+27',  name: 'África do Sul' },
+    { code: 'NL', flag: '🇳🇱', dial: '+31',  name: 'Holanda' },
+    { code: 'FR', flag: '🇫🇷', dial: '+33',  name: 'França' },
+    { code: 'ES', flag: '🇪🇸', dial: '+34',  name: 'Espanha' },
+    { code: 'IT', flag: '🇮🇹', dial: '+39',  name: 'Itália' },
+    { code: 'CH', flag: '🇨🇭', dial: '+41',  name: 'Suíça' },
+    { code: 'GB', flag: '🇬🇧', dial: '+44',  name: 'Reino Unido' },
+    { code: 'DK', flag: '🇩🇰', dial: '+45',  name: 'Dinamarca' },
+    { code: 'SE', flag: '🇸🇪', dial: '+46',  name: 'Suécia' },
+    { code: 'NO', flag: '🇳🇴', dial: '+47',  name: 'Noruega' },
+    { code: 'DE', flag: '🇩🇪', dial: '+49',  name: 'Alemanha' },
+    { code: 'PE', flag: '🇵🇪', dial: '+51',  name: 'Peru' },
+    { code: 'MX', flag: '🇲🇽', dial: '+52',  name: 'México' },
+    { code: 'AR', flag: '🇦🇷', dial: '+54',  name: 'Argentina' },
+    { code: 'CL', flag: '🇨🇱', dial: '+56',  name: 'Chile' },
+    { code: 'CO', flag: '🇨🇴', dial: '+57',  name: 'Colômbia' },
+    { code: 'AU', flag: '🇦🇺', dial: '+61',  name: 'Austrália' },
+    { code: 'NZ', flag: '🇳🇿', dial: '+64',  name: 'Nova Zelândia' },
+    { code: 'SG', flag: '🇸🇬', dial: '+65',  name: 'Cingapura' },
+    { code: 'JP', flag: '🇯🇵', dial: '+81',  name: 'Japão' },
+    { code: 'KR', flag: '🇰🇷', dial: '+82',  name: 'Coreia do Sul' },
+    { code: 'CN', flag: '🇨🇳', dial: '+86',  name: 'China' },
+    { code: 'IN', flag: '🇮🇳', dial: '+91',  name: 'Índia' },
+    { code: 'PT', flag: '🇵🇹', dial: '+351', name: 'Portugal' },
+    { code: 'IE', flag: '🇮🇪', dial: '+353', name: 'Irlanda' },
+    { code: 'UY', flag: '🇺🇾', dial: '+598', name: 'Uruguai' },
+    { code: 'SA', flag: '🇸🇦', dial: '+966', name: 'Arábia Saudita' },
+    { code: 'AE', flag: '🇦🇪', dial: '+971', name: 'Emirados Árabes' },
+    { code: 'IL', flag: '🇮🇱', dial: '+972', name: 'Israel' },
+  ];
+
+  function fillPhoneCountries() {
+    const sel = document.getElementById('phoneCountry');
+    sel.innerHTML = '';
+    PHONE_COUNTRIES.forEach(c => {
+      const opt = document.createElement('option');
+      // value armazena o dial code; texto curto pra caber no select fechado
+      opt.value = `${c.code}|${c.dial}`;
+      opt.textContent = `${c.flag} ${c.dial}`;
+      opt.dataset.fullname = c.name;
+      sel.appendChild(opt);
+    });
+    sel.value = 'BR|+55';
+  }
+
+  // ===== RENDER =====
+  function renderDate() {
+    const meses = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+    const dias = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+    const d = new Date();
+    document.getElementById('todayDate').textContent = `${dias[d.getDay()]} · ${String(d.getDate()).padStart(2,'0')} ${meses[d.getMonth()]} ${d.getFullYear()}`;
+  }
+
+  function renderTopics() {
+    const grid = document.getElementById('topicsGrid');
+    grid.innerHTML = CURATED_TOPICS.map((t, i) => `
+      <label class="topic-chip">
+        <input type="checkbox" value="${i}">
+        <div class="topic-chip-label">
+          <span class="topic-emoji">${t.emoji}</span>
+          <span>${t.label}</span>
+        </div>
+      </label>
+    `).join('');
+  }
+
+  // ===== DETECTOR DE ESCOPO PRA TEMAS PRÓPRIOS =====
+  // Retorna BR-only se: tem acento PT-BR OU termo claramente brasileiro.
+  // Caso contrário, BR + GLOBAL (default seguro).
+  const BR_PATTERNS = [
+    /[ãõçáéíóúâêôà]/i,                                  // acentos PT-BR
+    /\bbrasil(?:eir[oa]s?)?\b/i,                         // "brasil", "brasileiro", "brasileira"
+    /\b(sus|anvisa|cvm|copom|stf|tcu|cgu|anatel|anac|anp|aneel)\b/i,  // siglas BR
+    /\b(selic|ibovespa|bovespa|fiis?|cdb|lci|lca|lft|tesouro\s*direto)\b/i,  // financeiro BR
+    /\b(lula|bolsonaro|planalto|brasília|brasilia)\b/i,  // política BR
+    /\b(petrobras|magalu|magazine\s*luiza|nubank|btg\s*pactual|bradesco|ita[uú]|americanas|ambev|natura|botic[aá]rio|havaianas|cabana\s*burger)\b/i,  // marcas BR
+    /\b(flamengo|palmeiras|corinthians|s[ãa]o\s*paulo\s*(fc|futebol)|grêmio|gremio|fluminense|vasco|botafogo|cruzeiro|atl[ée]tico\s*mineiro|santos\s*fc|internacional|libertadores|brasileir[aã]o|copa\s*do\s*brasil)\b/i, // esportes BR
+    /\b(s[ãa]o\s*paulo|rio\s*de\s*janeiro|belo\s*horizonte|brasília|brasilia|curitiba|salvador|recife|fortaleza|porto\s*alegre|manaus|bel[ée]m|goi[âa]nia)\b/i, // cidades BR
+  ];
+
+  function detectScope(query) {
+    if (BR_PATTERNS.some(p => p.test(query))) {
+      return { scopes: new Set(['BR']), reason: '🇧🇷 detectei termo brasileiro' };
+    }
+    return { scopes: new Set(['BR', 'GLOBAL']), reason: '🇧🇷🌍 vou buscar no Brasil e no mundo' };
+  }
+
+  function updateScopeHint() {
+    const val = document.getElementById('customTopicInput').value.trim();
+    const hint = document.getElementById('scopeHint');
+    if (!val) {
+      hint.innerHTML = '↳ digite acima e eu detecto o escopo';
+      return;
+    }
+    const { reason } = detectScope(val);
+    hint.innerHTML = `↳ <strong>${reason}</strong> · clique nas bandeirinhas do tag pra ajustar depois`;
+  }
+
+  function renderTags() {
+    const list = document.getElementById('tagsList');
+    list.innerHTML = customTopics.map((t, idx) => `
+      <span class="tag">
+        <button type="button" class="tag-flag ${t.scopes.has('BR') ? 'active' : ''}" onclick="toggleTagScope(${idx}, 'BR')" title="Brasil">🇧🇷</button>
+        <button type="button" class="tag-flag ${t.scopes.has('GLOBAL') ? 'active' : ''}" onclick="toggleTagScope(${idx}, 'GLOBAL')" title="Mundo">🌍</button>
+        <span class="tag-label">${t.label}</span>
+        <button type="button" class="tag-remove" onclick="removeTag(${idx})">×</button>
+      </span>
+    `).join('');
+  }
+
+  function toggleTagScope(idx, scope) {
+    const t = customTopics[idx];
+    if (t.scopes.has(scope)) {
+      // não permite desmarcar se for o último
+      if (t.scopes.size > 1) t.scopes.delete(scope);
+    } else {
+      t.scopes.add(scope);
+    }
+    renderTags();
+  }
+
+  function removeTag(idx) { customTopics.splice(idx, 1); renderTags(); }
+
+  function addCustomTopic() {
+    const input = document.getElementById('customTopicInput');
+    const val = input.value.trim();
+    if (!val) return;
+    if (customTopics.length >= 8) { alert('Máximo de 8 temas personalizados 🙂'); return; }
+    if (customTopics.some(t => t.label.toLowerCase() === val.toLowerCase())) { alert('Esse tema já está na lista'); return; }
+    const { scopes } = detectScope(val);
+    customTopics.push({ label: val, query: val, scopes });
+    input.value = '';
+    updateScopeHint();
+    renderTags();
+  }
+
+  document.addEventListener('input', (e) => {
+    if (e.target.id === 'customTopicInput') updateScopeHint();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.target.id === 'customTopicInput' && e.key === 'Enter') {
+      e.preventDefault();
+      addCustomTopic();
+    }
+  });
+
+  function toggleTrending() {
+    trendingEnabled = !trendingEnabled;
+    const t = document.getElementById('trendingToggle');
+    const lbl = document.getElementById('trendingLabel');
+    t.classList.toggle('on', trendingEnabled);
+    lbl.textContent = trendingEnabled ? 'Incluir Trending Topics' : 'Pular Trending Topics';
+  }
+
+  // ===== SUBMIT =====
+  document.getElementById('signupForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true; btn.textContent = 'Salvando…';
+
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim().toLowerCase();
+    // Hora fixa: todos recebem às 6h BRT (com catch-up até 8h)
+
+    // ===== TELEFONE =====
+    const phoneCountryRaw = document.getElementById('phoneCountry').value; // ex: "BR|+55"
+    const [phoneCountryCode, phoneDial] = phoneCountryRaw.split('|');
+    const phoneArea = document.getElementById('phoneArea').value.replace(/\D/g, '');
+    const phoneNumberRaw = document.getElementById('phoneNumber').value.replace(/\D/g, '');
+
+    if (!phoneArea || !phoneNumberRaw) {
+      alert('Preenche o DDD e o número do telefone, por favor 🙂');
+      btn.disabled = false; btn.textContent = 'Começar a receber →';
+      return;
+    }
+    if (phoneNumberRaw.length < 6) {
+      alert('Número de telefone parece curto demais. Confere?');
+      btn.disabled = false; btn.textContent = 'Começar a receber →';
+      return;
+    }
+    // E.164 — padrão internacional usado por Twilio/WhatsApp Business
+    const phoneE164 = `${phoneDial}${phoneArea}${phoneNumberRaw}`;
+    // Display amigável: "+55 11 987654321"
+    const phoneDisplay = `${phoneDial} ${phoneArea} ${phoneNumberRaw}`;
+
+    // Cada tema curado vira 2 records: BR + GLOBAL
+    const selectedIdx = [...document.querySelectorAll('.topic-chip input:checked')].map(c => parseInt(c.value));
+    const curatedRecords = [];
+    selectedIdx.forEach(i => {
+      const t = CURATED_TOPICS[i];
+      curatedRecords.push({ label: t.label, query: t.query_pt, source: 'curated', country: 'BR' });
+      curatedRecords.push({ label: t.label, query: t.query_en, source: 'curated', country: 'GLOBAL' });
+    });
+
+    // Cada tema customizado vira 1 record por escopo detectado/ajustado
+    const customRecords = [];
+    customTopics.forEach(t => {
+      [...t.scopes].forEach(scope => {
+        customRecords.push({ label: t.label, query: t.query, source: 'custom', country: scope });
+      });
+    });
+
+    const topics = [...curatedRecords, ...customRecords];
+
+    if (topics.length === 0 && !trendingEnabled) {
+      alert('Escolha pelo menos um tema OU ative Trending Topics 🙂');
+      btn.disabled = false; btn.textContent = 'Começar a receber →';
+      return;
+    }
+
+    // SAFETY: bloqueia temas explicitamente perigosos antes de salvar
+    const blockedTopic = topics.find(t => isBlockedTopic(t.query || t.label || ''));
+    if (blockedTopic) {
+      alert('Tema rejeitado: "' + (blockedTopic.label || blockedTopic.query) + '" contém conteúdo que não podemos curar (ex: how-to de armas, drogas, hacking). Tente um tema mais amplo.');
+      btn.disabled = false; btn.textContent = 'Começar a receber →';
+      return;
+    }
+
+    try {
+      const { data: userData, error: uErr } = await sbClient
+        .from('users')
+        .upsert({
+          name, email,
+          phone: phoneE164,                        // E.164: "+5511987654321"
+          phone_display: phoneDisplay,             // "+55 11 987654321"
+          phone_country_code: phoneCountryCode,    // "BR"
+          send_hour: 6,                            // padrão fixo: 6h BRT (catch-up automático até 8h)
+          active: true,
+          default_country: 'BR',                   // sempre BR (assumido)
+          trending_enabled: trendingEnabled,
+          trending_scope: 'br,global',             // sempre os dois
+          trending_country: null,
+          welcome_sent: false                      // será marcado true pelo welcome workflow
+        }, { onConflict: 'email' })
+        .select().single();
+      if (uErr) throw uErr;
+
+      await sbClient.from('topics').delete().eq('user_id', userData.id);
+
+      if (topics.length > 0) {
+        const { error: tErr } = await sbClient.from('topics').insert(
+          topics.map(t => ({ ...t, user_id: userData.id }))
+        );
+        if (tErr) throw tErr;
+      }
+
+      // Dispara welcome instantâneo (não bloqueia se falhar)
+      try {
+        await fetch(WELCOME_FN_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userData.id }),
+        });
+      } catch (e) {
+        console.warn('welcome dispatch falhou (silencioso):', e);
+      }
+
+      document.getElementById('signupForm').style.display = 'none';
+      document.querySelector('.hero').style.display = 'none';
+      document.getElementById('successEmail').textContent = email;
+      document.getElementById('successScreen').classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao salvar: ' + err.message);
+      btn.disabled = false; btn.textContent = 'Começar a receber →';
+    }
+  });
+
+  // ===== SAFETY: padrões bloqueados (espelha scripts/safety.py) =====
+  const BLOCKED_PATTERNS = [
+    /\bcomo\s+(?:fazer|construir|montar|fabricar)\s+(?:arma|fuzil|bomba|explosivo|granada)/i,
+    /\b(arma|fuzil|pistola|munição)\s+(?:caseir[ao]|artesanal|3d)/i,
+    /\bcomo\s+(?:fazer|sintetizar|produzir|cozinhar)\s+(?:cocaína|crack|meta|fentanil|lsd|metanfetamin|heroína|mdma)/i,
+    /\bcomo\s+(?:hackear|invadir)\s+(?:conta|whatsapp|instagram|facebook|email|wifi|senha)/i,
+    /\bcomo\s+(?:falsificar|forjar|fraudar|burlar)\s+(?:cpf|rg|nota|cnh|passaporte|documento)/i,
+    /\bcomo\s+(?:acessar|usar|comprar\s+em)\s+(?:dark\s*web|deep\s*web|silk\s*road)/i,
+    /\b(?:método|forma|como|jeito)\s+(?:de\s+|para\s+|pra\s+)?(?:suicídio|me\s+matar|se\s+matar)/i,
+    /\b(?:pedofilia|pornografia\s+infantil|child\s+porn|csam)/i,
+    /\b(?:supremacia|supremacist[ao]s?)\s+(?:branc[ao]|aria|racial)/i,
+    /\b(?:neonaz|nazismo|hitler\s+tinha\s+razão)/i,
+    /\b(?:expurgar|exterminar|aniquilar)\s+(?:negros|judeus|gays|lgbt|árabes)/i,
+    /\b(?:porno|pornô|pornografia|xvideos|onlyfans\s+vaza|nudes\s+vaza)/i,
+  ];
+  function isBlockedTopic(query) {
+    if (!query) return false;
+    return BLOCKED_PATTERNS.some(p => p.test(query));
+  }
+
+  // ===== INIT =====
+  renderDate();
+  renderTopics();
+  fillPhoneCountries();
+</script>
+
+</body>
+</html>
