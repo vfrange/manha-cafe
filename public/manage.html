@@ -293,12 +293,32 @@ function toggleScope(idx, scope) {
 
 function removeTag(idx) { currentTopics.splice(idx, 1); renderTags(); }
 
+const BLOCKED_PATTERNS = [
+  /\bcomo\s+(?:fazer|construir|montar|fabricar)\s+(?:arma|fuzil|bomba|explosivo|granada)/i,
+  /\b(arma|fuzil|pistola|munição)\s+(?:caseir[ao]|artesanal|3d)/i,
+  /\bcomo\s+(?:fazer|sintetizar|produzir|cozinhar)\s+(?:cocaína|crack|meta|fentanil|lsd|metanfetamin|heroína|mdma)/i,
+  /\bcomo\s+(?:hackear|invadir)\s+(?:conta|whatsapp|instagram|facebook|email|wifi|senha)/i,
+  /\bcomo\s+(?:falsificar|forjar|fraudar|burlar)\s+(?:cpf|rg|nota|cnh|passaporte|documento)/i,
+  /\bcomo\s+(?:acessar|usar|comprar\s+em)\s+(?:dark\s*web|deep\s*web|silk\s*road)/i,
+  /\b(?:método|forma|como|jeito)\s+(?:de\s+|para\s+|pra\s+)?(?:suicídio|me\s+matar|se\s+matar)/i,
+  /\b(?:pedofilia|pornografia\s+infantil|child\s+porn|csam)/i,
+  /\b(?:supremacia|supremacist[ao]s?)\s+(?:branc[ao]|aria|racial)/i,
+  /\b(?:neonaz|nazismo|hitler\s+tinha\s+razão)/i,
+  /\b(?:expurgar|exterminar|aniquilar)\s+(?:negros|judeus|gays|lgbt|árabes)/i,
+  /\b(?:porno|pornô|pornografia|xvideos|onlyfans\s+vaza|nudes\s+vaza)/i,
+];
+function isBlockedTopic(query) {
+  if (!query) return false;
+  return BLOCKED_PATTERNS.some(p => p.test(query));
+}
+
 function addTopic() {
   const input = document.getElementById('newTopicInput');
   const val = input.value.trim();
   if (!val) return;
   if (currentTopics.length >= 20) return toast('Máximo de 20 temas', 'error');
   if (currentTopics.some(tp => tp.label.toLowerCase() === val.toLowerCase())) return toast('Esse tema já está', 'error');
+  if (isBlockedTopic(val)) return toast('Tema rejeitado por política de uso (sem how-to perigoso)', 'error');
   const { scopes } = detectScope(val);
   currentTopics.push({ label: val, query: val, scopes, source: 'custom' });
   input.value = '';
