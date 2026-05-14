@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manhã ☕ · Suas preferências</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700;800;900&family=Mulish:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --mint:#6EE7B7; --mint-deep:#10B981; --mint-dark:#047857; --mint-bg:#DCFCE7;
+  --ink:#0A2540; --ink-soft:#334155; --ink-muted:#64748B;
+  --bg:#FFFAF0; --bg2:#F4F1EA; --line:#E2DFD7; --red:#C8102E; --yellow:#FFD60A;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:'Mulish',sans-serif;font-size:15px;line-height:1.5}
+.container{max-width:680px;margin:0 auto;padding:32px 24px 80px}
+.hero{padding:24px 0 32px;border-bottom:2px solid var(--ink)}
+.hero-tag{display:inline-block;background:var(--mint);border:1.5px solid var(--ink);padding:5px 12px;font-size:11px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:14px}
+h1{font-family:'Fraunces',serif;font-weight:900;font-size:36px;line-height:1.1;letter-spacing:-0.025em;margin:0 0 8px}
+.subtitle{color:var(--ink-muted);font-size:15px;margin:0}
+.section{margin-top:32px;padding-bottom:24px;border-bottom:1px solid var(--line)}
+.section:last-of-type{border-bottom:none}
+.label{font-size:11px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:var(--mint-dark);margin-bottom:10px}
+.field{width:100%;padding:12px 14px;border:2px solid var(--ink);background:#fff;font-family:inherit;font-size:15px}
+.field:focus{outline:none;background:#FFF9DB}
+.row{display:flex;gap:12px;align-items:center}
+.row > *{flex:1}
+.row > button{flex:0 0 auto}
+.btn{display:inline-block;padding:12px 20px;font-family:inherit;font-size:13px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;border:2px solid var(--ink);transition:all .12s}
+.btn-primary{background:var(--mint-deep);color:#fff;border-color:var(--mint-deep)}
+.btn-primary:hover{background:var(--mint-dark)}
+.btn-secondary{background:#fff;color:var(--ink)}
+.btn-secondary:hover{background:var(--bg2)}
+.btn-danger{background:#fff;color:var(--red);border-color:var(--red)}
+.btn-danger:hover{background:var(--red);color:#fff}
+.btn-add{background:var(--ink);color:#fff;border-color:var(--ink);padding:12px 18px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.tag{display:inline-flex;align-items:center;background:var(--mint-deep);color:#fff;padding:4px 8px 4px 4px;font-size:13px;font-weight:700;gap:4px}
+.tag-flag{background:rgba(255,255,255,0.18);border:none;color:#fff;cursor:pointer;padding:3px 6px;font-size:12px;line-height:1;opacity:.4}
+.tag-flag.active{opacity:1;background:rgba(255,255,255,0.35)}
+.tag-label{padding:0 4px}
+.tag-remove{background:none;border:none;color:#fff;cursor:pointer;font-size:16px;padding:0 0 0 4px;line-height:1;opacity:.7}
+.tag-remove:hover{opacity:1}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--bg2);border:2px solid var(--ink)}
+.toggle{position:relative;display:inline-block;width:46px;height:24px;cursor:pointer}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:#ccc;transition:.18s;border:2px solid var(--ink)}
+.toggle-slider::before{content:"";position:absolute;height:14px;width:14px;left:2px;top:2px;background:#fff;transition:.18s;border:1.5px solid var(--ink)}
+.toggle input:checked+.toggle-slider{background:var(--mint)}
+.toggle input:checked+.toggle-slider::before{transform:translateX(22px)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:14px 22px;font-weight:700;font-size:14px;display:none;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.18)}
+.toast.success{background:var(--mint-deep)}
+.toast.error{background:var(--red)}
+.toast.show{display:block}
+.muted-note{font-size:13px;color:var(--ink-muted);margin-top:6px;line-height:1.5}
+.loading{text-align:center;padding:60px 0;color:var(--ink-muted);font-family:'Fraunces',serif;font-style:italic}
+.danger-zone{margin-top:48px;padding:20px;border:2px dashed var(--red);background:#fff}
+.danger-zone h3{margin:0 0 6px;color:var(--red);font-family:'Fraunces',serif;font-size:18px}
+.danger-zone p{margin:0 0 14px;font-size:13px;color:var(--ink-soft)}
+.scope-hint{font-size:12px;color:var(--ink-muted);margin-top:6px;min-height:18px}
+.scope-hint strong{color:var(--mint-dark);font-weight:700}
+.error-card{padding:24px;background:#FFF;border:2px solid var(--red);text-align:center}
+.error-card h2{font-family:'Fraunces',serif;color:var(--red);margin:0 0 10px}
+.error-card p{margin:0;color:var(--ink-soft);font-size:14px;line-height:1.6}
+@media(max-width:520px){
+  h1{font-size:28px}
+  .container{padding:20px 16px 60px}
+  .row{flex-direction:column;align-items:stretch}
+  .row > button{width:100%}
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="hero">
+    <div class="hero-tag">☕ Manhã · Preferências</div>
+    <h1>Ajuste o que você recebe.</h1>
+    <p class="subtitle">Mude seus temas, pause por uns dias ou cancele a qualquer momento.</p>
+  </div>
+
+  <!-- Loading -->
+  <div id="loadingScreen" class="loading">Validando seu link…</div>
+
+  <!-- Erro de acesso (sem token ou expirado) -->
+  <div id="errorScreen" class="section" style="display:none">
+    <div class="error-card">
+      <h2 id="errorTitle">Link inválido ou expirado</h2>
+      <p id="errorMessage">Pra acessar suas preferências, abra seu <strong>email mais recente do Manhã ☕</strong> e clique em "Ajustar minhas preferências" no rodapé. Links têm validade de 30 dias.</p>
+    </div>
+  </div>
+
+  <!-- Editor: aparece após autenticar -->
+  <div id="editor" style="display:none">
+
+    <div class="section">
+      <div class="label">Você está logado como</div>
+      <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:700" id="userName"></div>
+      <div style="font-size:14px;color:var(--ink-muted);margin-top:4px" id="userEmail"></div>
+    </div>
+
+    <div class="section">
+      <div class="label">Status da newsletter</div>
+      <div class="toggle-row">
+        <div>
+          <strong style="font-family:'Fraunces',serif;font-size:18px" id="activeLabel">Ativa</strong>
+          <div style="font-size:13px;color:var(--ink-muted);margin-top:2px">Email diário às 6h da manhã</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="activeToggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="label">🔥 Em alta (trending topics)</div>
+      <div class="toggle-row">
+        <div>
+          <strong style="font-family:'Fraunces',serif;font-size:16px">Receber Em Alta no topo</strong>
+          <div style="font-size:13px;color:var(--ink-muted);margin-top:2px">Termos virais do dia (Google + Bluesky + YouTube)</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="trendingToggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="label">Seus temas</div>
+      <p class="muted-note" style="margin:0 0 10px">Empresas, marcas, segmentos, eventos que você quer acompanhar. Detecto automaticamente se é BR ou Global; clique nas bandeirinhas pra ajustar.</p>
+      <div class="row">
+        <input type="text" id="newTopicInput" class="field" placeholder="ex: Cabana Burger, FIIs, OpenAI…">
+        <button class="btn btn-add" onclick="addTopic()">+ Adicionar</button>
+      </div>
+      <div class="scope-hint" id="scopeHint">↳ digite acima e eu detecto o escopo</div>
+      <div class="tags" id="tagsList"></div>
+    </div>
+
+    <div style="margin-top:32px;display:flex;gap:12px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="saveChanges()" id="saveBtn">Salvar mudanças</button>
+      <button class="btn btn-secondary" onclick="window.location.reload()">Descartar</button>
+    </div>
+
+    <div class="danger-zone">
+      <h3>Cancelar definitivamente</h3>
+      <p>Apaga seu cadastro completo. Pra voltar, é só refazer o cadastro.</p>
+      <button class="btn btn-danger" onclick="deleteAccount()">Cancelar minha inscrição</button>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// URL da Edge Function manage no Supabase — ⚠️ COLA AQUI A URL DO SEU PROJETO:
+const MANAGE_FN_URL = 'https://jegvgviwbkbrmuhcivle.supabase.co/functions/v1/manage';
+
+let token = null; // { u, exp, t } da URL
+let currentUser = null;
+let currentTopics = []; // [{label, query, scopes:Set<'BR'|'GLOBAL'>}]
+
+// Detector de escopo (espelha cadastro.html)
+const BR_PATTERNS = [
+  /[ãõçáéíóúâêôà]/i,
+  /\bbrasil(?:eir[oa]s?)?\b/i,
+  /\b(sus|anvisa|cvm|copom|stf|tcu|cgu|anatel|anac|anp|aneel)\b/i,
+  /\b(selic|ibovespa|bovespa|fiis?|cdb|lci|lca|lft|tesouro\s*direto)\b/i,
+  /\b(lula|bolsonaro|planalto|brasília|brasilia)\b/i,
+  /\b(petrobras|magalu|magazine\s*luiza|nubank|btg\s*pactual|bradesco|ita[uú]|americanas|ambev|natura|botic[aá]rio|havaianas|cabana\s*burger)\b/i,
+  /\b(flamengo|palmeiras|corinthians|s[ãa]o\s*paulo\s*(fc|futebol)|grêmio|gremio|fluminense|vasco|botafogo|cruzeiro|atl[ée]tico\s*mineiro|santos\s*fc|internacional|libertadores|brasileir[aã]o|copa\s*do\s*brasil)\b/i,
+  /\b(s[ãa]o\s*paulo|rio\s*de\s*janeiro|belo\s*horizonte|brasília|brasilia|curitiba|salvador|recife|fortaleza|porto\s*alegre|manaus|bel[ée]m|goi[âa]nia)\b/i,
+];
+function detectScope(query) {
+  if (BR_PATTERNS.some(p => p.test(query))) {
+    return { scopes: new Set(['BR']), reason: '🇧🇷 detectei termo brasileiro' };
+  }
+  return { scopes: new Set(['BR', 'GLOBAL']), reason: '🇧🇷🌍 vai buscar no Brasil e no mundo' };
+}
+
+// Chamada genérica pra Edge Function
+async function callManage(action, extra = {}) {
+  const body = { action, u: token.u, exp: token.exp, t: token.t, ...extra };
+  const resp = await fetch(MANAGE_FN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) {
+    let err;
+    try { err = (await resp.json()).error || resp.statusText; } catch { err = resp.statusText; }
+    throw new Error(err);
+  }
+  return await resp.json();
+}
+
+// ===== INIT =====
+async function init() {
+  const params = new URLSearchParams(window.location.search);
+  const u = params.get('u');
+  const exp = params.get('exp');
+  const t = params.get('t');
+
+  if (!u || !exp || !t) {
+    showError('Link sem token de acesso', 'Pra acessar suas preferências, abra seu <strong>email mais recente do Manhã ☕</strong> e clique em "Ajustar minhas preferências" no rodapé.');
+    return;
+  }
+
+  token = { u, exp, t };
+
+  try {
+    const data = await callManage('get');
+    currentUser = data.user;
+    // Agrupa topics por label (cada label pode ter 1-2 records BR/GLOBAL)
+    const byLabel = {};
+    (data.topics || []).forEach(tp => {
+      if (!byLabel[tp.label]) {
+        byLabel[tp.label] = { label: tp.label, query: tp.query, scopes: new Set(), source: tp.source };
+      }
+      byLabel[tp.label].scopes.add(tp.country);
+    });
+    currentTopics = Object.values(byLabel);
+    renderEditor();
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('editor').style.display = 'block';
+  } catch (e) {
+    if (e.message === 'expired') {
+      showError('Link expirado', 'Este link de preferências passou de 30 dias. Vá ao <strong>email mais recente</strong> e use o link de lá.');
+    } else if (e.message === 'invalid_token') {
+      showError('Link inválido', 'O link parece corrompido. Vá ao <strong>email mais recente</strong> e use o link de lá.');
+    } else if (e.message === 'not_found') {
+      showError('Usuário não encontrado', 'Não achamos esse cadastro no sistema. Pode ter sido cancelado.');
+    } else {
+      showError('Algo deu errado', e.message);
+    }
+  }
+}
+
+function showError(title, msg) {
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('editor').style.display = 'none';
+  document.getElementById('errorTitle').textContent = title;
+  document.getElementById('errorMessage').innerHTML = msg;
+  document.getElementById('errorScreen').style.display = 'block';
+}
+
+function renderEditor() {
+  document.getElementById('userName').textContent = currentUser.name;
+  document.getElementById('userEmail').textContent = currentUser.email;
+  document.getElementById('activeToggle').checked = currentUser.active !== false;
+  document.getElementById('activeLabel').textContent = currentUser.active !== false ? 'Ativa' : 'Pausada';
+  document.getElementById('trendingToggle').checked = currentUser.trending_enabled !== false;
+  renderTags();
+}
+
+document.addEventListener('change', (e) => {
+  if (e.target.id === 'activeToggle') {
+    document.getElementById('activeLabel').textContent = e.target.checked ? 'Ativa' : 'Pausada';
+  }
+});
+
+// ===== TEMAS =====
+function renderTags() {
+  const list = document.getElementById('tagsList');
+  list.innerHTML = currentTopics.map((tp, idx) => `
+    <span class="tag">
+      <button type="button" class="tag-flag ${tp.scopes.has('BR') ? 'active' : ''}" onclick="toggleScope(${idx}, 'BR')">🇧🇷</button>
+      <button type="button" class="tag-flag ${tp.scopes.has('GLOBAL') ? 'active' : ''}" onclick="toggleScope(${idx}, 'GLOBAL')">🌍</button>
+      <span class="tag-label">${escapeHtml(tp.label)}</span>
+      <button type="button" class="tag-remove" onclick="removeTag(${idx})">×</button>
+    </span>
+  `).join('');
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+}
+
+function toggleScope(idx, scope) {
+  const tp = currentTopics[idx];
+  if (tp.scopes.has(scope)) {
+    if (tp.scopes.size > 1) tp.scopes.delete(scope);
+  } else {
+    tp.scopes.add(scope);
+  }
+  renderTags();
+}
+
+function removeTag(idx) { currentTopics.splice(idx, 1); renderTags(); }
+
+function addTopic() {
+  const input = document.getElementById('newTopicInput');
+  const val = input.value.trim();
+  if (!val) return;
+  if (currentTopics.length >= 20) return toast('Máximo de 20 temas', 'error');
+  if (currentTopics.some(tp => tp.label.toLowerCase() === val.toLowerCase())) return toast('Esse tema já está', 'error');
+  const { scopes } = detectScope(val);
+  currentTopics.push({ label: val, query: val, scopes, source: 'custom' });
+  input.value = '';
+  updateScopeHint();
+  renderTags();
+}
+
+function updateScopeHint() {
+  const val = document.getElementById('newTopicInput').value.trim();
+  const hint = document.getElementById('scopeHint');
+  if (!val) { hint.innerHTML = '↳ digite acima e eu detecto o escopo'; return; }
+  const { reason } = detectScope(val);
+  hint.innerHTML = `↳ <strong>${reason}</strong>`;
+}
+
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'newTopicInput') updateScopeHint();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.target.id === 'newTopicInput' && e.key === 'Enter') { e.preventDefault(); addTopic(); }
+});
+
+// ===== SAVE =====
+async function saveChanges() {
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  try {
+    const newActive = document.getElementById('activeToggle').checked;
+    const newTrending = document.getElementById('trendingToggle').checked;
+
+    // Monta topics_replacement: 1 record por (label × scope)
+    const topicsReplacement = [];
+    currentTopics.forEach(tp => {
+      [...tp.scopes].forEach(scope => {
+        topicsReplacement.push({
+          label: tp.label,
+          query: tp.query,
+          source: tp.source || 'custom',
+          country: scope,
+        });
+      });
+    });
+
+    await callManage('update', {
+      user_updates: { active: newActive, trending_enabled: newTrending },
+      topics_replacement: topicsReplacement,
+    });
+
+    toast('Salvo! Próxima edição já vem com as mudanças.', 'success');
+    currentUser.active = newActive;
+    currentUser.trending_enabled = newTrending;
+  } catch (e) {
+    toast('Erro: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Salvar mudanças';
+  }
+}
+
+async function deleteAccount() {
+  if (!confirm('Tem certeza? Esta ação não pode ser desfeita.\n\nVocê para de receber emails imediatamente.')) return;
+  try {
+    await callManage('delete');
+    toast('Inscrição cancelada. Sentiremos sua falta ☕', 'success');
+    setTimeout(() => { document.getElementById('editor').style.display = 'none'; }, 1500);
+  } catch (e) {
+    toast('Erro: ' + e.message, 'error');
+  }
+}
+
+// ===== TOAST =====
+function toast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + (type || '') + ' show';
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+init();
+</script>
+
+</body>
+</html>
