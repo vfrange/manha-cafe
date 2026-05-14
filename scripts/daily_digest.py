@@ -19,8 +19,8 @@ from supabase import create_client
 from anthropic import Anthropic
 
 from email_template import render_email
-from feedback_token import short_id, feedback_url
-from sources import google_news, hacker_news, reddit, br_rss
+from feedback_token import short_id, feedback_url, manage_url as gen_manage_url
+from sources import google_news, hacker_news, reddit, br_rss, bluesky, youtube_trending, intl_rss
 
 # ============ CONFIG ============
 SUPABASE_URL = os.environ["SUPABASE_URL"]
@@ -62,13 +62,15 @@ def log(msg, **kv):
 
 
 # ============ MULTI-SOURCE FETCH ============
-def fetch_all_sources(query, country, category=None):
+def fetch_all_sources(query, country, category=None, label=None, source_type="curated"):
     """
     Roda todas as fontes em paralelo. Retorna lista combinada de notícias brutas.
     Para temas BR, prioriza RSS BR + Google News BR + Reddit.
     Para temas Global/Tech, prioriza Google News Global + HN + Reddit.
+    Para temas CURADOS GLOBAL, adiciona RSS direto de NYT/WaPo/BBC/etc.
     """
     is_br = country == "BR"
+    is_global = country == "GLOBAL"
     is_tech = category == "tecnologia" or any(
         kw in query.lower() for kw in ["tech","ia ","ai","intelig","gpt","openai","software"]
     )
@@ -80,11 +82,14 @@ def fetch_all_sources(query, country, category=None):
     fetchers.append(("reddit", lambda: reddit.fetch(query, category=category, max_items=4)))
     if is_br:
         fetchers.append(("br_rss", lambda: br_rss.fetch(query, category=category, max_items=8)))
+    # RSS internacional: só pra temas CURADOS GLOBAIS (não para customs)
+    if is_global and source_type == "curated" and label:
+        fetchers.append(("intl_rss", lambda: intl_rss.fetch_for_topic(label, max_per_feed=2)))
 
     results = []
-    with ThreadPoolExecutor(max_workers=4) as ex:
+    with ThreadPoolExecutor(max_workers=6) as ex:
         futures = {ex.submit(fn): name for name, fn in fetchers}
-        for fut in as_completed(futures, timeout=20):
+        for fut in as_completed(futures, timeout=25):
             name = futures[fut]
             try:
                 items = fut.result()
@@ -104,14 +109,34 @@ def fetch_all_sources(query, country, category=None):
 
 
 def fetch_trending(country):
-    """Combina trends do Google Trends com top do Reddit (proxy de viralidade social)."""
-    trends = google_news.fetch_trends(country)
-    # Bonus: top de r/popular ajuda a capturar viralização internet-wide
+    """Combina trends: Google News Top Stories + Reddit + Bluesky + YouTube Trending."""
+    trends = []
+
+    # 1) Google News Top Stories (manchetes em alta) — sempre tenta
+    try:
+        trends.extend(google_news.fetch_trends(country))
+    except Exception as e:
+        log(f"  ⚠ google news top: {e}")
+
+    # 2) Reddit top (viralidade social geral)
     if country in ("GLOBAL", "US"):
         try:
-            trends.extend(reddit.fetch_trending_general(max_items=8))
+            trends.extend(reddit.fetch_trending_general(max_items=6))
         except Exception as e:
             log(f"  ⚠ reddit trending: {e}")
+
+    # 3) Bluesky "What's Hot" (buzz social que substituiu o Twitter)
+    try:
+        trends.extend(bluesky.fetch_trending(max_items=8))
+    except Exception as e:
+        log(f"  ⚠ bluesky: {e}")
+
+    # 4) YouTube Trending (cultura/política/esportes em vídeo) — só se tiver API key
+    try:
+        trends.extend(youtube_trending.fetch_trending(country=country, max_items=8))
+    except Exception as e:
+        log(f"  ⚠ youtube trending: {e}")
+
     return trends
 
 
@@ -196,14 +221,17 @@ Priorize notícias que casem com o que ele gosta. Evite (ou despriorize) o que e
 {profile_section}
 Para cada tema abaixo, selecione as **até {MAX_NEWS_OUT_PER_TOPIC} notícias mais relevantes** do dia (priorize: impacto real, novidade, alinhamento com perfil; evite duplicatas e clickbait).
 
-🇧🇷 **REGRA CRÍTICA DE IDIOMA**: TODO o conteúdo gerado (manchete, resumo, why_matters) DEVE estar em **português brasileiro natural**, MESMO QUE a matéria original esteja em inglês, espanhol ou qualquer outro idioma. Traduza com fluência.
+🇧🇷 **REGRA CRÍTICA DE IDIOMA**: TODO o conteúdo gerado DEVE estar em **português brasileiro natural**, MESMO QUE a matéria original esteja em inglês, espanhol ou outro idioma. Traduza com fluência.
 
-⚠️ **REGRA CRÍTICA DE FORMATO**: Retorne APENAS JSON VÁLIDO, sem markdown, sem ```. Escape TODAS as aspas duplas dentro de strings com \\". Não use quebras de linha dentro de strings (use espaço).
+⚠️ **REGRA CRÍTICA DE FORMATO**: Retorne APENAS JSON VÁLIDO, sem markdown, sem ```. Escape TODAS as aspas duplas dentro de strings com \\". Não use quebras de linha dentro de strings.
+
+📰 **OBJETIVO**: O usuário deve conseguir entender a notícia INTEIRA sem precisar abrir o link. Seja rico em fatos, números e contexto. Mas mantenha estilo Morning Brew: direto, esperto, sem encher linguiça.
 
 Para cada notícia selecionada, retorne:
 - **manchete**: título em PT-BR direto, máx 90 caracteres, sem clickbait
-- **resumo**: 2 frases curtas (40-60 palavras) em PT-BR
-- **why_matters** (opcional): 1 frase em PT-BR ligando ao interesse do usuário (omita se forçado)
+- **resumo**: 3-4 frases (100-160 palavras) em PT-BR. Explica o que aconteceu, números/fatos centrais, contexto e implicação imediata
+- **fatos_chave**: array de 3 a 5 bullets curtos (cada um 6-15 palavras) com os pontos mais importantes — números, datas, players, valores, decisões. Ex: ["Selic caiu de 13,75% para 13,25%", "1ª redução em 12 meses", "Mercado esperava corte de 0,75 ponto"]
+- **why_matters** (opcional, omita se forçado): 1 frase ligando ao interesse do usuário (perfil acima)
 - **link**: copie o link original
 - **fonte**: nome do veículo
 
@@ -213,7 +241,7 @@ Dados:
 {json.dumps(payload, ensure_ascii=False, indent=2)}
 
 **RESPONDA APENAS JSON VÁLIDO**:
-{{"secoes":[{{"tema":"<nome>","noticias":[{{"manchete":"...","resumo":"...","link":"...","fonte":"..."}}]}}]}}"""
+{{"secoes":[{{"tema":"<nome>","noticias":[{{"manchete":"...","resumo":"...","fatos_chave":["...","..."],"why_matters":"...","link":"...","fonte":"..."}}]}}]}}"""
 
     try:
         resp = claude.messages.create(model=MODEL, max_tokens=8000,
@@ -426,7 +454,12 @@ def process_user(user, now_brt):
             continue
         country = t.get("country") or fallback_country
         category = t.get("category")
-        news = fetch_all_sources(t["query"], country, category=category)
+        news = fetch_all_sources(
+            t["query"], country,
+            category=category,
+            label=t["label"],
+            source_type=t.get("source", "curated")
+        )
         log(f"  {t['label']} ({country}): {len(news)} brutas")
         if not news:
             continue
@@ -463,17 +496,30 @@ def process_user(user, now_brt):
         raw_sections = curate_news(user["name"], topics_with_news, learned)
         # casa metadados de volta pelo label (topic_id + scopes reais)
         label_meta = {t["label"]: {"topic_id": t["topic_id"], "scopes": t["scopes"]} for t in topics_with_news}
+        # mapa link → lang pra reanexar idioma na resposta do Claude
+        link_to_lang = {}
+        for t in topics_with_news:
+            for n in t.get("news", []):
+                ln = n.get("link", "")
+                lg = (n.get("lang") or "").lower()
+                if ln and lg and lg != "pt":
+                    link_to_lang[ln] = lg
+
         for s in raw_sections:
             if s.get("noticias"):
                 tema = s.get("tema", "")
                 meta = label_meta.get(tema, {})
                 scopes = meta.get("scopes", [])
-                # Monta country_label a partir dos escopos reais (não do Claude)
                 if scopes:
                     flag_parts = [COUNTRY_NAMES.get(sc, sc).split()[0] for sc in scopes]
                     country_label = " + ".join(flag_parts)
                 else:
                     country_label = s.get("pais", "")
+                # anexa lang em cada notícia (com base no link original)
+                for noticia in s["noticias"]:
+                    lk = noticia.get("link", "")
+                    if lk in link_to_lang:
+                        noticia["lang"] = link_to_lang[lk]
                 sections.append({
                     "topic": tema,
                     "topic_id": meta.get("topic_id"),
@@ -489,10 +535,14 @@ def process_user(user, now_brt):
     sections = add_feedback_links(uid, sections)
 
     # 4) RENDER + ENVIO
+    # Link assinado HMAC pra página /manage (válido 30 dias)
+    signed_manage = gen_manage_url(MANAGE_URL, uid, ttl_days=30)
+
     html = render_email(
         user_name=user["name"], date_obj=now_brt,
         trending=trending, trending_label=trending_label,
-        sections=sections, manage_url=MANAGE_URL,
+        sections=sections, manage_url=signed_manage,
+        user_id=uid,
     )
     result = send_email(user["email"], user["name"], html, now_brt)
     log(f"  ✓ enviado", id=result.get("id"))
