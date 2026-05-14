@@ -22,7 +22,7 @@ def main():
     now_brt = datetime.now(BRT)
     log(f"=== Welcome Recorte === user_id={USER_ID}")
 
-    res = supabase.table("users").select("*").eq("id", USER_ID).maybeSingle().execute()
+    res = supabase.table("users").select("*").eq("id", USER_ID).maybe_single().execute()
     user = res.data
 
     if not user:
