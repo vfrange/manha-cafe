@@ -300,6 +300,34 @@ def curate_news(user_name, topics_with_news, learned_profile=""):
     return all_sections
 
 
+def _norm_for_dedup(text: str) -> str:
+    """Normaliza string pra detectar duplicatas: minúsculo, sem pontuação/espaços."""
+    if not text:
+        return ""
+    return re.sub(r'[^a-z0-9]', '', text.lower())
+
+
+def _dedupe_trends(items):
+    """Remove trends duplicados: mesmo link OU manchetes muito similares."""
+    seen_links = set()
+    seen_signatures = set()
+    out = []
+    for it in items:
+        link = (it.get("link") or "").strip().lower()
+        if link and link in seen_links:
+            continue
+        # Assinatura = primeiros 50 caracteres normalizados da manchete
+        sig = _norm_for_dedup(it.get("manchete", ""))[:50]
+        if sig and sig in seen_signatures:
+            continue
+        if link:
+            seen_links.add(link)
+        if sig:
+            seen_signatures.add(sig)
+        out.append(it)
+    return out
+
+
 def curate_trends(user_name, scope_label, trends, learned_profile=""):
     """Em Alta: agora formato completo (manchete + resumo + fatos_chave) igual seções."""
     if not trends:
@@ -319,6 +347,8 @@ def curate_trends(user_name, scope_label, trends, learned_profile=""):
 {SAFETY_INSTRUCTIONS}
 
 Selecione os **{MAX_TRENDING_OUT} eventos mais relevantes** que estão em alta hoje (top stories + redes sociais + viralizações). Priorize: eventos significativos, lançamentos, esporte/cultura de impacto. Evite fofoca rasa, conteúdo regional sem contexto, ou jargão obscuro.
+
+🚫 **REGRA CRÍTICA DE DEDUPLICAÇÃO**: NUNCA inclua duas manchetes sobre o MESMO evento, mesmo que venham de fontes diferentes ou com palavras ligeiramente diferentes. Se ver vários trends brutos sobre o mesmo acontecimento (ex: "Lula faz pronunciamento" e "Pronunciamento de Lula" e "Discurso presidencial"), escolha APENAS UM (o de fonte mais relevante) e descarte os outros. Cada item do output deve representar UM evento ÚNICO. Em caso de dúvida sobre se 2 trends são o mesmo evento, considere que SÃO e una.
 
 🇧🇷 **REGRA CRÍTICA DE IDIOMA**: TODO conteúdo (manchete, resumo, fatos) DEVE estar em **português brasileiro fluente**, MESMO QUE original esteja em inglês ou outro idioma. Mantenha nomes próprios e marcas no original.
 
@@ -346,8 +376,14 @@ Trends brutos:
         text = resp.content[0].text.strip()
         parsed = _robust_json_parse(text)
         items = parsed.get("trending", [])
-        # Post-filter
-        return [it for it in items if is_safe_curated(it)]
+        # Post-filter: safety
+        items = [it for it in items if is_safe_curated(it)]
+        # Post-filter: dedup
+        before = len(items)
+        items = _dedupe_trends(items)
+        if len(items) < before:
+            log(f"  ⚠ dedup removeu {before - len(items)} duplicatas do Em Alta")
+        return items
     except Exception as e:
         log(f"  ✗ erro curate_trends, retornando vazio: {e}")
         return []
