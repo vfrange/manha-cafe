@@ -1,5 +1,5 @@
 """
-Renderiza o HTML do email diário do Manhã ☕.
+Renderiza o HTML do email diário do Recorte ✂.
 V4: identidade visual verde-menta dominante + Fraunces + Mulish.
 
 Paleta:
@@ -428,7 +428,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="light">
 <meta name="supported-color-schemes" content="light">
-<title>Manhã ☕ · {date_short}</title>
+<title>Recorte ✂ · {date_short}</title>
 {google_fonts_link}
 <!--[if mso]><style type="text/css">body, table, td {{font-family: Georgia, 'Times New Roman', serif !important;}} .mso-sans {{font-family: Arial, Helvetica, sans-serif !important;}}</style><![endif]-->
 <style>
@@ -457,9 +457,9 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
           <td valign="middle">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
               <td valign="middle" style="padding-right:12px;">
-                <div style="width:38px;height:38px;background:{COLORS['ink']};color:{COLORS['yellow']};border-radius:50%;text-align:center;line-height:38px;font-family:{SANS_FONT};font-size:16px;">☕</div>
+                <div style="width:38px;height:38px;background:{COLORS['ink']};color:{COLORS['mint']};border-radius:50%;text-align:center;line-height:38px;font-family:{SANS_FONT};font-size:18px;font-weight:700;">✂</div>
               </td>
-              <td valign="middle" style="font-family:{SERIF_FONT};font-weight:900;font-size:30px;letter-spacing:-0.04em;color:{COLORS['ink']};">Manhã</td>
+              <td valign="middle" style="font-family:{SERIF_FONT};font-weight:900;font-size:30px;letter-spacing:-0.04em;color:{COLORS['ink']};">Recorte</td>
             </tr></table>
           </td>
           <td valign="middle" align="right" style="font-family:{SERIF_FONT};font-style:italic;font-size:13px;color:{COLORS['mint_dark']};">
@@ -514,18 +514,18 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
       <!-- SIGN OFF verde-menta -->
       <tr><td style="background:{COLORS['mint']};padding:36px 36px 30px;text-align:center;" class="px-mob">
         <div style="font-family:{SERIF_FONT};font-style:italic;font-size:19px;line-height:1.5;color:{COLORS['ink']};margin-bottom:20px;padding:0 20px;">
-          <span style="color:{COLORS['mint_dark']};font-size:24px;font-weight:700;vertical-align:-8px;">“</span>A informação certa, na hora certa, é o melhor café da manhã.<span style="color:{COLORS['mint_dark']};font-size:24px;font-weight:700;vertical-align:-8px;">”</span>
+          <span style="color:{COLORS['mint_dark']};font-size:24px;font-weight:700;vertical-align:-8px;">“</span>A notícia certa, na hora certa, é o melhor café da manhã. ☕<span style="color:{COLORS['mint_dark']};font-size:24px;font-weight:700;vertical-align:-8px;">”</span>
         </div>
-        <div style="font-family:{SANS_FONT};font-weight:800;font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:{COLORS['mint_dark']};">— Manhã ☕ &nbsp;·&nbsp; até amanhã às 7h</div>
+        <div style="font-family:{SANS_FONT};font-weight:800;font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:{COLORS['mint_dark']};">— Recorte ✂ &nbsp;·&nbsp; até amanhã às 6h</div>
       </td></tr>
 
       <!-- FOOTER -->
       <tr><td style="background:{COLORS['bg_2']};padding:24px 36px;text-align:center;" class="px-mob">
         <div style="font-family:{SANS_FONT};font-size:11px;color:{COLORS['ink_muted']};line-height:1.7;">
-          Você está recebendo porque se cadastrou em <strong style="color:{COLORS['ink']};">Manhã ☕</strong>.<br/>
+          Você está recebendo porque se cadastrou em <strong style="color:{COLORS['ink']};">Recorte ✂</strong>.<br/>
           <a href="{_esc(manage_link)}" style="color:{COLORS['ink_soft']};text-decoration:underline;font-weight:700;">⚙ Ajustar minhas preferências</a>
           <br/><br/>
-          <span style="font-size:10px;color:{COLORS['ink_muted']};opacity:0.8;">Resumos por Claude AI · Fontes: Google News, Bluesky, YouTube, Reddit, Hacker News e 25+ veículos BR e internacionais</span>
+          <span style="font-size:10px;color:{COLORS['ink_muted']};opacity:0.8;">Curadoria automatizada por IA · Fontes: Google News, Bluesky, YouTube, Reddit, Hacker News e 25+ veículos BR e internacionais · Conteúdo de terceiros. Direitos reservados aos veículos originais.</span>
         </div>
       </td></tr>
 
