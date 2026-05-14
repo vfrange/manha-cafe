@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Manhã ☕ · Suas preferências</title>
+<title>Recorte ✂ · Suas preferências</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700;800;900&family=Mulish:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -76,7 +76,7 @@ h1{font-family:'Fraunces',serif;font-weight:900;font-size:36px;line-height:1.1;l
 <div class="container">
 
   <div class="hero">
-    <div class="hero-tag">☕ Manhã · Preferências</div>
+    <div class="hero-tag">✂ Recorte · Preferências</div>
     <h1>Ajuste o que você recebe.</h1>
     <p class="subtitle">Mude seus temas, pause por uns dias ou cancele a qualquer momento.</p>
   </div>
@@ -88,7 +88,7 @@ h1{font-family:'Fraunces',serif;font-weight:900;font-size:36px;line-height:1.1;l
   <div id="errorScreen" class="section" style="display:none">
     <div class="error-card">
       <h2 id="errorTitle">Link inválido ou expirado</h2>
-      <p id="errorMessage">Pra acessar suas preferências, abra seu <strong>email mais recente do Manhã ☕</strong> e clique em "Ajustar minhas preferências" no rodapé. Links têm validade de 30 dias.</p>
+      <p id="errorMessage">Pra acessar suas preferências, abra seu <strong>email mais recente do Recorte ✂</strong> e clique em "Ajustar minhas preferências" no rodapé. Links têm validade de 30 dias.</p>
     </div>
   </div>
 
@@ -133,7 +133,7 @@ h1{font-family:'Fraunces',serif;font-weight:900;font-size:36px;line-height:1.1;l
       <div class="label">Seus temas</div>
       <p class="muted-note" style="margin:0 0 10px">Empresas, marcas, segmentos, eventos que você quer acompanhar. Detecto automaticamente se é BR ou Global; clique nas bandeirinhas pra ajustar.</p>
       <div class="row">
-        <input type="text" id="newTopicInput" class="field" placeholder="ex: Cabana Burger, FIIs, OpenAI…">
+        <input type="text" id="newTopicInput" class="field" placeholder="ex: , FIIs, OpenAI…">
         <button class="btn btn-add" onclick="addTopic()">+ Adicionar</button>
       </div>
       <div class="scope-hint" id="scopeHint">↳ digite acima e eu detecto o escopo</div>
@@ -172,7 +172,7 @@ const BR_PATTERNS = [
   /\b(sus|anvisa|cvm|copom|stf|tcu|cgu|anatel|anac|anp|aneel)\b/i,
   /\b(selic|ibovespa|bovespa|fiis?|cdb|lci|lca|lft|tesouro\s*direto)\b/i,
   /\b(lula|bolsonaro|planalto|brasília|brasilia)\b/i,
-  /\b(petrobras|magalu|magazine\s*luiza|nubank|btg\s*pactual|bradesco|ita[uú]|americanas|ambev|natura|botic[aá]rio|havaianas|cabana\s*burger)\b/i,
+  /\b(petrobras|magalu|magazine\s*luiza|nubank|btg\s*pactual|bradesco|ita[uú]|americanas|ambev|natura|botic[aá]rio|havaianas)\b/i,
   /\b(flamengo|palmeiras|corinthians|s[ãa]o\s*paulo\s*(fc|futebol)|grêmio|gremio|fluminense|vasco|botafogo|cruzeiro|atl[ée]tico\s*mineiro|santos\s*fc|internacional|libertadores|brasileir[aã]o|copa\s*do\s*brasil)\b/i,
   /\b(s[ãa]o\s*paulo|rio\s*de\s*janeiro|belo\s*horizonte|brasília|brasilia|curitiba|salvador|recife|fortaleza|porto\s*alegre|manaus|bel[ée]m|goi[âa]nia)\b/i,
 ];
@@ -207,7 +207,7 @@ async function init() {
   const t = params.get('t');
 
   if (!u || !exp || !t) {
-    showError('Link sem token de acesso', 'Pra acessar suas preferências, abra seu <strong>email mais recente do Manhã ☕</strong> e clique em "Ajustar minhas preferências" no rodapé.');
+    showError('Link sem token de acesso', 'Pra acessar suas preferências, abra seu <strong>email mais recente do Recorte ✂</strong> e clique em "Ajustar minhas preferências" no rodapé.');
     return;
   }
 
