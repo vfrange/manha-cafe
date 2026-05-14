@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Manhã ☕ — Sua newsletter sob medida</title>
+<title>Recorte ✂ — Sua newsletter sob medida</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800;9..144,900&family=Mulish:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -57,16 +57,9 @@
   }
   .logo-cup {
     width: 38px; height: 38px; border-radius: 50%;
-    background: var(--ink); color: var(--yellow);
+    background: var(--ink); color: var(--mint);
     display: flex; align-items: center; justify-content: center;
-    font-size: 16px; position: relative;
-  }
-  .logo-cup::after {
-    content: ''; position: absolute; right: -5px; top: 11px;
-    width: 7px; height: 11px;
-    border: 2px solid var(--ink);
-    border-left: none; border-radius: 0 50% 50% 0;
-    background: var(--mint);
+    font-size: 18px; font-weight: 700; position: relative;
   }
   .date-pill {
     font-family: 'JetBrains Mono', monospace;
@@ -392,8 +385,8 @@
 <header class="masthead">
   <div class="masthead-inner">
     <div class="logo">
-      <span class="logo-cup">☕</span>
-      <span>Manhã</span>
+      <span class="logo-cup">✂</span>
+      <span>Recorte</span>
     </div>
     <div class="date-pill" id="todayDate">—</div>
   </div>
@@ -405,12 +398,12 @@
   <section class="hero">
     <span class="quote-mark">“</span>
     <span class="kicker">★ Newsletter diária por e-mail</span>
-    <h1>Sua manhã,<br><em>sob medida.</em><br><span class="hl-m">Todo dia.</span></h1>
-    <p>Os assuntos que <strong>você</strong> escolhe — do Brasil <strong>e</strong> do mundo — resumidos por IA antes do café.</p>
+    <h1>O mundo todo dia.<br><em>Só o que é seu.</em><br><span class="hl-m">Pra quem escolhe o que ler.</span></h1>
+    <p>Os assuntos que <strong>você</strong> escolhe — do Brasil <strong>e</strong> do mundo — recortados pela IA antes do café.</p>
     <div class="hero-meta">
       <div>☕ <span><strong>5 min</strong> de leitura</span></div>
       <div>🇧🇷🌍 <span>Brasil <strong>+</strong> Mundo</span></div>
-      <div>🤖 <span>Curado por <strong>Claude AI</strong></span></div>
+      <div>🤖 <span>Curadoria por IA</span></div>
     </div>
   </section>
 
@@ -483,7 +476,7 @@
         </div>
       </div>
       <div class="custom-input-row">
-        <input type="text" id="customTopicInput" class="field" placeholder="ex: Cabana Burger, FIIs, OpenAI…">
+        <input type="text" id="customTopicInput" class="field" placeholder="ex: Nubank, FIIs, OpenAI, Apple…">
         <button type="button" class="btn-add" onclick="addCustomTopic()">+ Adicionar</button>
       </div>
       <div class="scope-hint" id="scopeHint">↳ digite acima e eu detecto o escopo</div>
@@ -508,7 +501,7 @@
   </div>
 
   <footer class="footer">
-    <strong>Manhã ☕</strong> · feito com 💚 e café<br>
+    <strong>Recorte ✂</strong> · pra ler antes do café ☕<br>
     Newsletter diária personalizada · sem rastreio, sem ads.
   </footer>
 
@@ -619,6 +612,15 @@
         </div>
       </label>
     `).join('');
+    // Limite de 20 temas no total — intercepta marcação
+    grid.querySelectorAll('.topic-chip input').forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        if (e.target.checked && getTotalTopicsCount() > 20) {
+          e.target.checked = false;
+          alert('Máximo de 20 temas no total (curados + personalizados) 🙂');
+        }
+      });
+    });
   }
 
   // ===== DETECTOR DE ESCOPO PRA TEMAS PRÓPRIOS =====
@@ -630,7 +632,7 @@
     /\b(sus|anvisa|cvm|copom|stf|tcu|cgu|anatel|anac|anp|aneel)\b/i,  // siglas BR
     /\b(selic|ibovespa|bovespa|fiis?|cdb|lci|lca|lft|tesouro\s*direto)\b/i,  // financeiro BR
     /\b(lula|bolsonaro|planalto|brasília|brasilia)\b/i,  // política BR
-    /\b(petrobras|magalu|magazine\s*luiza|nubank|btg\s*pactual|bradesco|ita[uú]|americanas|ambev|natura|botic[aá]rio|havaianas|cabana\s*burger)\b/i,  // marcas BR
+    /\b(petrobras|magalu|magazine\s*luiza|nubank|btg\s*pactual|bradesco|ita[uú]|americanas|ambev|natura|botic[aá]rio|havaianas)\b/i,  // marcas BR
     /\b(flamengo|palmeiras|corinthians|s[ãa]o\s*paulo\s*(fc|futebol)|grêmio|gremio|fluminense|vasco|botafogo|cruzeiro|atl[ée]tico\s*mineiro|santos\s*fc|internacional|libertadores|brasileir[aã]o|copa\s*do\s*brasil)\b/i, // esportes BR
     /\b(s[ãa]o\s*paulo|rio\s*de\s*janeiro|belo\s*horizonte|brasília|brasilia|curitiba|salvador|recife|fortaleza|porto\s*alegre|manaus|bel[ée]m|goi[âa]nia)\b/i, // cidades BR
   ];
@@ -678,11 +680,19 @@
 
   function removeTag(idx) { customTopics.splice(idx, 1); renderTags(); }
 
+  function getSelectedCuratedCount() {
+    return document.querySelectorAll('.topic-chip input:checked').length;
+  }
+
+  function getTotalTopicsCount() {
+    return getSelectedCuratedCount() + customTopics.length;
+  }
+
   function addCustomTopic() {
     const input = document.getElementById('customTopicInput');
     const val = input.value.trim();
     if (!val) return;
-    if (customTopics.length >= 8) { alert('Máximo de 8 temas personalizados 🙂'); return; }
+    if (getTotalTopicsCount() >= 20) { alert('Máximo de 20 temas no total (curados + personalizados) 🙂'); return; }
     if (customTopics.some(t => t.label.toLowerCase() === val.toLowerCase())) { alert('Esse tema já está na lista'); return; }
     const { scopes } = detectScope(val);
     customTopics.push({ label: val, query: val, scopes });
@@ -761,6 +771,14 @@
 
     if (topics.length === 0 && !trendingEnabled) {
       alert('Escolha pelo menos um tema OU ative Trending Topics 🙂');
+      btn.disabled = false; btn.textContent = 'Começar a receber →';
+      return;
+    }
+
+    // Limite de 20 temas únicos (curados + personalizados)
+    const uniqueLabels = new Set(topics.map(t => t.label.toLowerCase()));
+    if (uniqueLabels.size > 20) {
+      alert('Máximo de 20 temas no total. Você selecionou ' + uniqueLabels.size + '. Remova alguns antes de continuar.');
       btn.disabled = false; btn.textContent = 'Começar a receber →';
       return;
     }
