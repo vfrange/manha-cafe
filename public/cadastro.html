@@ -490,25 +490,8 @@
       <div class="tags-list" id="tagsList"></div>
     </div>
 
-    <!-- 05 HORÁRIO -->
-    <div class="step">
-      <div class="step-header">
-        <span class="step-num">05</span>
-        <div>
-          <div class="step-title">Que horas você toma café?</div>
-          <div class="step-hint">Hora de Brasília. O e-mail chega pontual.</div>
-        </div>
-      </div>
-      <div class="time-pills">
-        <label class="time-pill"><input type="radio" name="hour" value="6"><div class="time-pill-label"><strong>6h</strong><span>cedo</span></div></label>
-        <label class="time-pill"><input type="radio" name="hour" value="7" checked><div class="time-pill-label"><strong>7h</strong><span>padrão</span></div></label>
-        <label class="time-pill"><input type="radio" name="hour" value="8"><div class="time-pill-label"><strong>8h</strong><span>tranquilo</span></div></label>
-        <label class="time-pill"><input type="radio" name="hour" value="9"><div class="time-pill-label"><strong>9h</strong><span>relax</span></div></label>
-      </div>
-    </div>
-
     <div class="submit-row">
-      <div class="submit-info">Você pode <strong>ajustar tudo</strong> a qualquer momento — basta voltar a essa página com o mesmo e-mail.</div>
+      <div class="submit-info">O e-mail chega <strong>todo dia às 6h da manhã</strong> (horário de Brasília). Você pode <strong>ajustar seus temas</strong> a qualquer momento — basta voltar a essa página com o mesmo e-mail.</div>
       <button type="submit" class="btn-submit" id="submitBtn">Começar a receber →</button>
     </div>
 
@@ -517,7 +500,7 @@
   <div class="success" id="successScreen">
     <div class="success-icon">☕</div>
     <h2>Tá no jeito!</h2>
-    <p>Sua primeira edição chega amanhã de manhã no horário escolhido.</p>
+    <p>Sua primeira edição chega amanhã às 6h da manhã.</p>
     <div class="submit-info" style="margin: 0 auto; text-align: center;">
       <strong id="successEmail"></strong><br>
       <span style="color: var(--ink-muted);">Olha a pasta de spam só na primeira vez ;)</span>
@@ -533,8 +516,8 @@
 
 <script>
   // ===== CONFIG =====
-  const SUPABASE_URL = 'https://jegvgviwbkbrmuhcivle.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_Q9FiImNakeN-DdGIbWIDjQ_v50JUNSS';
+  const SUPABASE_URL = 'https://SEUPROJETO.supabase.co';
+  const SUPABASE_ANON_KEY = 'SUA_ANON_KEY';
   const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // ===== TEMAS CURADOS =====
@@ -733,7 +716,7 @@
 
     const name = document.getElementById('name').value.trim();
     const email = document.getElementById('email').value.trim().toLowerCase();
-    const hour = parseInt(document.querySelector('input[name="hour"]:checked').value);
+    // Hora fixa: todos recebem às 6h BRT (com catch-up até 8h)
 
     // ===== TELEFONE =====
     const phoneCountryRaw = document.getElementById('phoneCountry').value; // ex: "BR|+55"
@@ -789,7 +772,7 @@
           phone: phoneE164,                        // E.164: "+5511987654321"
           phone_display: phoneDisplay,             // "+55 11 987654321"
           phone_country_code: phoneCountryCode,    // "BR"
-          send_hour: hour,
+          send_hour: 6,                            // padrão fixo: 6h BRT (catch-up automático até 8h)
           active: true,
           default_country: 'BR',                   // sempre BR (assumido)
           trending_enabled: trendingEnabled,
