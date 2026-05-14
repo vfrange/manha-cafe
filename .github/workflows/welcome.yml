@@ -1,0 +1,41 @@
+name: Welcome Email
+
+# Disparado pela Edge Function `welcome` quando um user novo se cadastra.
+# Roda imediatamente e envia o primeiro email pra ele.
+
+on:
+  workflow_dispatch:
+    inputs:
+      user_id:
+        description: 'UUID do user pra enviar welcome'
+        required: true
+        type: string
+
+jobs:
+  welcome:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Run welcome digest
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          FEEDBACK_BASE_URL: ${{ secrets.FEEDBACK_BASE_URL }}
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+          MANAGE_URL: ${{ secrets.MANAGE_URL }}
+          FEEDBACK_SECRET: ${{ secrets.FEEDBACK_SECRET }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          USER_ID: ${{ inputs.user_id }}
+        working-directory: scripts
+        run: python welcome_digest.py
