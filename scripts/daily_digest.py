@@ -278,41 +278,106 @@ def curate_news(user_name, topics_with_news, learned_profile=""):
 
 
 def curate_trends(user_name, scope_label, trends, learned_profile=""):
+    """Em Alta: agora formato completo (manchete + resumo + fatos_chave) igual seções."""
     if not trends:
         return []
+
+    MAX_TRENDS_INPUT = 18
+    trends_truncated = trends[:MAX_TRENDS_INPUT]
+
     profile_section = ""
     if learned_profile.strip():
         profile_section = f"\n**PERFIL DO USUÁRIO**: {learned_profile}\nUse pra priorizar trends que casem com interesses dele.\n"
 
-    prompt = f"""Você é editor de "🔥 Trending Topics" em PT-BR pra {user_name}, escopo: **{scope_label}**.
+    prompt = f"""Você é editor da seção "🔥 Em Alta" em PT-BR pra {user_name}, escopo: **{scope_label}**.
 {profile_section}
-Selecione os **{MAX_TRENDING_OUT} mais relevantes** evitando fofoca rasa, conteúdo regional sem contexto, ou jargão obscuro. Priorize: eventos significativos, lançamentos, esporte de impacto, fenômenos culturais reais.
+Selecione os **{MAX_TRENDING_OUT} eventos mais relevantes** que estão em alta hoje (top stories + redes sociais + viralizações). Priorize: eventos significativos, lançamentos, esporte/cultura de impacto. Evite fofoca rasa, conteúdo regional sem contexto, ou jargão obscuro.
 
-🇧🇷 **REGRA CRÍTICA DE IDIOMA**: TODO o conteúdo (termo e contexto) DEVE estar em **português brasileiro fluente**, MESMO QUE o termo original esteja em inglês ou outro idioma. Traduza nomes próprios quando faz sentido (Champions League pode ficar, mas "earnings call" deve virar "balanço trimestral" ou similar). Mantenha nomes de pessoas e empresas no original.
+🇧🇷 **REGRA CRÍTICA DE IDIOMA**: TODO conteúdo (manchete, resumo, fatos) DEVE estar em **português brasileiro fluente**, MESMO QUE original esteja em inglês ou outro idioma. Mantenha nomes próprios e marcas no original.
 
-Para cada um, em PT-BR:
-- **termo**: o termo (pode reescrever pra clareza, traduzir se ajudar)
-- **buscas**: volume aproximado (copie do input se houver)
-- **contexto**: 1 frase em PT-BR de até 25 palavras explicando POR QUE está em alta hoje
-- **link**: URL relacionada (se houver)
+⚠️ **REGRA CRÍTICA DE FORMATO**: APENAS JSON VÁLIDO, sem markdown, sem ```. Escape aspas duplas com \\". Sem quebras de linha dentro de strings.
+
+📰 **OBJETIVO**: o usuário entende cada evento sem precisar abrir o link. Seja rico em fatos e contexto.
+
+Pra cada item:
+- **manchete**: título PT-BR direto, máx 90 chars, sem clickbait
+- **resumo**: 3-4 frases (100-160 palavras) explicando o que rolou, números/contexto, e POR QUE está em alta hoje
+- **fatos_chave**: array de 3-5 bullets curtos (6-15 palavras cada) com números, datas, players, valores
+- **buscas** (opcional): se vier do input, copie
+- **link**: URL relacionada
 - **fonte**: veículo
 
-Trends:
-{json.dumps(trends, ensure_ascii=False, indent=2)}
+Trends brutos:
+{json.dumps(trends_truncated, ensure_ascii=False, indent=2)}
 
 **APENAS JSON VÁLIDO**:
-{{"trending":[{{"termo":"...","buscas":"...","contexto":"...","link":"...","fonte":"..."}}]}}"""
+{{"trending":[{{"manchete":"...","resumo":"...","fatos_chave":["..."],"link":"...","fonte":"..."}}]}}"""
 
-    resp = claude.messages.create(model=MODEL, max_tokens=2000,
-                                   messages=[{"role": "user", "content": prompt}])
-    text = resp.content[0].text.strip()
-    text = re.sub(r"^```(?:json)?\s*", "", text)
-    text = re.sub(r"\s*```$", "", text)
     try:
-        return json.loads(text).get("trending", [])
-    except json.JSONDecodeError:
-        i, j = text.find("{"), text.rfind("}")
-        return json.loads(text[i:j+1]).get("trending", [])
+        resp = claude.messages.create(model=MODEL, max_tokens=6000,
+                                       messages=[{"role": "user", "content": prompt}])
+        text = resp.content[0].text.strip()
+        parsed = _robust_json_parse(text)
+        return parsed.get("trending", [])
+    except Exception as e:
+        log(f"  ✗ erro curate_trends, retornando vazio: {e}")
+        return []
+
+
+def generate_daily_recap(user_name, sections, trending, learned_profile=""):
+    """
+    Gera o 'Seu dia em 60 segundos' — resumo executivo do email.
+    ~150 palavras cobrindo as 3-5 seções mais importantes.
+    """
+    if not sections and not trending:
+        return ""
+
+    # Compila uma lista enxuta do que tem no email pra passar pro Claude
+    summary_input = []
+    if trending:
+        for t in trending[:5]:
+            title = t.get("manchete") or t.get("termo", "")
+            if title:
+                summary_input.append({"area": "🔥 Em Alta", "manchete": title})
+    for sec in sections[:10]:
+        topic = sec.get("topic", "")
+        for n in sec.get("noticias", [])[:2]:
+            summary_input.append({"area": topic, "manchete": n.get("manchete", "")})
+
+    if not summary_input:
+        return ""
+
+    profile_section = ""
+    if learned_profile.strip():
+        profile_section = f"\nPerfil de {user_name}: {learned_profile}\nUse pra dar destaque ao que casa com o perfil.\n"
+
+    prompt = f"""Você escreve "Seu dia em 60 segundos" — o briefing executivo no topo do email do {user_name}, estilo Morning Brew.
+{profile_section}
+Cria UM PARÁGRAFO único de **140-180 palavras** em PT-BR que faça o usuário entender, em 1 minuto, o que rolou hoje no mundo dele.
+
+Regras:
+- Tom direto, esperto, sem clichê. Lê como se fosse um amigo bem informado contando.
+- Cobre 4-6 fatos do dia, escolhendo os de maior impacto/novidade.
+- Conecta áreas quando faz sentido ("...na mesma semana em que..." / "...enquanto isso...").
+- Termina com 1 frase de fechamento (NÃO precisa ser conclusão definitiva — pode ser observação ou gancho).
+- NÃO use bullets. NÃO use markdown. NÃO repita "hoje". UM parágrafo corrido.
+
+Manchetes de hoje:
+{json.dumps(summary_input, ensure_ascii=False, indent=2)}
+
+Responda APENAS o texto do parágrafo, sem aspas, sem JSON, sem cabeçalho."""
+
+    try:
+        resp = claude.messages.create(model=MODEL, max_tokens=600,
+                                       messages=[{"role": "user", "content": prompt}])
+        text = resp.content[0].text.strip()
+        # Remove possíveis aspas envolventes e markdown stray
+        text = text.strip('"\'`').strip()
+        text = re.sub(r"^\*\*.*?\*\*\s*", "", text)
+        return text
+    except Exception as e:
+        log(f"  ⚠ erro generate_daily_recap: {e}")
+        return ""
 
 
 # ============ EMAIL ITEMS + FEEDBACK LINKS ============
@@ -534,7 +599,13 @@ def process_user(user, now_brt):
     # 3) GERA email_items + URLs de feedback
     sections = add_feedback_links(uid, sections)
 
-    # 4) RENDER + ENVIO
+    # 4) RESUMO EXECUTIVO "Seu dia em 60 segundos"
+    log(f"  gerando recap executivo...")
+    daily_recap = generate_daily_recap(user["name"], sections, trending, learned)
+    if daily_recap:
+        log(f"  ✓ recap gerado ({len(daily_recap)} chars)")
+
+    # 5) RENDER + ENVIO
     # Link assinado HMAC pra página /manage (válido 30 dias)
     signed_manage = gen_manage_url(MANAGE_URL, uid, ttl_days=30)
 
@@ -543,6 +614,7 @@ def process_user(user, now_brt):
         trending=trending, trending_label=trending_label,
         sections=sections, manage_url=signed_manage,
         user_id=uid,
+        daily_recap=daily_recap,
     )
     result = send_email(user["email"], user["name"], html, now_brt)
     log(f"  ✓ enviado", id=result.get("id"))
