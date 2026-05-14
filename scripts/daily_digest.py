@@ -21,6 +21,10 @@ from anthropic import Anthropic
 from email_template import render_email
 from feedback_token import short_id, feedback_url, manage_url as gen_manage_url
 from sources import google_news, hacker_news, reddit, br_rss, bluesky, youtube_trending, intl_rss
+from safety import (
+    is_safe_news, is_safe_curated, SAFETY_INSTRUCTIONS,
+    POLITICAL_BIAS_INSTRUCTIONS, is_political_topic,
+)
 
 # ============ CONFIG ============
 SUPABASE_URL = os.environ["SUPABASE_URL"]
@@ -195,18 +199,28 @@ def _robust_json_parse(text):
 def _curate_news_batch(user_name, topics_with_news, learned_profile=""):
     """Processa UM batch de temas (até MAX_TOPICS_PER_BATCH)."""
     payload = []
+    has_political = False
     for t in topics_with_news:
-        # Trunca: passa só as primeiras N notícias por tema pro Claude
-        news_truncated = t["news"][:MAX_NEWS_INPUT_PER_TOPIC]
+        # PRE-FILTER: descarta matérias com sinais de conteúdo proibido
+        clean_news = [n for n in t["news"][:MAX_NEWS_INPUT_PER_TOPIC] if is_safe_news(n)]
+        if not clean_news:
+            continue  # tema sem matéria limpa após filtro
+        topic_is_political = is_political_topic(t["label"])
+        if topic_is_political:
+            has_political = True
         payload.append({
             "tema": t["label"],
             "pais": COUNTRY_NAMES.get(t["country"], t["country"]),
+            "tema_politico": topic_is_political,
             "noticias_brutas": [
                 {"titulo": n["title"], "fonte": n["source"], "preview": n["summary"],
                  "link": n["link"], "origem": n.get("origin","")}
-                for n in news_truncated
+                for n in clean_news
             ]
         })
+
+    if not payload:
+        return []
 
     profile_section = ""
     if learned_profile.strip():
@@ -217,8 +231,12 @@ def _curate_news_batch(user_name, topics_with_news, learned_profile=""):
 Priorize notícias que casem com o que ele gosta. Evite (ou despriorize) o que ele não gosta. Não comente sobre o perfil na resposta.
 """
 
+    bias_section = POLITICAL_BIAS_INSTRUCTIONS if has_political else ""
+
     prompt = f"""Você é editor de uma newsletter premium em PT-BR ao estilo Morning Brew, escrevendo para {user_name}.
 {profile_section}
+{SAFETY_INSTRUCTIONS}
+{bias_section}
 Para cada tema abaixo, selecione as **até {MAX_NEWS_OUT_PER_TOPIC} notícias mais relevantes** do dia (priorize: impacto real, novidade, alinhamento com perfil; evite duplicatas e clickbait).
 
 🇧🇷 **REGRA CRÍTICA DE IDIOMA**: TODO o conteúdo gerado DEVE estar em **português brasileiro natural**, MESMO QUE a matéria original esteja em inglês, espanhol ou outro idioma. Traduza com fluência.
@@ -231,9 +249,10 @@ Para cada notícia selecionada, retorne:
 - **manchete**: título em PT-BR direto, máx 90 caracteres, sem clickbait
 - **resumo**: 3-4 frases (100-160 palavras) em PT-BR. Explica o que aconteceu, números/fatos centrais, contexto e implicação imediata
 - **fatos_chave**: array de 3 a 5 bullets curtos (cada um 6-15 palavras) com os pontos mais importantes — números, datas, players, valores, decisões. Ex: ["Selic caiu de 13,75% para 13,25%", "1ª redução em 12 meses", "Mercado esperava corte de 0,75 ponto"]
-- **why_matters** (opcional, omita se forçado): 1 frase ligando ao interesse do usuário (perfil acima)
 - **link**: copie o link original
 - **fonte**: nome do veículo
+- **lang**: código do idioma original da matéria (ex: "en", "fr", "de"). Omita se for PT-BR.
+- **pol_bias** (APENAS para temas marcados `tema_politico: true`): "factual", "centro", "esq" ou "dir". Veja regras acima.
 
 Se um tema tiver pouca notícia relevante, retorne menos itens. Se nada for relevante, omita o tema.
 
@@ -241,14 +260,18 @@ Dados:
 {json.dumps(payload, ensure_ascii=False, indent=2)}
 
 **RESPONDA APENAS JSON VÁLIDO**:
-{{"secoes":[{{"tema":"<nome>","noticias":[{{"manchete":"...","resumo":"...","fatos_chave":["...","..."],"why_matters":"...","link":"...","fonte":"..."}}]}}]}}"""
+{{"secoes":[{{"tema":"<nome>","noticias":[{{"manchete":"...","resumo":"...","fatos_chave":["...","..."],"link":"...","fonte":"...","lang":"...","pol_bias":"..."}}]}}]}}"""
 
     try:
         resp = claude.messages.create(model=MODEL, max_tokens=8000,
                                        messages=[{"role": "user", "content": prompt}])
         text = resp.content[0].text.strip()
         parsed = _robust_json_parse(text)
-        return parsed.get("secoes", [])
+        secoes = parsed.get("secoes", [])
+        # POST-FILTER: re-valida cada item curado
+        for sec in secoes:
+            sec["noticias"] = [n for n in sec.get("noticias", []) if is_safe_curated(n)]
+        return secoes
     except Exception as e:
         log(f"  ✗ Claude API erro no batch: {e}")
         return []
@@ -283,7 +306,9 @@ def curate_trends(user_name, scope_label, trends, learned_profile=""):
         return []
 
     MAX_TRENDS_INPUT = 18
-    trends_truncated = trends[:MAX_TRENDS_INPUT]
+    # Pre-filter
+    trends_clean = [t for t in trends if is_safe_news(t)]
+    trends_truncated = trends_clean[:MAX_TRENDS_INPUT]
 
     profile_section = ""
     if learned_profile.strip():
@@ -291,6 +316,8 @@ def curate_trends(user_name, scope_label, trends, learned_profile=""):
 
     prompt = f"""Você é editor da seção "🔥 Em Alta" em PT-BR pra {user_name}, escopo: **{scope_label}**.
 {profile_section}
+{SAFETY_INSTRUCTIONS}
+
 Selecione os **{MAX_TRENDING_OUT} eventos mais relevantes** que estão em alta hoje (top stories + redes sociais + viralizações). Priorize: eventos significativos, lançamentos, esporte/cultura de impacto. Evite fofoca rasa, conteúdo regional sem contexto, ou jargão obscuro.
 
 🇧🇷 **REGRA CRÍTICA DE IDIOMA**: TODO conteúdo (manchete, resumo, fatos) DEVE estar em **português brasileiro fluente**, MESMO QUE original esteja em inglês ou outro idioma. Mantenha nomes próprios e marcas no original.
@@ -318,7 +345,9 @@ Trends brutos:
                                        messages=[{"role": "user", "content": prompt}])
         text = resp.content[0].text.strip()
         parsed = _robust_json_parse(text)
-        return parsed.get("trending", [])
+        items = parsed.get("trending", [])
+        # Post-filter
+        return [it for it in items if is_safe_curated(it)]
     except Exception as e:
         log(f"  ✗ erro curate_trends, retornando vazio: {e}")
         return []
@@ -618,7 +647,10 @@ def process_user(user, now_brt):
     )
     result = send_email(user["email"], user["name"], html, now_brt)
     log(f"  ✓ enviado", id=result.get("id"))
-    supabase.table("users").update({"last_sent_at": now_brt.isoformat()}).eq("id", uid).execute()
+    supabase.table("users").update({
+        "last_sent_at": now_brt.isoformat(),
+        "welcome_sent": True,
+    }).eq("id", uid).execute()
     return True
 
 
