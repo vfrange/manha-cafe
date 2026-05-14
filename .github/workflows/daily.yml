@@ -2,10 +2,11 @@ name: Daily Digest
 
 on:
   schedule:
-    - cron: '0 9 * * *'   # 06:00 BRT
-    - cron: '0 10 * * *'  # 07:00 BRT
-    - cron: '0 11 * * *'  # 08:00 BRT
-    - cron: '0 12 * * *'  # 09:00 BRT
+    - cron: '0 9 * * *'    # 06:00 BRT
+    - cron: '30 9 * * *'   # 06:30 BRT (fallback 1)
+    - cron: '0 10 * * *'   # 07:00 BRT (fallback 2)
+    - cron: '30 10 * * *'  # 07:30 BRT (fallback 3)
+    - cron: '0 11 * * *'   # 08:00 BRT (fallback 4 — última chance)
   workflow_dispatch:
     inputs:
       target_hour:
