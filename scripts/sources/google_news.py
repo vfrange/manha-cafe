@@ -58,49 +58,44 @@ def fetch(query, country="BR", max_items=8):
 
 
 def fetch_trends(country="BR", max_items=20):
-    """Google Trends Daily por país."""
+    """
+    Top Stories do Google News como proxy de trending topics.
+    (O endpoint /trends/trendingsearches/daily/rss foi descontinuado em 2024.)
+    """
     if country == "GLOBAL":
-        # agrega múltiplos países top
+        # agrega top de múltiplos países
         all_trends = []
         for c in ["US", "GB", "BR", "DE", "JP", "FR", "IN"]:
-            all_trends.extend(fetch_trends(c, max_items=8))
+            all_trends.extend(fetch_trends(c, max_items=6))
         seen = set()
         deduped = []
         for t in all_trends:
-            k = t["termo"].lower().strip()
-            if k not in seen:
+            k = t["termo"].lower().strip()[:50]
+            if k and k not in seen:
                 seen.add(k)
                 deduped.append(t)
         return deduped[:30]
 
-    if country not in COUNTRY_LOCALES:
+    if country in COUNTRY_LOCALES:
+        loc = COUNTRY_LOCALES[country]
+        url = f"https://news.google.com/rss?hl={loc['hl']}&gl={loc['gl']}&ceid={loc['ceid']}"
+    else:
         return []
 
-    url = f"https://trends.google.com/trends/trendingsearches/daily/rss?geo={country}"
     feed = feedparser.parse(url)
     items = []
     for entry in feed.entries[:max_items]:
-        buscas = ""
-        for k in entry.keys():
-            if "approx_traffic" in k:
-                buscas = str(entry[k]).strip()
-                break
-        noticia_link = entry.get("link", "")
-        noticia_titulo = ""
-        noticia_fonte = ""
-        for k in entry.keys():
-            if "news_item_title" in k and not noticia_titulo:
-                noticia_titulo = str(entry[k]).strip()
-            if "news_item_url" in k and not noticia_link:
-                noticia_link = str(entry[k]).strip()
-            if "news_item_source" in k and not noticia_fonte:
-                noticia_fonte = str(entry[k]).strip()
+        title = entry.title
+        source = ""
+        if " - " in title:
+            parts = title.rsplit(" - ", 1)
+            title, source = parts[0], parts[1]
         items.append({
-            "termo": entry.title.strip(),
-            "buscas": buscas,
+            "termo": title.strip(),
+            "buscas": "",
             "pais": country,
-            "noticia_titulo": noticia_titulo,
-            "noticia_link": noticia_link,
-            "noticia_fonte": noticia_fonte,
+            "noticia_titulo": title.strip(),
+            "noticia_link": entry.link,
+            "noticia_fonte": source.strip() or "Google News",
         })
     return items
