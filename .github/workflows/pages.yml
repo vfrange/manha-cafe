@@ -1,5 +1,8 @@
 name: Deploy Cadastro to GitHub Pages
 
+# Faz deploy automático do public/cadastro.html como index.html no GitHub Pages
+# a cada push na main (só quando algo em public/ mudou).
+
 on:
   push:
     branches: [main]
@@ -30,8 +33,12 @@ jobs:
       - name: Preparar dist
         run: |
           mkdir -p dist
+          # cadastro.html vira index.html (página inicial)
           cp public/cadastro.html dist/index.html
           cp public/cadastro.html dist/cadastro.html
+          # manage.html: página de preferências
+          cp public/manage.html dist/manage.html
+          # 404 fallback redireciona pro index
           echo '<!DOCTYPE html><meta http-equiv="refresh" content="0; url=/">' > dist/404.html
 
       - name: Setup Pages
