@@ -146,7 +146,7 @@ def fetch_trending(country):
 
 # ============ CLAUDE CURATION ============
 MAX_NEWS_INPUT_PER_TOPIC = 6   # quantas notícias brutas mandar pro Claude por tema
-MAX_TOPICS_PER_BATCH = 6       # quantos temas processar numa chamada (evita JSON gigante)
+MAX_TOPICS_PER_BATCH = 4       # quantos temas processar numa chamada (evita JSON gigante)
 
 
 def _robust_json_parse(text):
@@ -263,7 +263,7 @@ Dados:
 {{"secoes":[{{"tema":"<nome>","noticias":[{{"manchete":"...","resumo":"...","fatos_chave":["...","..."],"link":"...","fonte":"...","lang":"...","pol_bias":"..."}}]}}]}}"""
 
     try:
-        resp = claude.messages.create(model=MODEL, max_tokens=8000,
+        resp = claude.messages.create(model=MODEL, max_tokens=12000,
                                        messages=[{"role": "user", "content": prompt}])
         text = resp.content[0].text.strip()
         parsed = _robust_json_parse(text)
