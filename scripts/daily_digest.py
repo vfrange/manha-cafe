@@ -505,9 +505,35 @@ def main():
     target_hour = TARGET_HOUR_BRT if TARGET_HOUR_BRT >= 0 else now_brt.hour
     log(f"=== Manhã ☕ V3 run ===", hora=target_hour, dry=DRY_RUN)
 
-    res = supabase.table("users").select("*").eq("active", True).eq("send_hour", target_hour).execute()
-    users = res.data or []
-    log(f"usuários elegíveis", count=len(users))
+    # CATCH-UP: pega TODOS os usuários ativos que ainda não receberam hoje.
+    # Não filtra mais por hora exata — quem cadastrou pra 6h e perdeu, recebe na próxima execução.
+    today_start_brt = now_brt.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    res = supabase.table("users").select("*").eq("active", True).execute()
+    all_users = res.data or []
+
+    users = []
+    for u in all_users:
+        last = u.get("last_sent_at")
+        if not last:
+            # nunca recebeu — manda
+            users.append(u)
+            continue
+        # parse ISO timestamp (Supabase devolve com timezone UTC)
+        try:
+            last_dt = datetime.fromisoformat(last.replace("Z", "+00:00"))
+            if last_dt.tzinfo is None:
+                last_dt = last_dt.replace(tzinfo=BRT)
+            last_brt = last_dt.astimezone(BRT)
+            if last_brt < today_start_brt:
+                users.append(u)
+            # senão: já recebeu hoje, pula
+        except Exception as e:
+            # se não conseguir parsear, assume que precisa enviar
+            log(f"  ⚠ não consegui parsear last_sent_at de {u.get('email')}: {e}")
+            users.append(u)
+
+    log(f"usuários elegíveis (catch-up)", count=len(users), total_ativos=len(all_users))
 
     for user in users:
         try:
