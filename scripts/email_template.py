@@ -73,52 +73,83 @@ def _render_trending_section(trending, scope_label):
 
     items_html = ""
     for idx, item in enumerate(trending):
-        num = f"{idx+1:02d}"
-        buscas = item.get("buscas", "") or ""
+        # Suporta formato NOVO (manchete/resumo/fatos_chave) e formato VELHO (termo/contexto)
+        manchete = _esc(item.get("manchete") or item.get("termo", ""))
+        resumo = _esc(item.get("resumo") or item.get("contexto", ""))
+        fatos = item.get("fatos_chave") or []
         link = item.get("link", "")
         fonte = item.get("fonte", "")
-        termo = _esc(item.get("termo", ""))
-        contexto = _esc(item.get("contexto", ""))
+        buscas = item.get("buscas", "")
 
-        spike_html = ""
+        # Chip de "↑ X buscas" se vier
+        buscas_html = ""
         if buscas:
-            spike_html = f"""<span style="display:inline-block;background:{COLORS['mint']};color:{COLORS['ink']};font-family:{SANS_FONT};font-weight:800;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;padding:2px 8px;margin-bottom:8px;">↑ {_esc(buscas)} buscas</span><br/>"""
+            buscas_html = f'<span style="display:inline-block;background:{COLORS["mint"]};color:{COLORS["ink"]};font-family:{SANS_FONT};font-weight:800;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;padding:2px 8px;margin-bottom:10px;">↑ {_esc(buscas)}</span><br/>'
+
+        # Fatos-chave
+        fatos_html = ""
+        if isinstance(fatos, list) and fatos:
+            bullets = "".join(
+                f'<tr><td valign="top" style="padding:0 8px 6px 0;color:{COLORS["mint_dark"]};font-family:{SANS_FONT};font-weight:800;font-size:14px;line-height:1.4;">›</td>'
+                f'<td style="padding-bottom:6px;font-family:{SANS_FONT};font-size:14px;line-height:1.5;color:{COLORS["ink_soft"]};">{_esc(f)}</td></tr>'
+                for f in fatos[:5]
+            )
+            fatos_html = f'''<tr><td style="padding:0 0 14px 0;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{COLORS['bg_2']};padding:14px 16px;">
+                <tr><td colspan="2" style="font-family:{SANS_FONT};font-weight:800;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:{COLORS['ink_muted']};padding-bottom:8px;">FATOS-CHAVE</td></tr>
+                {bullets}
+              </table>
+            </td></tr>'''
+
+        # Chip de idioma
+        lang_chip = ""
+        lang = (item.get("lang") or "").lower()
+        lang_map = {"en":"🇺🇸 EN","fr":"🇫🇷 FR","de":"🇩🇪 DE","es":"🇪🇸 ES","it":"🇮🇹 IT","ja":"🇯🇵 JA","zh":"🇨🇳 ZH","ko":"🇰🇷 KO"}
+        if lang in lang_map:
+            lang_chip = f'<span style="display:inline-block;background:{COLORS["bg_2"]};color:{COLORS["ink_muted"]};font-family:{SANS_FONT};font-weight:700;font-size:10px;letter-spacing:0.06em;padding:2px 7px;margin-left:8px;border:1px solid {COLORS["line"]};">{lang_map[lang]}</span>'
 
         link_html = ""
         if link:
             fonte_suffix = ""
             if fonte:
-                fonte_suffix = f'&nbsp;<span style="color:{COLORS["ink_muted"]};font-size:10px;text-transform:uppercase;letter-spacing:0.1em;font-weight:600;">· {_esc(fonte)}</span>'
-            link_html = f"""<div style="margin-top:8px;font-family:{SANS_FONT};font-size:12px;">
-              <a href="{_esc(link)}" style="color:{COLORS['ink']};text-decoration:none;font-weight:700;border-bottom:2px solid {COLORS['mint_deep']};padding-bottom:1px;">ler matéria →</a>
-              {fonte_suffix}
-            </div>"""
+                fonte_suffix = f'<span style="color:{COLORS["ink"]};font-weight:800;">&nbsp;·&nbsp;{_esc(fonte)}</span>'
+            link_html = f'<tr><td style="font-family:{SANS_FONT};font-size:12px;color:{COLORS["ink_muted"]};padding-bottom:8px;"><a href="{_esc(link)}" style="color:{COLORS["ink"]};text-decoration:none;font-weight:800;border-bottom:2.5px solid {COLORS["mint_deep"]};padding-bottom:1px;margin-right:6px;">Ler matéria →</a>{fonte_suffix}{lang_chip}</td></tr>'
 
         items_html += f"""
-        <tr><td style="padding:18px 0;border-bottom:1px solid {COLORS['line']};">
+        <tr><td style="padding:0 0 28px 0;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-            <tr>
-              <td width="46" valign="top" style="font-family:{SERIF_FONT};font-weight:900;font-size:32px;color:{COLORS['mint_dark']};line-height:0.9;letter-spacing:-0.02em;padding-right:12px;">{num}</td>
-              <td valign="top">
-                {spike_html}
-                <div style="font-family:{SERIF_FONT};font-weight:700;font-size:18px;line-height:1.25;color:{COLORS['ink']};letter-spacing:-0.01em;margin-bottom:6px;">{termo}</div>
-                <div style="font-family:{SANS_FONT};font-size:14px;line-height:1.5;color:{COLORS['ink_soft']};">{contexto}</div>
-                {link_html}
-              </td>
-            </tr>
+            <tr><td>{buscas_html}<div style="font-family:{SERIF_FONT};font-weight:700;font-size:22px;line-height:1.22;color:{COLORS['ink']};letter-spacing:-0.015em;margin-bottom:10px;">{manchete}</div></td></tr>
+            <tr><td style="font-family:{SANS_FONT};font-size:15px;line-height:1.55;color:{COLORS['ink_soft']};padding-bottom:14px;">{resumo}</td></tr>
+            {fatos_html}
+            {link_html}
           </table>
         </td></tr>"""
 
     return f"""
-    <tr><td style="padding:32px 36px 8px 36px;" id="em-alta">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-        <tr><td style="padding:0 0 8px 0;">
+    <tr><td style="padding:32px 36px 8px 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:8px;border-bottom:4px solid {COLORS['bg_2']};">
+        <tr><td style="padding:0 0 22px 0;">
           <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
             <td style="background:{COLORS['mint_dark']};padding:5px 12px;font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;color:{COLORS['mint']};">🔥 Em alta hoje</td>
             <td style="padding-left:12px;font-family:{SERIF_FONT};font-style:italic;font-size:12px;color:{COLORS['ink_muted']};">{_esc(scope_label)}</td>
           </tr></table>
         </td></tr>
         {items_html}
+      </table>
+    </td></tr>"""
+
+
+def _render_daily_recap(recap_text):
+    """Bloco 'Seu dia em 60 segundos' — entre hero e Em Alta."""
+    if not recap_text or not recap_text.strip():
+        return ""
+    return f"""
+    <tr><td style="padding:0 36px 24px 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{COLORS['mint_bg_light']};border-left:6px solid {COLORS['mint_dark']};">
+        <tr><td style="padding:22px 24px;">
+          <div style="font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.22em;text-transform:uppercase;color:{COLORS['mint_dark']};margin-bottom:12px;">☕ Seu dia em 60 segundos</div>
+          <div style="font-family:{SERIF_FONT};font-size:16px;line-height:1.65;color:{COLORS['ink']};">{_esc(recap_text)}</div>
+        </td></tr>
       </table>
     </td></tr>"""
 
@@ -237,9 +268,6 @@ def _render_news_sections(sections):
               </table>
             </td></tr>
             <tr><td style="padding-top:10px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">{noticias_html}</table></td></tr>
-            <tr><td align="right" style="padding:0 0 14px 0;">
-              <a href="#topo" style="font-family:{SANS_FONT};font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:{COLORS['mint_dark']};text-decoration:none;border-bottom:1px dashed {COLORS['mint_dark']};padding:2px 0;">↑ voltar ao índice</a>
-            </td></tr>
           </table>
         </td></tr>"""
     return out
@@ -329,7 +357,7 @@ def _render_toc_bottom(trending, sections):
 # ============================================================================
 def render_email(user_name, date_obj, trending=None, trending_label="",
                  sections=None, manage_url="#", tts_url=None, tts_duration=None,
-                 user_id=None):
+                 user_id=None, daily_recap=None):
     """
     Renderiza o HTML completo do email diário.
 
@@ -395,10 +423,8 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
 
     trending_html = _render_trending_section(trending, trending_label)
     sections_html = _render_news_sections(sections)
-    toc_html = _render_toc(trending, sections, position="top")
-    toc_bottom_html = _render_toc(trending, sections, position="bottom")
+    recap_html = _render_daily_recap(daily_recap)
 
-    # manage_url já vem assinado do daily_digest (manage_url() em feedback_token.py)
     manage_link = manage_url
 
     google_fonts_link = '<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,800;9..144,900&family=Mulish:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">'
@@ -486,10 +512,9 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
         </table>
       </td></tr>
 
-      {toc_html}
+      {recap_html}
       {trending_html}
       {sections_html}
-      {toc_bottom_html}
 
       {_render_tricolor_band()}
 
