@@ -518,6 +518,7 @@
   // ===== CONFIG =====
   const SUPABASE_URL = 'https://jegvgviwbkbrmuhcivle.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_Q9FiImNakeN-DdGIbWIDjQ_v50JUNSS';
+  const WELCOME_FN_URL = SUPABASE_URL + '/functions/v1/welcome';
   const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // ===== TEMAS CURADOS =====
@@ -764,6 +765,14 @@
       return;
     }
 
+    // SAFETY: bloqueia temas explicitamente perigosos antes de salvar
+    const blockedTopic = topics.find(t => isBlockedTopic(t.query || t.label || ''));
+    if (blockedTopic) {
+      alert('Tema rejeitado: "' + (blockedTopic.label || blockedTopic.query) + '" contém conteúdo que não podemos curar (ex: how-to de armas, drogas, hacking). Tente um tema mais amplo.');
+      btn.disabled = false; btn.textContent = 'Começar a receber →';
+      return;
+    }
+
     try {
       const { data: userData, error: uErr } = await sbClient
         .from('users')
@@ -777,7 +786,8 @@
           default_country: 'BR',                   // sempre BR (assumido)
           trending_enabled: trendingEnabled,
           trending_scope: 'br,global',             // sempre os dois
-          trending_country: null
+          trending_country: null,
+          welcome_sent: false                      // será marcado true pelo welcome workflow
         }, { onConflict: 'email' })
         .select().single();
       if (uErr) throw uErr;
@@ -791,6 +801,17 @@
         if (tErr) throw tErr;
       }
 
+      // Dispara welcome instantâneo (não bloqueia se falhar)
+      try {
+        await fetch(WELCOME_FN_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userData.id }),
+        });
+      } catch (e) {
+        console.warn('welcome dispatch falhou (silencioso):', e);
+      }
+
       document.getElementById('signupForm').style.display = 'none';
       document.querySelector('.hero').style.display = 'none';
       document.getElementById('successEmail').textContent = email;
@@ -802,6 +823,26 @@
       btn.disabled = false; btn.textContent = 'Começar a receber →';
     }
   });
+
+  // ===== SAFETY: padrões bloqueados (espelha scripts/safety.py) =====
+  const BLOCKED_PATTERNS = [
+    /\bcomo\s+(?:fazer|construir|montar|fabricar)\s+(?:arma|fuzil|bomba|explosivo|granada)/i,
+    /\b(arma|fuzil|pistola|munição)\s+(?:caseir[ao]|artesanal|3d)/i,
+    /\bcomo\s+(?:fazer|sintetizar|produzir|cozinhar)\s+(?:cocaína|crack|meta|fentanil|lsd|metanfetamin|heroína|mdma)/i,
+    /\bcomo\s+(?:hackear|invadir)\s+(?:conta|whatsapp|instagram|facebook|email|wifi|senha)/i,
+    /\bcomo\s+(?:falsificar|forjar|fraudar|burlar)\s+(?:cpf|rg|nota|cnh|passaporte|documento)/i,
+    /\bcomo\s+(?:acessar|usar|comprar\s+em)\s+(?:dark\s*web|deep\s*web|silk\s*road)/i,
+    /\b(?:método|forma|como|jeito)\s+(?:de\s+|para\s+|pra\s+)?(?:suicídio|me\s+matar|se\s+matar)/i,
+    /\b(?:pedofilia|pornografia\s+infantil|child\s+porn|csam)/i,
+    /\b(?:supremacia|supremacist[ao]s?)\s+(?:branc[ao]|aria|racial)/i,
+    /\b(?:neonaz|nazismo|hitler\s+tinha\s+razão)/i,
+    /\b(?:expurgar|exterminar|aniquilar)\s+(?:negros|judeus|gays|lgbt|árabes)/i,
+    /\b(?:porno|pornô|pornografia|xvideos|onlyfans\s+vaza|nudes\s+vaza)/i,
+  ];
+  function isBlockedTopic(query) {
+    if (!query) return false;
+    return BLOCKED_PATTERNS.some(p => p.test(query));
+  }
 
   // ===== INIT =====
   renderDate();
