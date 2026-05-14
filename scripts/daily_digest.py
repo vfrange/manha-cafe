@@ -637,6 +637,14 @@ def process_user(user, now_brt):
 
         for s in raw_sections:
             if s.get("noticias"):
+                # Defensivo: filtra notícias sem campos mínimos antes de prosseguir
+                clean = [n for n in s["noticias"] if n.get("manchete") and n.get("resumo")]
+                if len(clean) < len(s["noticias"]):
+                    log(f"  ⚠ tema {s.get('tema','?')}: descartadas {len(s['noticias']) - len(clean)} notícias incompletas")
+                if not clean:
+                    continue
+                s["noticias"] = clean
+
                 tema = s.get("tema", "")
                 meta = label_meta.get(tema, {})
                 scopes = meta.get("scopes", [])
