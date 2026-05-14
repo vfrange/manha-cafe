@@ -76,6 +76,9 @@ def _render_trending_section(trending, scope_label):
         # Suporta formato NOVO (manchete/resumo/fatos_chave) e formato VELHO (termo/contexto)
         manchete = _esc(item.get("manchete") or item.get("termo", ""))
         resumo = _esc(item.get("resumo") or item.get("contexto", ""))
+        # Defensivo: pula trends sem campos mínimos
+        if not manchete or not resumo:
+            continue
         fatos = item.get("fatos_chave") or []
         link = item.get("link", "")
         fonte = item.get("fonte", "")
@@ -180,6 +183,10 @@ def _render_news_sections(sections):
 
         noticias_html = ""
         for n in sec["noticias"]:
+            # Defensivo: pula itens sem campos mínimos (Claude às vezes devolve item incompleto)
+            if not n.get("manchete") or not n.get("resumo"):
+                continue
+
             # Fatos-chave (bullets) — opcional
             fatos_html = ""
             if n.get("fatos_chave"):
@@ -233,11 +240,11 @@ def _render_news_sections(sections):
             noticias_html += f"""
             <tr><td style="padding:0 0 32px 0;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr><td style="font-family:{SERIF_FONT};font-weight:700;font-size:26px;line-height:1.18;color:{COLORS['ink']};letter-spacing:-0.02em;padding-bottom:14px;">{_esc(n['manchete'])}</td></tr>
-                <tr><td style="font-family:{SANS_FONT};font-size:16px;line-height:1.6;color:{COLORS['ink_soft']};padding-bottom:16px;">{_esc(n['resumo'])}</td></tr>
+                <tr><td style="font-family:{SERIF_FONT};font-weight:700;font-size:26px;line-height:1.18;color:{COLORS['ink']};letter-spacing:-0.02em;padding-bottom:14px;">{_esc(n.get('manchete',''))}</td></tr>
+                <tr><td style="font-family:{SANS_FONT};font-size:16px;line-height:1.6;color:{COLORS['ink_soft']};padding-bottom:16px;">{_esc(n.get('resumo',''))}</td></tr>
                 {fatos_html}
                 <tr><td style="font-family:{SANS_FONT};font-size:12px;color:{COLORS['ink_muted']};padding-bottom:8px;">
-                  <a href="{_esc(n['link'])}" style="color:{COLORS['ink']};text-decoration:none;font-weight:800;border-bottom:2.5px solid {COLORS['mint_deep']};padding-bottom:1px;margin-right:12px;">Ler matéria →</a>
+                  <a href="{_esc(n.get('link','#'))}" style="color:{COLORS['ink']};text-decoration:none;font-weight:800;border-bottom:2.5px solid {COLORS['mint_deep']};padding-bottom:1px;margin-right:12px;">Ler matéria →</a>
                   <span style="color:{COLORS['ink']};font-weight:800;">{_esc(n.get('fonte','') or 'Fonte')}</span>
                   {lang_chip}
                 </td></tr>
