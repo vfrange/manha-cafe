@@ -7,12 +7,10 @@ import secrets
 
 
 def short_id(length=10):
-    """ID curto base64-url-safe pra usar como key em email_items."""
     return secrets.token_urlsafe(length)[:length]
 
 
 def sign(item_id: str, signal: int, secret: str = None) -> str:
-    """Gera token HMAC-SHA256 truncado em 12 chars."""
     secret = secret or os.environ.get("FEEDBACK_SECRET", "")
     if not secret:
         raise ValueError("FEEDBACK_SECRET ausente")
@@ -26,14 +24,11 @@ def verify(item_id: str, signal: int, token: str, secret: str = None) -> bool:
 
 
 def feedback_url(base_url: str, item_id: str, signal: int) -> str:
-    """Monta URL completa do botão de feedback."""
     token = sign(item_id, signal)
     return f"{base_url}?i={item_id}&s={signal}&t={token}"
 
 
-# ============ MANAGE TOKEN ============
 def manage_sign(user_id: str, exp: int, secret: str = None) -> str:
-    """HMAC do payload manage|user_id|exp truncado em 24 chars (mais entropia que feedback)."""
     secret = secret or os.environ.get("FEEDBACK_SECRET", "")
     if not secret:
         raise ValueError("FEEDBACK_SECRET ausente")
@@ -42,22 +37,17 @@ def manage_sign(user_id: str, exp: int, secret: str = None) -> str:
 
 
 def manage_url(base_url: str, user_id: str, ttl_days: int = 30) -> str:
-    """Monta URL assinada pra página /manage. Expira em ttl_days."""
     if not base_url or base_url == "#":
         return "#"
     exp = int(time.time()) + ttl_days * 86400
     token = manage_sign(user_id, exp)
-    # base_url pode ser https://x.github.io/manha-cafe/ ou https://x.github.io/manha-cafe/manage.html
     base = base_url.rstrip("/")
     if not base.endswith(".html"):
         base = base + "/manage.html"
     return f"{base}?u={user_id}&exp={exp}&t={token}"
 
 
-# ============ UNSUBSCRIBE TOKEN ============
 def unsub_sign(user_id: str, secret: str = None) -> str:
-    """HMAC do payload unsub|user_id truncado em 24 chars.
-    Sem expiração — unsubscribe deve funcionar sempre, mesmo em emails antigos."""
     secret = secret or os.environ.get("FEEDBACK_SECRET", "")
     if not secret:
         raise ValueError("FEEDBACK_SECRET ausente")
@@ -71,8 +61,6 @@ def unsub_verify(user_id: str, token: str, secret: str = None) -> bool:
 
 
 def unsub_url(supabase_url: str, user_id: str) -> str:
-    """Monta URL pra cancelar inscrição.
-    Aponta pra edge function 'unsubscribe' que aceita GET e POST (RFC 8058 one-click)."""
     if not supabase_url or not user_id:
         return "#"
     base = supabase_url.rstrip("/")
