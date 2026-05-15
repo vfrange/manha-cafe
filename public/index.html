@@ -430,9 +430,9 @@
         <input type="email" id="email" class="field" placeholder="seu@email.com" required>
       </div>
       <div class="phone-row">
-        <select id="phoneCountry" class="field country-select field-country" required></select>
-        <input type="tel" id="phoneArea" class="field field-area" placeholder="DDD" maxlength="4" inputmode="numeric" required>
-        <input type="tel" id="phoneNumber" class="field field-number" placeholder="9 1234 5678" maxlength="15" inputmode="numeric" required>
+        <select id="phoneCountry" class="field country-select field-country"></select>
+        <input type="tel" id="phoneArea" class="field field-area" placeholder="DDD" maxlength="4" inputmode="numeric">
+        <input type="tel" id="phoneNumber" class="field field-number" placeholder="Telefone (opcional)" maxlength="15" inputmode="numeric">
       </div>
     </div>
 
@@ -476,7 +476,7 @@
         </div>
       </div>
       <div class="custom-input-row">
-        <input type="text" id="customTopicInput" class="field" placeholder="ex: Nubank, FIIs, OpenAI, Apple…">
+        <input type="text" id="customTopicInput" class="field" placeholder="ex: Futebol, FIIs, OpenAI, Apple…">
         <button type="button" class="btn-add" onclick="addCustomTopic()">+ Adicionar</button>
       </div>
       <div class="scope-hint" id="scopeHint">↳ digite acima e eu detecto o escopo</div>
@@ -511,7 +511,7 @@
   // ===== CONFIG =====
   const SUPABASE_URL = 'https://jegvgviwbkbrmuhcivle.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_Q9FiImNakeN-DdGIbWIDjQ_v50JUNSS';
-  const WELCOME_FN_URL = SUPABASE_URL + '/functions/v1/welcome';
+  const WELCOME_FN_URL = 'https://jegvgviwbkbrmuhcivle.supabase.co/functions/v1/welcome';
   const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // ===== TEMAS CURADOS =====
@@ -729,26 +729,31 @@
     const email = document.getElementById('email').value.trim().toLowerCase();
     // Hora fixa: todos recebem às 6h BRT (com catch-up até 8h)
 
-    // ===== TELEFONE =====
+    // ===== TELEFONE (opcional) =====
     const phoneCountryRaw = document.getElementById('phoneCountry').value; // ex: "BR|+55"
     const [phoneCountryCode, phoneDial] = phoneCountryRaw.split('|');
     const phoneArea = document.getElementById('phoneArea').value.replace(/\D/g, '');
     const phoneNumberRaw = document.getElementById('phoneNumber').value.replace(/\D/g, '');
 
-    if (!phoneArea || !phoneNumberRaw) {
-      alert('Preenche o DDD e o número do telefone, por favor 🙂');
-      btn.disabled = false; btn.textContent = 'Começar a receber →';
-      return;
+    let phoneE164 = null;
+    let phoneDisplay = null;
+    if (phoneArea || phoneNumberRaw) {
+      // user começou a preencher → valida
+      if (!phoneArea || !phoneNumberRaw) {
+        alert('Preenche o DDD e o número, ou deixa os dois vazios (telefone é opcional) 🙂');
+        btn.disabled = false; btn.textContent = 'Começar a receber →';
+        return;
+      }
+      if (phoneNumberRaw.length < 6) {
+        alert('Número de telefone parece curto demais. Confere?');
+        btn.disabled = false; btn.textContent = 'Começar a receber →';
+        return;
+      }
+      // E.164 — padrão internacional usado por Twilio/WhatsApp Business
+      phoneE164 = `${phoneDial}${phoneArea}${phoneNumberRaw}`;
+      // Display amigável: "+55 11 987654321"
+      phoneDisplay = `${phoneDial} ${phoneArea} ${phoneNumberRaw}`;
     }
-    if (phoneNumberRaw.length < 6) {
-      alert('Número de telefone parece curto demais. Confere?');
-      btn.disabled = false; btn.textContent = 'Começar a receber →';
-      return;
-    }
-    // E.164 — padrão internacional usado por Twilio/WhatsApp Business
-    const phoneE164 = `${phoneDial}${phoneArea}${phoneNumberRaw}`;
-    // Display amigável: "+55 11 987654321"
-    const phoneDisplay = `${phoneDial} ${phoneArea} ${phoneNumberRaw}`;
 
     // Cada tema curado vira 2 records: BR + GLOBAL
     const selectedIdx = [...document.querySelectorAll('.topic-chip input:checked')].map(c => parseInt(c.value));
