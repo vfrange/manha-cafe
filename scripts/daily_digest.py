@@ -622,6 +622,72 @@ def create_email_item(user_id, kind, payload):
     return iid
 
 
+def _try_decode_gnews_url(url, timeout=4):
+    """
+    Tenta decodificar uma URL wrapper do Google News pra URL real da matéria.
+    
+    URLs do Google News (CBMi...) muitas vezes não redirecionam corretamente,
+    abrindo só a página do feed em vez do artigo. Esta função usa a lib
+    googlenewsdecoder pra resolver pro link original do publisher.
+
+    Defensivo: se falhar (rate limit, network, etc), retorna a URL original
+    sem regredir.
+    """
+    if not url or "news.google.com" not in url:
+        return url
+    try:
+        from googlenewsdecoder import gnewsdecoder
+        result = gnewsdecoder(url, interval=1)
+        if isinstance(result, dict) and result.get("status") and result.get("decoded_url"):
+            decoded = result["decoded_url"]
+            if decoded.startswith("http"):
+                return decoded
+    except Exception as e:
+        log(f"    [gnews] falhou decode {url[:50]}...: {e}")
+    return url
+
+
+def resolve_gnews_urls(sections, trending, max_workers=6):
+    """
+    Resolve URLs de Google News pra URLs reais.
+    Roda em paralelo pra não atrasar o pipeline.
+    Aplicado SÓ nas URLs finais (~30-40 notícias), não nas 200+ brutas.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    # Coleta todas as URLs gnews
+    targets = []  # [(container, key, url), ...]
+    for sec in sections:
+        for n in sec.get("noticias", []):
+            link = n.get("link", "")
+            if "news.google.com" in link:
+                targets.append((n, "link", link))
+    for item in (trending or []):
+        link = item.get("link", "")
+        if "news.google.com" in link:
+            targets.append((item, "link", link))
+
+    if not targets:
+        return
+
+    log(f"  resolvendo {len(targets)} URLs do Google News em paralelo...")
+    
+    def _resolve(target):
+        container, key, url = target
+        new_url = _try_decode_gnews_url(url)
+        if new_url != url:
+            container[key] = new_url
+            return True
+        return False
+
+    resolved_count = 0
+    with ThreadPoolExecutor(max_workers=max_workers) as ex:
+        results = list(ex.map(_resolve, targets))
+        resolved_count = sum(1 for r in results if r)
+
+    log(f"  ✓ {resolved_count}/{len(targets)} URLs resolvidas (resto mantém wrapper)")
+
+
 def add_feedback_links(user_id, sections):
     """Pra cada notícia e cada seção, gera email_items + URLs assinadas."""
     for sec in sections:
@@ -864,6 +930,10 @@ def process_user(user, now_brt, weekly=False):
     # Usa label_meta + topics_with_news pra saber source de cada label
     label_to_source = {t["label"]: t.get("source", "curated") for t in topics_with_news}
     sections.sort(key=lambda s: 0 if label_to_source.get(s.get("topic"), "curated") == "custom" else 1)
+
+    # 2.7) RESOLVE URLs do Google News pra URLs reais dos publishers
+    # Aplicado SÓ nas notícias finais (~30) — não nas 200+ brutas — pra economizar tempo.
+    resolve_gnews_urls(sections, trending)
 
     # 3) GERA email_items + URLs de feedback
     sections = add_feedback_links(uid, sections)
