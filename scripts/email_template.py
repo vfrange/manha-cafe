@@ -396,7 +396,7 @@ def _render_news_sections(sections, email_mode="coado"):
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-                    <td style="background:{COLORS['ink']};border:1.5px solid {COLORS['ink']};padding:4px 12px;font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:{COLORS['mint']};">{_get_topic_icon(sec['topic'])} {_esc(sec['topic'])}</td>
+                    <td style="background:{COLORS['ink']};border:2px solid {COLORS['ink']};padding:8px 18px;font-family:{SANS_FONT};font-size:13px;font-weight:800;letter-spacing:0.20em;text-transform:uppercase;color:{COLORS['mint']};box-shadow:3px 3px 0 {COLORS['ink_muted']};">{_get_topic_icon(sec['topic'])} {_esc(sec['topic'])}</td>
                     <td>{country_chip}</td>
                   </tr></table></td>
                   {pause_btn}
@@ -561,8 +561,8 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     stat_noticias = total_noticias or 0
     stat_trending = len(trending)
     stat_temas = len(sections)
-    # Minutos: ~25s/manchete espresso, ~50s/manchete coado
-    secs_each = 25 if email_mode == "espresso" else 50
+    # Minutos: ~15s/manchete espresso (resumida), ~30s/manchete coado (análise completa)
+    secs_each = 15 if email_mode == "espresso" else 30
     stat_minutos = max(2, round((stat_noticias + stat_trending) * secs_each / 60))
 
     # Textos do hero — variam entre daily e weekly
