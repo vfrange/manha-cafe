@@ -1,0 +1,37 @@
+name: Dispatch Daily
+
+# Disparo às 6h BRT em ponto (seg-sex). Lê fila email_queue (preparada
+# pelo prepare_daily.yml de madrugada) e envia via Resend.
+# Idempotente: claim atomic via status 'sending', dois workers não enviam o mesmo email.
+
+on:
+  schedule:
+    - cron: '0 9 * * 1-5'    # 06:00 BRT  ← horário exato de envio
+    - cron: '5 9 * * 1-5'    # 06:05 BRT (fallback 1)
+    - cron: '10 9 * * 1-5'   # 06:10 BRT (fallback 2)
+    - cron: '20 9 * * 1-5'   # 06:20 BRT (fallback 3)
+  workflow_dispatch:
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: scripts/requirements.txt
+      - name: Install deps
+        working-directory: scripts
+        run: pip install -r requirements.txt
+      - name: Dispatch daily
+        working-directory: scripts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+          DISPATCH_WORKERS: '10'
+        run: python dispatch_emails.py --kind daily
