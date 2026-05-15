@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Recorte ✂ · Anotado</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700;900&family=Mulish:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --mint:#6EE7B7; --mint-deep:#10B981; --mint-dark:#047857;
+    --ink:#0A2540; --ink-soft:#334155; --ink-muted:#64748B;
+    --bg:#FFFAF0; --bg2:#F4F1EA; --line:#E2DFD7;
+    --yellow:#FFD60A; --orange:#FF5A1F;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--bg);font-family:'Mulish',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;padding:24px;color:var(--ink)}
+  .card{max-width:480px;width:100%;background:#fff;border:2px solid var(--ink);box-shadow:8px 8px 0 var(--ink);padding:40px;text-align:center}
+  .icon{width:80px;height:80px;margin:0 auto 24px;background:var(--yellow);border:2px solid var(--ink);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:40px;box-shadow:6px 6px 0 var(--ink)}
+  .icon.warn{background:var(--orange);color:#fff}
+  .icon.success{background:var(--mint)}
+  h1{font-family:'Fraunces',serif;font-weight:900;font-size:36px;letter-spacing:-0.03em;margin:0 0 14px;line-height:1.1}
+  h1 em{font-style:italic;color:var(--mint-dark);font-weight:700}
+  p{font-size:16px;color:var(--ink-soft);line-height:1.5;margin:0 0 20px}
+  p strong{color:var(--ink)}
+  .foot{font-size:12px;color:var(--ink-muted);margin-top:24px;letter-spacing:0.02em}
+  .foot strong{color:var(--ink)}
+  .actions{margin-top:24px}
+  .btn{display:inline-block;padding:12px 24px;background:var(--ink);color:#fff;text-decoration:none;font-family:'Mulish',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;border:2px solid var(--ink);box-shadow:4px 4px 0 var(--mint-deep);transition:transform .12s, box-shadow .12s}
+  .btn:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--mint-deep)}
+  @media(max-width:520px){
+    .card{padding:28px 22px}
+    h1{font-size:28px}
+  }
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="icon" id="icon">☕</div>
+  <h1 id="title">Carregando…</h1>
+  <p id="msg"></p>
+  <div class="actions">
+    <a href="https://recorte.news" class="btn">Voltar ao Recorte ✂</a>
+  </div>
+  <div class="foot"><strong>Recorte ✂</strong> · sua newsletter aprende com você</div>
+</div>
+<script>
+(function(){
+  var p = new URLSearchParams(window.location.search);
+  var kind = p.get('kind') || 'unknown';
+  var label = p.get('label') || '';
+  var title = p.get('title') || '';
+  var iconEl = document.getElementById('icon');
+  var titleEl = document.getElementById('title');
+  var msgEl = document.getElementById('msg');
+
+  function set(emoji, t, m, cls){
+    iconEl.textContent = emoji;
+    if (cls) iconEl.className = 'icon ' + cls;
+    titleEl.innerHTML = t;
+    msgEl.innerHTML = m;
+  }
+
+  switch(kind){
+    case 'topic_paused':
+      set('👎', 'Anotado!',
+        'Tema pausado. Você não vai ver <strong>"' + escapeHtml(label) + '"</strong> nos próximos <em>7 dias</em>.',
+        'success');
+      break;
+    case 'news_more':
+      set('👍', 'Anotado!',
+        'Ótimo! Vou trazer <em>mais</em> coisas como <strong>"' + escapeHtml(title) + '"</strong>.',
+        'success');
+      break;
+    case 'news_less':
+      set('👎', 'Anotado!',
+        'Vou trazer <em>menos</em> coisas como <strong>"' + escapeHtml(title) + '"</strong>.',
+        'warn');
+      break;
+    case 'invalid':
+    case 'invalid_token':
+      set('⚠', 'Link inválido',
+        'Esse link parece incompleto ou não passou na verificação de segurança. Tente clicar no botão direto do e-mail.',
+        'warn');
+      break;
+    case 'not_found':
+      set('🔍', 'Item não encontrado',
+        'Esse feedback se refere a um item antigo que já não está disponível.',
+        'warn');
+      break;
+    case 'error':
+      set('⚠', 'Algo deu errado',
+        'Não conseguimos registrar seu feedback. Tente de novo daqui a pouco.',
+        'warn');
+      break;
+    default:
+      set('?', 'Hmm…',
+        'Não entendi essa ação. Volte ao seu Recorte e tente de novo.',
+        'warn');
+  }
+
+  function escapeHtml(s){
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+})();
+</script>
+</body>
+</html>
