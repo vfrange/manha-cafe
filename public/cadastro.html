@@ -622,7 +622,7 @@
         <span class="step-num">02</span>
         <div>
           <div class="step-title">Como você quer ler?</div>
-          <div class="step-hint">Dois ritmos. O <strong>Espresso</strong> é o que recomendamos pra começar — chega rápido, em 5 a 7 minutos. O <strong>Coado</strong> é pra quem curte uma leitura mais densa, com mais contexto. <em>Você pode trocar a qualquer momento.</em></div>
+          <div class="step-hint">Dois ritmos. O <strong>Espresso</strong> é o que recomendamos pra começar — chega rápido, em 5 a 6 minutos. O <strong>Coado</strong> é pra quem curte uma leitura mais densa, com mais contexto. <em>Você pode trocar a qualquer momento.</em></div>
         </div>
       </div>
       <div class="mode-row">
@@ -631,13 +631,13 @@
           <span class="mode-badge">Recomendado</span>
           <span class="mode-emoji">⚡</span>
           <div class="mode-name"><em>Espresso</em></div>
-          <div class="mode-desc">Manchete + 1 frase do que importa. Leitura em ~5 a 7 min.</div>
+          <div class="mode-desc">Manchete + 1 frase do que importa. Leitura em ~5 a 6 min.</div>
         </label>
         <label class="mode-card" id="modeCoadoCard">
           <input type="radio" name="readingMode" value="coado">
           <span class="mode-emoji">☕</span>
           <div class="mode-name"><em>Coado</em></div>
-          <div class="mode-desc">Análise completa com contexto e dados. Leitura em ~12 a 15 min.</div>
+          <div class="mode-desc">Análise completa com contexto e dados. Leitura em ~10 a 12 min.</div>
         </label>
       </div>
     </div>
@@ -845,7 +845,7 @@
       cb.addEventListener('change', (e) => {
         if (e.target.checked && getTotalTopicsCount() > 12) {
           e.target.checked = false;
-          alert('Máximo de 12 temas no total (curados + personalizados) 🙂');
+          alert('Máximo de 15 temas no total (curados + personalizados) 🙂');
         }
       });
     });
@@ -920,7 +920,7 @@
     const input = document.getElementById('customTopicInput');
     const val = input.value.trim();
     if (!val) return;
-    if (getTotalTopicsCount() >= 12) { alert('Máximo de 12 temas no total (curados + personalizados) 🙂'); return; }
+    if (getTotalTopicsCount() >= 15) { alert('Máximo de 15 temas no total (curados + personalizados) 🙂'); return; }
     if (customTopics.some(t => t.label.toLowerCase() === val.toLowerCase())) { alert('Esse tema já está na lista'); return; }
     const { scopes } = detectScope(val);
     customTopics.push({ label: val, query: val, scopes });
@@ -1086,8 +1086,8 @@
 
     // Limite de 20 temas únicos (curados + personalizados)
     const uniqueLabels = new Set(topics.map(t => t.label.toLowerCase()));
-    if (uniqueLabels.size > 12) {
-      alert('Máximo de 12 temas no total. Você selecionou ' + uniqueLabels.size + '. Remova alguns antes de continuar.');
+    if (uniqueLabels.size > 15) {
+      alert('Máximo de 15 temas no total. Você selecionou ' + uniqueLabels.size + '. Remova alguns antes de continuar.');
       btn.disabled = false; btn.textContent = 'Começar a receber →';
       return;
     }
