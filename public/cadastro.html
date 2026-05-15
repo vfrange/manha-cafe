@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -258,40 +257,77 @@
     display: block;
     position: relative;
     cursor: pointer;
-    padding: 20px 22px;
+    padding: 22px 24px;
     background: #fff;
-    border: 2px solid var(--ink);
+    border: 2px solid var(--line);
     box-shadow: 4px 4px 0 var(--ink-muted);
-    transition: transform .12s, box-shadow .12s, background .12s;
+    transition: transform .12s, box-shadow .12s, background .12s, border-color .12s;
   }
-  .mode-card:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--ink-muted); }
-  .mode-card input { position: absolute; opacity: 0; width: 0; height: 0; }
-  .mode-card.selected {
-    background: var(--mint-bg);
-    box-shadow: 5px 5px 0 var(--mint-dark);
+  .mode-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--ink-muted);
     border-color: var(--ink);
   }
-  .mode-card.selected:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 var(--mint-dark); }
-  .mode-emoji { font-size: 28px; line-height: 1; display: block; margin-bottom: 10px; }
+  .mode-card input { position: absolute; opacity: 0; width: 0; height: 0; }
+
+  /* SELECIONADO: bem destacado */
+  .mode-card.selected {
+    background: var(--mint);              /* verde menta vibrante */
+    border-color: var(--ink);              /* borda preta forte */
+    box-shadow: 6px 6px 0 var(--ink);     /* sombra preta cartoon */
+    transform: translate(-2px, -2px);
+  }
+  .mode-card.selected:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: 8px 8px 0 var(--ink);
+  }
+  .mode-card.selected .mode-name { color: var(--ink); }
+  .mode-card.selected .mode-desc { color: var(--ink); }
+
+  /* Checkmark no canto quando selecionado */
+  .mode-card::before {
+    content: "";
+    position: absolute;
+    top: 12px; left: 12px;
+    width: 18px; height: 18px;
+    border: 2px solid var(--line);
+    background: #fff;
+    border-radius: 50%;
+    transition: all .12s;
+  }
+  .mode-card.selected::before {
+    border-color: var(--ink);
+    background: var(--ink);
+    box-shadow: inset 0 0 0 3px var(--mint);
+  }
+
+  .mode-emoji { font-size: 32px; line-height: 1; display: block; margin: 12px 0 12px; }
   .mode-name {
     font-family: 'Fraunces', serif;
-    font-weight: 700; font-size: 19px;
+    font-weight: 700; font-size: 20px;
     letter-spacing: -0.02em;
     color: var(--ink);
-    margin-bottom: 4px;
+    margin-bottom: 6px;
   }
   .mode-name em { font-style: italic; color: var(--mint-dark); }
-  .mode-desc { font-size: 13.5px; color: var(--ink-soft); line-height: 1.5; }
+  .mode-card.selected .mode-name em { color: var(--ink); }
+  .mode-desc { font-size: 14px; color: var(--ink-soft); line-height: 1.5; }
+
   .mode-badge {
     position: absolute; top: 12px; right: 12px;
-    background: var(--mint-dark); color: #fff;
+    background: var(--ink); color: var(--mint);
     font-family: 'Mulish', sans-serif;
     font-size: 9px; font-weight: 800;
-    letter-spacing: 0.12em; text-transform: uppercase;
-    padding: 3px 8px; border-radius: 2px;
-    opacity: 0; transition: opacity .12s;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    padding: 4px 9px;
+    border: 1.5px solid var(--ink);
   }
-  .mode-card.selected .mode-badge { opacity: 1; }
+  .mode-card:not(.selected) .mode-badge { opacity: 0.35; }
+  .mode-card.selected .mode-badge {
+    background: #fff;
+    color: var(--ink);
+    border-color: var(--ink);
+  }
 
   .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   @media (max-width: 560px) { .input-row { grid-template-columns: 1fr; } }
@@ -698,9 +734,9 @@
 
 <script>
   // ===== CONFIG =====
-  const SUPABASE_URL = 'https://jegvgviwbkbrmuhcivle.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_Q9FiImNakeN-DdGIbWIDjQ_v50JUNSS';
-  const WELCOME_FN_URL = 'https://jegvgviwbkbrmuhcivle.supabase.co/functions/v1/welcome';
+  const SUPABASE_URL = 'https://SEUPROJETO.supabase.co';
+  const SUPABASE_ANON_KEY = 'SUA_ANON_KEY';
+  const WELCOME_FN_URL = SUPABASE_URL + '/functions/v1/welcome';
   const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // ===== TEMAS CURADOS =====
