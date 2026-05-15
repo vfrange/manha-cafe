@@ -168,7 +168,7 @@ h1{font-family:'Fraunces',serif;font-weight:900;font-size:36px;line-height:1.1;l
 
     <div class="section">
       <div class="label">Seus temas</div>
-      <p class="muted-note" style="margin:0 0 10px">Empresas, marcas, segmentos, eventos que você quer acompanhar (máximo 12). Detecto automaticamente se é BR ou Global; clique nas bandeirinhas pra ajustar.</p>
+      <p class="muted-note" style="margin:0 0 10px">Empresas, marcas, segmentos, eventos que você quer acompanhar (máximo 15). Detecto automaticamente se é BR ou Global; clique nas bandeirinhas pra ajustar.</p>
       <div class="row">
         <input type="text" id="newTopicInput" class="field" placeholder="ex: Futebol, FIIs, OpenAI, Apple…">
         <button class="btn btn-add" onclick="addTopic()">+ Adicionar</button>
@@ -410,7 +410,7 @@ function addTopic() {
   const input = document.getElementById('newTopicInput');
   const val = input.value.trim();
   if (!val) return;
-  if (currentTopics.length >= 12) return toast('Máximo de 12 temas', 'error');
+  if (currentTopics.length >= 15) return toast('Máximo de 15 temas', 'error');
   if (currentTopics.some(tp => tp.label.toLowerCase() === val.toLowerCase())) return toast('Esse tema já está', 'error');
   if (isBlockedTopic(val)) return toast('Tema rejeitado por política de uso (sem how-to perigoso)', 'error');
   const { scopes } = detectScope(val);
