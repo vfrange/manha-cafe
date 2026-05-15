@@ -382,10 +382,15 @@ def _render_news_sections(sections, email_mode="coado"):
         out += f"""
         <tr><td style="padding:0 36px;" id="tema-{slug}">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:8px;border-bottom:4px solid {COLORS['bg_2']};">
-            <tr><td style="padding:24px 0 6px 0;">
-              <!-- Linha de corte tracejada — identidade da marca ✂ -->
-              <div style="border-top:1.5px dashed {COLORS['ink_muted']};opacity:0.4;margin-bottom:4px;"></div>
-              <div style="font-family:{MONO_FONT};font-size:9px;letter-spacing:0.3em;color:{COLORS['ink_muted']};opacity:0.55;text-transform:uppercase;text-align:right;">✂ recortado pra você</div>
+            <tr><td style="padding:28px 0 4px 0;">
+              <!-- Linha de corte tracejada + tesoura — separador editorial entre capítulos -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr><td style="border-top:3px dashed {COLORS['ink']};font-size:0;line-height:0;">&nbsp;</td></tr>
+                <tr><td align="center" style="line-height:1;">
+                  <div style="display:inline-block;background:{COLORS['bg']};margin-top:-19px;padding:0 18px;font-size:30px;color:{COLORS['mint_deep']};line-height:1;">✂</div>
+                </td></tr>
+              </table>
+              <div style="font-family:{MONO_FONT};font-size:9px;letter-spacing:0.3em;color:{COLORS['mint_dark']};text-transform:uppercase;text-align:right;margin-top:4px;font-weight:700;">recortado pra você</div>
             </td></tr>
             <tr><td style="padding:8px 0 18px 0;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
@@ -631,10 +636,10 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
           <td valign="middle">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-              <td valign="middle" style="padding-right:12px;">
-                <div style="width:38px;height:38px;background:{COLORS['ink']};color:{COLORS['mint']};border-radius:50%;text-align:center;line-height:38px;font-family:{SANS_FONT};font-size:18px;font-weight:700;">✂</div>
+              <td valign="middle" style="padding-right:14px;">
+                <div style="width:42px;height:42px;background:{COLORS['bg']};border:2.5px solid {COLORS['ink']};border-radius:50%;text-align:center;line-height:38px;font-family:{SERIF_FONT};font-style:italic;font-weight:700;font-size:24px;color:{COLORS['ink']};letter-spacing:-0.05em;">r<span style="color:{COLORS['mint_deep']};">.</span></div>
               </td>
-              <td valign="middle" style="font-family:{SERIF_FONT};font-weight:900;font-size:30px;letter-spacing:-0.04em;color:{COLORS['ink']};">Recorte</td>
+              <td valign="middle" style="font-family:{SERIF_FONT};font-weight:700;font-size:30px;letter-spacing:-0.025em;color:{COLORS['ink']};">Recorte</td>
             </tr></table>
           </td>
           <td valign="middle" align="right" style="font-family:{SERIF_FONT};font-style:italic;font-size:13px;color:{COLORS['mint_dark']};">
