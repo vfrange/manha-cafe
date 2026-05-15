@@ -782,6 +782,7 @@ def process_user(user, now_brt, weekly=False):
                 "country": country,           # primeiro country do grupo (legado)
                 "scopes": [],                  # lista de todos os escopos cobertos
                 "topic_id": t["id"],
+                "source": t.get("source", "curated"),  # 'custom' ou 'curated' — usado pra ordenar
                 "news": []
             }
         by_label[t["label"]]["scopes"].append(country)
@@ -800,6 +801,10 @@ def process_user(user, now_brt, weekly=False):
             deduped.append(n)
         group["news"] = deduped
         topics_with_news.append(group)
+
+    # Ordena: temas CUSTOMIZADOS (digitados pelo user) primeiro, depois CURADOS (pré-selecionados)
+    # Mantém ordem original dentro de cada grupo (estável)
+    topics_with_news.sort(key=lambda g: 0 if g.get("source") == "custom" else 1)
 
     sections = []
     if topics_with_news:
@@ -854,6 +859,11 @@ def process_user(user, now_brt, weekly=False):
         _dedupe_sections_against_trends(sections, trending)
         # Se alguma seção ficou vazia após o dedup, remove ela
         sections = [s for s in sections if s.get("noticias")]
+
+    # 2.6) REORDENAR sections: customizados primeiro, depois curados (Claude pode ter reordenado)
+    # Usa label_meta + topics_with_news pra saber source de cada label
+    label_to_source = {t["label"]: t.get("source", "curated") for t in topics_with_news}
+    sections.sort(key=lambda s: 0 if label_to_source.get(s.get("topic"), "curated") == "custom" else 1)
 
     # 3) GERA email_items + URLs de feedback
     sections = add_feedback_links(uid, sections)
