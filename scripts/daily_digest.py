@@ -509,9 +509,12 @@ def is_topic_paused(topic_label, paused_topics, now):
 
 
 # ============ SENDER ============
-def send_email(to_email, to_name, html, date_obj):
+def send_email(to_email, to_name, html, date_obj, weekly=False):
     first = to_name.split()[0]
-    subject = f"☕ Sua manhã, {first} — {date_obj.strftime('%d/%m')}"
+    if weekly:
+        subject = f"🗞 Seu Recorte da Semana, {first} — {date_obj.strftime('%d/%m')}"
+    else:
+        subject = f"☕ Seu Recorte de hoje, {first} — {date_obj.strftime('%d/%m')}"
     if DRY_RUN:
         log("DRY_RUN", to=to_email, subject=subject)
         fname = f"preview_{to_email.replace('@','_at_')}.html"
@@ -525,7 +528,7 @@ def send_email(to_email, to_name, html, date_obj):
 
 
 # ============ MAIN ============
-def process_user(user, now_brt):
+def process_user(user, now_brt, weekly=False):
     uid = user["id"]
     default_country = user.get("default_country") or "BR"
     log(f"processando", email=user["email"], pais=default_country)
@@ -702,8 +705,9 @@ def process_user(user, now_brt):
         daily_quote=daily_quote,
         daily_quote_author=daily_quote_author,
         email_mode=email_mode,
+        weekly_mode=weekly,
     )
-    result = send_email(user["email"], user["name"], html, now_brt)
+    result = send_email(user["email"], user["name"], html, now_brt, weekly=weekly)
     log(f"  ✓ enviado", id=result.get("id"))
     supabase.table("users").update({
         "last_sent_at": now_brt.isoformat(),
