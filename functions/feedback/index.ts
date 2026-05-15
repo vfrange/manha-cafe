@@ -1,6 +1,6 @@
-// Recorte ✂ — Edge Function de feedback
-// Recebe cliques de "+ mais como essa" / "– menos como essa" / "pausar tema"
-// Endpoint: https://<project>.functions.supabase.co/feedback?i=ID&s=±1&t=TOKEN
+// Recorte X - Edge Function de feedback
+// Recebe cliques de "+ mais como essa" / "- menos como essa" / "pausar tema"
+// Endpoint: https://<project>.functions.supabase.co/feedback?i=ID&s=+/-1&t=TOKEN
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { encodeHex } from "https://deno.land/std@0.224.0/encoding/hex.ts";
@@ -30,9 +30,17 @@ async function hmacSign(itemId: string, signal: number): Promise<string> {
 }
 
 function htmlPage(title: string, message: string, accent = "#FFD60A"): Response {
-  const body = `<!DOCTYPE html><html lang="pt-BR"><head>
-<meta charset="utf-8"><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${title} · Recorte ✂</title>
+  // Emojis e acentos usando escape sequences Unicode pra garantir
+  // que o source eh ASCII puro (zero risco de double-encoding no editor/clipboard).
+  // JavaScript expande \u#### em runtime pro caractere correto, e o Response
+  // serve bytes UTF-8 corretos sem nenhuma re-codificacao intermediaria.
+  const body = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title} \u00b7 Recorte \u2702</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@700;900&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
 <style>
 body { margin:0; min-height:100vh; background:#FFF8EC; font-family:'DM Sans',system-ui,sans-serif; display:flex; align-items:center; justify-content:center; padding:24px; color:#0A0A0A; }
@@ -42,20 +50,21 @@ h1 { font-family:'Fraunces',serif; font-weight:900; font-size:36px; letter-spaci
 p { font-size:16px; color:#4A4A4A; line-height:1.5; margin:0 0 20px 0; }
 .foot { font-size:12px; color:#8A8A85; margin-top:24px; }
 .foot strong { color:#0A0A0A; }
-</style></head>
-<body><div class="card">
-<div class="icon">☕</div>
+</style>
+</head>
+<body>
+<div class="card">
+<div class="icon">\u2615</div>
 <h1>${title}</h1>
 <p>${message}</p>
-<div class="foot"><strong>Recorte ✂</strong> · sua newsletter aprende com você</div>
-</div></body></html>`;
-  // Codifica explicitamente como bytes UTF-8 + Content-Length pra evitar
-  // que o proxy/CDN interprete o charset errado e fique com emojis quebrados.
-  const bytes = new TextEncoder().encode(body);
-  return new Response(bytes, {
+<div class="foot"><strong>Recorte \u2702</strong> \u00b7 sua newsletter aprende com voc\u00ea</div>
+</div>
+</body>
+</html>`;
+
+  return new Response(body, {
     headers: {
       "content-type": "text/html; charset=utf-8",
-      "content-length": String(bytes.length),
       "cache-control": "no-store",
     },
   });
@@ -69,83 +78,78 @@ Deno.serve(async (req) => {
     const token = url.searchParams.get("t") || "";
 
     if (!itemId || (signal !== 1 && signal !== -1) || !token) {
-      return htmlPage("Link inválido", "Esse link parece incompleto. Tente clicar no botão direto do e-mail.", "#FF5A1F");
+      return htmlPage("Link inv\u00e1lido", "Esse link parece incompleto. Tente clicar no bot\u00e3o direto do e-mail.", "#FF5A1F");
     }
 
-    // valida HMAC
     const expected = await hmacSign(itemId, signal);
     if (expected !== token) {
-      return htmlPage("Link inválido", "Esse link não passou na verificação de segurança.", "#FF5A1F");
+      return htmlPage("Link inv\u00e1lido", "Esse link n\u00e3o passou na verifica\u00e7\u00e3o de seguran\u00e7a.", "#FF5A1F");
     }
 
-    // busca o item
     const { data: item } = await supabase.from("email_items").select("*").eq("id", itemId).single();
     if (!item) {
-      return htmlPage("Item não encontrado", "Esse feedback se refere a um item antigo que já não está disponível.", "#FF5A1F");
+      return htmlPage("Item n\u00e3o encontrado", "Esse feedback se refere a um item antigo que j\u00e1 n\u00e3o est\u00e1 dispon\u00edvel.", "#FF5A1F");
     }
 
     const userId = item.user_id;
-    const kind = item.kind as "news" | "topic";
-    const payload = item.payload as Record<string, unknown>;
+    const kind = item.kind;
+    const payload = item.payload || {};
 
-    // monta resumo curto pro Claude consolidar depois
-    let summary = "";
-    if (kind === "news") {
-      summary = `${(payload.title as string) || ""} (fonte: ${(payload.source as string) || "?"})`;
-    } else {
-      summary = `Tema: ${(payload.topic_label as string) || "?"}`;
-    }
-
-    // grava evento
-    await supabase.from("feedback_events").insert({
-      user_id: userId,
-      email_item_id: itemId,
-      signal,
-      kind,
-      item_summary: summary.slice(0, 500),
-    });
-
-    // se for "pausar tema" → adiciona em paused_topics por 7 dias
-    let paused_msg = "";
     if (kind === "topic" && signal === -1) {
-      const topicId = (payload.topic_id as string) || null;
-      const topicLabel = (payload.topic_label as string) || "esse tema";
+      const topicLabel = payload.topic_label || "esse tema";
       const until = new Date();
       until.setDate(until.getDate() + 7);
 
-      // pega perfil atual
       const { data: prof } = await supabase.from("user_profile").select("paused_topics").eq("user_id", userId).single();
-      const current = (prof?.paused_topics as Array<Record<string, unknown>>) || [];
-      // remove o tema se já estava pausado, depois adiciona com novo prazo
-      const filtered = current.filter((p) => p.topic_id !== topicId && p.label !== topicLabel);
-      filtered.push({ topic_id: topicId, label: topicLabel, until: until.toISOString() });
+      const paused = (prof?.paused_topics as Array<{label: string; until: string}>) || [];
+      const filtered = paused.filter((p) => p.label !== topicLabel);
+      filtered.push({ label: topicLabel, until: until.toISOString() });
 
       await supabase.from("user_profile").upsert({
         user_id: userId,
         paused_topics: filtered,
-        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id" });
+
+      await supabase.from("feedback_events").insert({
+        user_id: userId,
+        item_id: itemId,
+        kind: "topic_pause_7d",
+        signal: -1,
+        payload: { topic_label: topicLabel },
       });
-      paused_msg = ` Você não vai ver <strong>"${topicLabel}"</strong> nos próximos 7 dias.`;
+
+      return htmlPage(
+        "Anotado! \u{1F44E}",
+        `Tema pausado. Voc\u00ea n\u00e3o vai ver <strong>"${topicLabel}"</strong> nos pr\u00f3ximos 7 dias.`,
+      );
     }
 
-    // mensagem de retorno
-    const isPositive = signal === 1;
-    const titleText = isPositive ? "Anotado! 👍" : "Anotado! 👎";
-    const accent = isPositive ? "#FFD60A" : "#FF5A1F";
-    let msg = "";
     if (kind === "news") {
-      msg = isPositive
-        ? "Vou priorizar mais notícias como essa nas próximas edições."
-        : "Vou diminuir notícias parecidas. O algoritmo aprende com cada toque seu.";
-    } else {
-      msg = isPositive
-        ? "Tema reforçado — você vai ver mais sobre isso."
-        : `Tema pausado.${paused_msg}`;
+      await supabase.from("feedback_events").insert({
+        user_id: userId,
+        item_id: itemId,
+        kind: "news_reaction",
+        signal: signal,
+        payload: payload,
+      });
+
+      if (signal === 1) {
+        return htmlPage(
+          "Anotado! \u{1F44D}",
+          `\u00d3timo! Vou trazer mais coisas como <strong>"${payload.title || 'essa'}"</strong>.`,
+        );
+      } else {
+        return htmlPage(
+          "Anotado! \u{1F44E}",
+          `Vou trazer menos coisas como <strong>"${payload.title || 'essa'}"</strong>.`,
+          "#FF5A1F",
+        );
+      }
     }
 
-    return htmlPage(titleText, msg, accent);
-  } catch (err) {
-    console.error(err);
-    return htmlPage("Algo deu errado", "Tente de novo daqui a pouco. Se persistir, é bug — me avise.", "#FF5A1F");
+    return htmlPage("A\u00e7\u00e3o n\u00e3o reconhecida", "Esse tipo de feedback n\u00e3o foi processado.", "#FF5A1F");
+  } catch (e) {
+    console.error("feedback error:", e);
+    return htmlPage("Algo deu errado", "N\u00e3o conseguimos registrar seu feedback. Tente de novo daqui a pouco.", "#FF5A1F");
   }
 });
