@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inscrição cancelada · Recorte ✂</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=Mulish:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --mint: #6EE7B7; --mint-deep: #10B981; --mint-dark: #047857; --mint-bg: #ECFDF5;
+  --yellow: #FFD60A; --yellow-bg: #FFF5BD;
+  --ink: #0A2540; --ink-soft: #4A5568; --ink-muted: #718096;
+  --bg: #FFFAF0;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Mulish', sans-serif;
+  background: var(--bg); color: var(--ink);
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 32px 20px;
+  -webkit-font-smoothing: antialiased;
+}
+.card {
+  max-width: 500px; width: 100%;
+  background: #fff;
+  border: 2px solid var(--ink);
+  box-shadow: 8px 8px 0 var(--ink);
+  padding: 44px 36px;
+  text-align: center;
+}
+.icon {
+  width: 80px; height: 80px;
+  margin: 0 auto 22px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--mint);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 38px; line-height: 1;
+  box-shadow: 5px 5px 0 var(--ink);
+}
+.icon.err { background: var(--yellow); }
+h1 {
+  font-family: 'Fraunces', serif;
+  font-weight: 900; font-size: 32px;
+  letter-spacing: -0.025em; line-height: 1.1;
+  margin-bottom: 14px;
+}
+h1 em { font-style: italic; color: var(--mint-dark); font-weight: 700; }
+.lead {
+  font-family: 'Fraunces', serif;
+  font-size: 17px; color: var(--ink-soft);
+  line-height: 1.55; margin-bottom: 26px;
+}
+.lead strong { color: var(--ink); font-weight: 700; }
+.actions {
+  display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+  margin-top: 22px;
+}
+.btn {
+  display: inline-block;
+  padding: 12px 22px;
+  font-family: 'Mulish', sans-serif;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  text-decoration: none;
+  border: 2px solid var(--ink);
+  transition: transform .12s, box-shadow .12s;
+  cursor: pointer;
+}
+.btn-ink { background: var(--ink); color: var(--mint); box-shadow: 4px 4px 0 var(--mint-deep); }
+.btn-ink:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--mint-deep); }
+.btn-ghost { background: #fff; color: var(--ink); box-shadow: 4px 4px 0 var(--ink-muted); }
+.btn-ghost:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--ink-muted); }
+.foot {
+  margin-top: 28px;
+  font-size: 12px; color: var(--ink-muted);
+  letter-spacing: 0.04em;
+}
+.foot strong { color: var(--ink); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="card" id="card">
+  <!-- Conteúdo inserido via JS conforme ?ok=1 ou ?err=... -->
+</div>
+
+<script>
+(function(){
+  var p = new URLSearchParams(window.location.search);
+  var ok = p.get('ok') === '1';
+  var err = p.get('err');
+  var card = document.getElementById('card');
+
+  if (ok) {
+    card.innerHTML = '\
+      <div class="icon">✓</div>\
+      <h1>Inscrição <em>cancelada.</em></h1>\
+      <p class="lead">Pronto. Você não vai mais receber o <strong>Recorte ✂</strong>.<br><br>Tudo bem se mudar de ideia depois — é só voltar pra <strong>recorte.news</strong> e se cadastrar de novo.</p>\
+      <div class="actions">\
+        <a href="https://recorte.news" class="btn btn-ghost">Voltar pro site</a>\
+        <a href="https://recorte.news/cadastro.html" class="btn btn-ink">Cadastrar de novo</a>\
+      </div>\
+      <div class="foot"><strong>Recorte ✂</strong> · Seus dados serão anonimizados em até 30 dias (LGPD)</div>';
+  } else {
+    card.innerHTML = '\
+      <div class="icon err">⚠</div>\
+      <h1>Não conseguimos <em>cancelar.</em></h1>\
+      <p class="lead">Esse link parece inválido ou expirado. Tente o link de cancelamento em um email mais recente, ou nos envie um pedido direto.</p>\
+      <div class="actions">\
+        <a href="mailto:privacidade@recorte.news?subject=Cancelar%20inscri%C3%A7%C3%A3o" class="btn btn-ink">Cancelar por email</a>\
+        <a href="https://recorte.news" class="btn btn-ghost">Voltar</a>\
+      </div>\
+      <div class="foot"><strong>Recorte ✂</strong> · Erro: ' + (err ? err.replace(/[<>&"]/g, '?') : 'unknown') + '</div>';
+  }
+})();
+</script>
+
+</body>
+</html>
