@@ -124,6 +124,74 @@
   .how-banner .how-icon { font-size: 22px; flex-shrink: 0; }
   .how-banner strong { font-weight: 800; }
 
+  /* ===== LANDING BLOCKS (institucional) ===== */
+  .land-block { margin: 64px 0; }
+  .land-kicker {
+    display: inline-block; background: var(--ink); color: var(--mint);
+    font-family: 'Mulish', sans-serif;
+    font-size: 11px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase;
+    padding: 6px 12px; margin-bottom: 18px;
+  }
+  .land-block h2 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 800; font-size: clamp(28px, 4.5vw, 40px);
+    line-height: 1.15; letter-spacing: -0.025em; color: var(--ink);
+    margin: 0 0 18px 0;
+  }
+  .land-block h2 em { font-style: italic; font-weight: 700; color: var(--mint-dark); }
+  .land-block p {
+    font-family: 'Mulish', sans-serif; font-size: 17px; line-height: 1.55;
+    color: var(--ink-soft); max-width: 640px; margin: 0 0 14px;
+  }
+  .land-block-note { font-size: 15px !important; color: var(--ink-muted) !important; }
+  .land-block--problem h2 { color: var(--ink); }
+  .land-block--solution { background: var(--mint-bg-light); margin-left: -36px; margin-right: -36px; padding: 56px 36px; }
+  @media (max-width: 640px) {
+    .land-block--solution { margin-left: -20px; margin-right: -20px; padding: 44px 20px; }
+  }
+
+  /* Como funciona — 3 steps */
+  .how-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 22px; }
+  @media (max-width: 720px) { .how-steps { grid-template-columns: 1fr; } }
+  .how-step { background: #fff; border: 2px solid var(--ink); padding: 24px; box-shadow: 4px 4px 0 var(--ink); }
+  .how-step-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.18em; font-weight: 600;
+    color: var(--mint-dark); margin-bottom: 14px;
+  }
+  .how-step h3 {
+    font-family: 'Fraunces', serif; font-weight: 800; font-size: 19px;
+    margin: 0 0 8px; color: var(--ink); line-height: 1.2;
+  }
+  .how-step p { font-size: 14px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
+
+  /* Diferencial — 4 cards */
+  .diff-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 22px; }
+  @media (max-width: 640px) { .diff-cards { grid-template-columns: 1fr; } }
+  .diff-card {
+    border: 2px solid var(--ink); padding: 22px;
+    background: linear-gradient(135deg, #fff 0%, var(--bg-2) 100%);
+  }
+  .diff-icon { font-size: 32px; margin-bottom: 10px; line-height: 1; }
+  .diff-card h3 {
+    font-family: 'Fraunces', serif; font-weight: 800; font-size: 18px;
+    margin: 0 0 6px; color: var(--ink); line-height: 1.2;
+  }
+  .diff-card p { font-size: 14px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
+
+  /* CTA antes do form */
+  .land-cta { margin: 56px 0 24px; text-align: center; }
+  .land-cta h2 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 800; font-size: clamp(24px, 3.5vw, 32px);
+    line-height: 1.2; letter-spacing: -0.02em;
+    color: var(--ink); margin: 0 0 12px;
+  }
+  .land-cta-note {
+    font-family: 'Mulish', sans-serif; font-size: 13px;
+    color: var(--ink-muted); letter-spacing: 0.04em;
+  }
+
   /* FORM */
   .form-card {
     background: var(--bg-card); border: 2px solid var(--ink);
@@ -397,14 +465,86 @@
 
   <section class="hero">
     <span class="quote-mark">“</span>
-    <span class="kicker">★ Newsletter diária por e-mail</span>
-    <h1>O mundo todo dia.<br><em>Só o que é seu.</em><br><span class="hl-m">Pra quem escolhe o que ler.</span></h1>
-    <p>Os assuntos que <strong>você</strong> escolhe — do Brasil <strong>e</strong> do mundo — recortados pela IA antes do café.</p>
+    <span class="kicker">★ A primeira newsletter feita sob medida do mundo</span>
+    <h1>O mundo todo dia.<br><em>Só o que é seu.</em><br><span class="hl-m">Único no planeta.</span></h1>
+    <p><strong>Recorte ✂</strong> é a primeira newsletter de notícias do mundo <strong>personalizada pra cada leitor</strong>. Não é a mesma edição pra todos. É <strong>a sua edição</strong>, escrita só pra você — todo dia, antes do café.</p>
     <div class="hero-meta">
-      <div>☕ <span><strong>5 min</strong> de leitura</span></div>
+      <div>☕ <span><strong>5 a 10 min</strong> de leitura</span></div>
       <div>🇧🇷🌍 <span>Brasil <strong>+</strong> Mundo</span></div>
-      <div>🤖 <span>Curadoria por IA</span></div>
+      <div>🤖 <span>Agentes de IA especialistas</span></div>
     </div>
+  </section>
+
+  <!-- BLOCK: O PROBLEMA -->
+  <section class="land-block land-block--problem">
+    <span class="land-kicker">★ O Problema</span>
+    <h2>Você tem 50 abas abertas, 12 newsletters na caixa, 8 podcasts na fila…</h2>
+    <p>E mesmo assim, no fim do dia, sente que <strong>não tá entendendo o que importa</strong>. As newsletters genéricas mandam <em>a mesma matéria pra todo mundo</em>. Os agregadores te enchem de coisa irrelevante. E sua atenção — o seu bem mais escasso — vira refém do algoritmo de outros.</p>
+  </section>
+
+  <!-- BLOCK: A SOLUÇÃO -->
+  <section class="land-block land-block--solution">
+    <span class="land-kicker">★ A Solução</span>
+    <h2>Recorte é diferente. Nossos agentes de IA leem o mundo por você.</h2>
+    <p>Toda madrugada, <strong>agentes de IA especialistas</strong> varrem <strong>200+ fontes brasileiras e internacionais</strong>, filtram o que casa com seus interesses, traduzem do inglês quando necessário, e montam <strong>uma única edição</strong> — escrita só pra você. Quando você abrir o email, o mundo já tá recortado.</p>
+    <p class="land-block-note">Personalização real, não filtro tosco de "tags". Aprende com seus toques em <strong>＋</strong> e <strong>—</strong>, evolui semana a semana, e nunca repete o mesmo conteúdo pra dois leitores diferentes.</p>
+  </section>
+
+  <!-- BLOCK: COMO FUNCIONA -->
+  <section class="land-block land-block--how">
+    <span class="land-kicker">★ Como Funciona</span>
+    <h2>3 passos. 60 segundos. Pronto.</h2>
+    <div class="how-steps">
+      <div class="how-step">
+        <div class="how-step-num">01</div>
+        <h3>Você escolhe os temas</h3>
+        <p>Até 12 temas — dos curados (Economia, Tech, Política…) ou personalizados (Apple, FIIs, Futebol…). Marca BR, Mundo ou os dois.</p>
+      </div>
+      <div class="how-step">
+        <div class="how-step-num">02</div>
+        <h3>Nossa IA recorta o dia</h3>
+        <p>Antes das 6h, agentes especialistas filtram centenas de fontes, eliminam ruído, traduzem o que vem de fora e produzem sua edição única.</p>
+      </div>
+      <div class="how-step">
+        <div class="how-step-num">03</div>
+        <h3>Você recebe seu Recorte</h3>
+        <p>Email diário às 6h da manhã. Só o que é seu — em 5 a 10 minutos de leitura. Toque ＋ no que gostou, — no que não gostou, e a IA aprende.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- BLOCK: DIFERENCIAL -->
+  <section class="land-block land-block--diff">
+    <span class="land-kicker">★ Por que é Único</span>
+    <h2>Não é "mais uma newsletter". É <em>a sua</em>.</h2>
+    <div class="diff-cards">
+      <div class="diff-card">
+        <div class="diff-icon">✂</div>
+        <h3>100% feito sob medida</h3>
+        <p>Cada email é diferente. O seu é só seu — escrito por IA antes do café, baseado nos seus temas e nas suas reações.</p>
+      </div>
+      <div class="diff-card">
+        <div class="diff-icon">⚡</div>
+        <h3>Rápido e direto</h3>
+        <p>5 a 10 minutos de leitura. Manchete, contexto, fatos-chave, link. Sem clickbait. Sem encheção. Sem fofoca.</p>
+      </div>
+      <div class="diff-card">
+        <div class="diff-icon">🌍</div>
+        <h3>Brasil + Mundo, em PT-BR</h3>
+        <p>Você lê em português, mesmo quando a matéria saiu em inglês, francês ou alemão. Traduzido com fluência por IA.</p>
+      </div>
+      <div class="diff-card">
+        <div class="diff-icon">🔒</div>
+        <h3>Privado, sem ads</h3>
+        <p>Não rastreamos sua leitura pra anunciantes. Não vendemos seus dados. Só te mandamos um bom recorte do dia.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA pra cadastro -->
+  <section class="land-cta">
+    <h2>Comece a receber o seu Recorte amanhã às 6h da manhã.</h2>
+    <p class="land-cta-note">Grátis durante o beta · Cancele quando quiser · Sem cartão de crédito</p>
   </section>
 
   <form id="signupForm" class="form-card">
