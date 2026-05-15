@@ -51,12 +51,11 @@ function htmlPage(title: string, message: string, accent = "#FFD60A"): Response 
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title} ${E_MIDDOT} Recorte ${E_SCISSORS}</title>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@700;900&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
 <style>
-body { margin:0; min-height:100vh; background:#FFF8EC; font-family:'DM Sans',system-ui,sans-serif; display:flex; align-items:center; justify-content:center; padding:24px; color:#0A0A0A; }
+body { margin:0; min-height:100vh; background:#FFF8EC; font-family:-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif; display:flex; align-items:center; justify-content:center; padding:24px; color:#0A0A0A; }
 .card { max-width:480px; background:#FFF; border:2px solid #0A0A0A; box-shadow:8px 8px 0 #0A0A0A; padding:40px; text-align:center; }
 .icon { width:80px; height:80px; margin:0 auto 24px; background:${accent}; border:2px solid #0A0A0A; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:40px; box-shadow:6px 6px 0 #0A0A0A; }
-h1 { font-family:'Fraunces',serif; font-weight:900; font-size:36px; letter-spacing:-0.03em; margin:0 0 14px 0; }
+h1 { font-family:Georgia,'Times New Roman',serif; font-weight:900; font-size:36px; letter-spacing:-0.03em; margin:0 0 14px 0; }
 p { font-size:16px; color:#4A4A4A; line-height:1.5; margin:0 0 20px 0; }
 .foot { font-size:12px; color:#8A8A85; margin-top:24px; }
 .foot strong { color:#0A0A0A; }
