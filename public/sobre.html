@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sobre · Recorte ✂</title>
+<meta name="description" content="O Recorte é a primeira newsletter de notícias do mundo personalizada pra cada leitor. Conheça nosso manifesto e como funciona.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Mulish:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --mint: #6EE7B7; --mint-deep: #10B981; --mint-dark: #047857; --mint-bg: #ECFDF5;
+  --ink: #0A2540; --ink-soft: #4A5568; --ink-muted: #718096;
+  --bg: #FFFAF0; --line: #E2E8F0;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Mulish', system-ui, sans-serif;
+  background: var(--bg); color: var(--ink);
+  font-size: 17px; line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration: none; }
+
+/* HEADER (igual ao index) */
+.header { border-bottom: 1px solid var(--line); background: var(--bg); position: sticky; top: 0; z-index: 100; }
+.header-inner { max-width: 980px; margin: 0 auto; padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; }
+.brand { font-family: 'Fraunces', serif; font-weight: 700; font-size: 22px; letter-spacing: -0.025em; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+.brand-icon { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: var(--ink); color: var(--mint); font-size: 14px; font-weight: 700; }
+.nav { display: flex; align-items: center; gap: 28px; }
+.nav a { font-size: 14px; font-weight: 600; color: var(--ink-soft); transition: color .15s; }
+.nav a:hover { color: var(--ink); }
+.nav a.active { color: var(--ink); }
+.nav-cta { background: var(--mint); color: var(--ink) !important; padding: 9px 18px; border-radius: 6px; font-weight: 700 !important; transition: all .15s; }
+.nav-cta:hover { background: var(--mint-deep); color: #fff !important; }
+@media (max-width: 640px) {
+  .header-inner { padding: 14px 20px; }
+  .nav { gap: 16px; }
+  .nav a:not(.nav-cta) { display: none; }
+}
+
+/* PAGE */
+.page { max-width: 720px; margin: 0 auto; padding: 72px 24px 64px; }
+@media (max-width: 640px) { .page { padding: 48px 20px 48px; } }
+
+.page-eyebrow { font-family: 'Mulish', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--mint-dark); margin-bottom: 18px; }
+.page h1 { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: clamp(34px, 5vw, 48px); line-height: 1.1; letter-spacing: -0.025em; color: var(--ink); margin-bottom: 24px; }
+.page h1 em { font-style: italic; color: var(--mint-dark); font-weight: 500; }
+.page-lead { font-size: 20px; line-height: 1.55; color: var(--ink-soft); margin-bottom: 48px; max-width: 580px; }
+
+.section { margin: 56px 0; }
+.section h2 { font-family: 'Fraunces', serif; font-weight: 600; font-size: clamp(24px, 3.5vw, 30px); line-height: 1.2; letter-spacing: -0.022em; color: var(--ink); margin-bottom: 18px; }
+.section h2 em { font-style: italic; color: var(--mint-dark); font-weight: 500; }
+.section p { font-size: 17px; line-height: 1.65; color: var(--ink-soft); margin-bottom: 16px; max-width: 620px; }
+.section p strong { color: var(--ink); font-weight: 700; }
+.section p em { font-style: italic; color: var(--mint-dark); }
+
+/* Como funciona — steps compactos */
+.steps { display: grid; grid-template-columns: 1fr; gap: 22px; margin-top: 24px; }
+.step { display: flex; gap: 18px; align-items: flex-start; }
+.step-num { font-family: 'Fraunces', serif; font-weight: 500; font-size: 28px; color: var(--mint-dark); line-height: 1; flex-shrink: 0; width: 44px; }
+.step-content h3 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 19px; margin-bottom: 4px; color: var(--ink); }
+.step-content p { font-size: 16px; line-height: 1.55; color: var(--ink-soft); }
+
+/* Somos / Não somos — 2 colunas */
+.dual-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 24px; }
+@media (max-width: 640px) { .dual-cols { grid-template-columns: 1fr; gap: 24px; } }
+.dual-col h3 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 18px; margin-bottom: 12px; color: var(--ink); }
+.dual-col ul { list-style: none; padding: 0; }
+.dual-col li { font-size: 16px; line-height: 1.55; color: var(--ink-soft); padding: 8px 0 8px 22px; position: relative; border-bottom: 1px solid var(--line); }
+.dual-col li:last-child { border-bottom: none; }
+.dual-col li::before { position: absolute; left: 0; top: 8px; font-weight: 700; }
+.dual-col--positive li::before { content: "✓"; color: var(--mint-dark); }
+.dual-col--negative li::before { content: "✕"; color: var(--ink-muted); }
+
+/* CTA */
+.cta-block { background: var(--mint-bg); border-radius: 12px; padding: 36px 28px; text-align: center; margin-top: 56px; border: 1px solid var(--line); }
+.cta-block h3 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 24px; line-height: 1.2; color: var(--ink); margin-bottom: 18px; }
+.cta-primary { display: inline-flex; align-items: center; gap: 10px; background: var(--ink); color: var(--mint); font-family: 'Mulish', sans-serif; font-weight: 700; font-size: 16px; padding: 14px 24px; border-radius: 8px; transition: all .15s; }
+.cta-primary:hover { background: var(--mint-deep); color: #fff; }
+
+/* FOOTER */
+.footer { padding: 36px 24px; text-align: center; font-size: 13px; color: var(--ink-muted); border-top: 1px solid var(--line); margin-top: 48px; }
+.footer-brand { font-family: 'Fraunces', serif; font-weight: 600; font-size: 16px; color: var(--ink); margin-bottom: 6px; }
+.footer-links { margin-top: 8px; }
+.footer-links a { margin: 0 10px; color: var(--ink-soft); font-weight: 600; }
+.footer-links a:hover { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <a href="/" class="brand">
+      <span class="brand-icon">✂</span>
+      <span>Recorte</span>
+    </a>
+    <nav class="nav">
+      <a href="/sobre.html" class="active">Sobre</a>
+      <a href="/faq.html">FAQ</a>
+      <a href="/cadastro.html" class="nav-cta">Receber grátis →</a>
+    </nav>
+  </div>
+</header>
+
+<div class="page">
+  <div class="page-eyebrow">Sobre o Recorte</div>
+  <h1>Antes da internet, a gente <em>recortava</em> manchetes.</h1>
+  <p class="page-lead">Hoje, o problema é o contrário: tem tanta informação que ninguém recorta nada. O Recorte ✂ pega esse gesto editorial antigo e devolve pra você — feito sob medida, todo dia.</p>
+
+  <section class="section">
+    <h2>Nosso manifesto</h2>
+    <p>A internet prometeu democratizar a informação. Cumpriu — e quebrou junto. Hoje, ler notícia virou rolagem infinita de manchetes que servem qualquer um, menos você.</p>
+    <p>Achamos que isso pode ser diferente. <strong>Notícia boa é a que serve pra você.</strong> Que conversa com seus interesses, seus temas, seu jeito de pensar.</p>
+    <p>Por isso o Recorte é único: porque <em>você</em> é único. Cada manhã, montamos uma edição que só existe pra um leitor — você.</p>
+  </section>
+
+  <section class="section">
+    <h2>Visão</h2>
+    <p>Ser a newsletter mais pessoal do mundo. Não a maior, não a mais popular. A mais pessoal.</p>
+  </section>
+
+  <section class="section">
+    <h2>Missão</h2>
+    <p>Ajudar pessoas inteligentes a entenderem o mundo em <strong>5 a 10 minutos por dia</strong>, sem ruído, sem clickbait, sem encheção. Só o que importa — pra elas.</p>
+  </section>
+
+  <section class="section">
+    <h2>Como funciona</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-content">
+          <h3>Você escolhe</h3>
+          <p>No cadastro, você seleciona até 12 temas — dos curados (Economia, Tecnologia, Política, Esportes…) ou personalizados (Apple, FIIs, Futebol, o que for).</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-content">
+          <h3>Nossos agentes recortam</h3>
+          <p>Super agentes de IA treinados e monitorados por humanos leem o mundo todo dia, filtram o que casa com você, traduzem o que vem de fora, e produzem sua edição.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-content">
+          <h3>Você recebe e ajusta</h3>
+          <p>Email às 6h da manhã. Toque em ＋ no que gostou, em — no que não gostou. O Recorte aprende com você, semana após semana.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Somos · não somos</h2>
+    <div class="dual-cols">
+      <div class="dual-col dual-col--positive">
+        <h3>Somos</h3>
+        <ul>
+          <li>Editoria pessoal por agentes de IA</li>
+          <li>Direto, no ponto, em português</li>
+          <li>Brasil <strong>e</strong> Mundo, juntos</li>
+          <li>Discretos, sem grito de manchete</li>
+          <li>Privados — sem ads, sem rastreio</li>
+        </ul>
+      </div>
+      <div class="dual-col dual-col--negative">
+        <h3>Não somos</h3>
+        <ul>
+          <li>Mais uma newsletter genérica</li>
+          <li>Caça-clique, viral, escândalo</li>
+          <li>Política polarizada ou opinião pessoal</li>
+          <li>Resumo automático sem curadoria</li>
+          <li>Anunciantes disfarçados de notícia</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="cta-block">
+    <h3>Pronto pra receber o seu primeiro Recorte?</h3>
+    <a href="/cadastro.html" class="cta-primary">
+      Receber meu primeiro Recorte, é grátis →
+    </a>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="footer-brand">Recorte ✂</div>
+  <div>Newsletter diária personalizada · sem rastreio, sem ads.</div>
+  <div class="footer-links">
+    <a href="/sobre.html">Sobre</a>
+    <a href="/faq.html">FAQ</a>
+  </div>
+</footer>
+
+</body>
+</html>
