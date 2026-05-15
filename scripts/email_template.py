@@ -382,7 +382,12 @@ def _render_news_sections(sections, email_mode="coado"):
         out += f"""
         <tr><td style="padding:0 36px;" id="tema-{slug}">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:8px;border-bottom:4px solid {COLORS['bg_2']};">
-            <tr><td style="padding:28px 0 18px 0;">
+            <tr><td style="padding:24px 0 6px 0;">
+              <!-- Linha de corte tracejada — identidade da marca ✂ -->
+              <div style="border-top:1.5px dashed {COLORS['ink_muted']};opacity:0.4;margin-bottom:4px;"></div>
+              <div style="font-family:{MONO_FONT};font-size:9px;letter-spacing:0.3em;color:{COLORS['ink_muted']};opacity:0.55;text-transform:uppercase;text-align:right;">✂ recortado pra você</div>
+            </td></tr>
+            <tr><td style="padding:8px 0 18px 0;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
@@ -483,7 +488,9 @@ def _render_toc_bottom(trending, sections):
 # ============================================================================
 def render_email(user_name, date_obj, trending=None, trending_label="",
                  sections=None, manage_url="#", tts_url=None, tts_duration=None,
-                 user_id=None, daily_recap=None, email_mode="coado"):
+                 user_id=None, daily_recap=None,
+                 daily_quote="", daily_quote_author="",
+                 email_mode="coado"):
     """
     Renderiza o HTML completo do email diário.
 
@@ -557,6 +564,24 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     trending_html = _render_trending_section(trending, trending_label, email_mode=email_mode)
     sections_html = _render_news_sections(sections, email_mode=email_mode)
     recap_html = _render_daily_recap(daily_recap)
+
+    # Quote do dia — pequeno bloco editorial entre o hero e o recap
+    quote_html = ""
+    if daily_quote:
+        author_html = ""
+        if daily_quote_author:
+            author_html = f'<div style="font-family:{SANS_FONT};font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:{COLORS["mint_dark"]};margin-top:10px;">— {_esc(daily_quote_author)}</div>'
+        quote_html = f"""
+        <tr><td style="padding:0 36px 24px;" class="px-mob">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{COLORS['ink']};">
+            <tr><td style="padding:22px 26px;">
+              <div style="font-family:{SERIF_FONT};font-style:italic;font-weight:500;font-size:18px;line-height:1.4;color:{COLORS['mint']};letter-spacing:-0.01em;">
+                {_esc(daily_quote)}
+              </div>
+              {author_html}
+            </td></tr>
+          </table>
+        </td></tr>"""
 
     manage_link = manage_url
 
@@ -645,6 +670,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
         </table>
       </td></tr>
 
+      {quote_html}
       {recap_html}
       {trending_html}
       {sections_html}
@@ -665,7 +691,8 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
           Você está recebendo porque se cadastrou em <strong style="color:{COLORS['ink']};">Recorte ✂</strong>.<br/>
           <a href="{_esc(manage_link)}" style="color:{COLORS['ink_soft']};text-decoration:underline;font-weight:700;">⚙ Ajustar minhas preferências</a>
           <br/><br/>
-          <span style="font-size:10px;color:{COLORS['ink_muted']};opacity:0.8;">Curadoria automatizada por IA · Fontes: Google News, Bluesky, YouTube, Reddit, Hacker News e 25+ veículos BR e internacionais · Conteúdo de terceiros. Direitos reservados aos veículos originais.</span>
+          <span style="font-size:10px;color:{COLORS['ink_muted']};opacity:0.8;">Curadoria editorial por agentes de IA especialistas · 200+ fontes brasileiras e internacionais · Conteúdo de terceiros. Direitos reservados aos veículos originais.</span>
+          <div style="margin-top:10px;font-family:{MONO_FONT};font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:{COLORS['ink_muted']};opacity:0.6;">Última coleta · {date_obj.strftime('%d/%m %H:%M')} BRT</div>
         </div>
       </td></tr>
 
