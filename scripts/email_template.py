@@ -495,20 +495,19 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
                  sections=None, manage_url="#", tts_url=None, tts_duration=None,
                  user_id=None, daily_recap=None,
                  daily_quote="", daily_quote_author="",
-                 email_mode="coado", weekly_mode=False):
+                 email_mode="coado", weekly_mode=False,
+                 user_tz="America/Sao_Paulo", saudacao_mode="auto",
+                 filtered_items_count=0):
     """
     Renderiza o HTML completo do email diário.
 
     Args:
         user_name: nome do usuário (usa primeiro nome na saudação)
-        date_obj: datetime do envio
-        trending: list[dict] com termo/contexto/buscas/link/fonte
-        trending_label: label da seção trending (ex: "cenário global · 5 termos")
-        sections: list[dict] com topic/country_label/noticias/fb_pause_url
-        manage_url: URL pra ajustar preferências (com tokens)
-        tts_url: URL opcional do áudio TTS (se ausente, esconde player)
-        tts_duration: string tipo "5:32" (opcional)
-        email_mode: "coado" (default, análise completa) ou "espresso" (manchete + 1 frase)
+        date_obj: datetime do envio (em BRT, do servidor)
+        user_tz: timezone IANA do user (ex: "America/Sao_Paulo"). Usado pra saudação no welcome.
+        saudacao_mode: "auto" (calcula pela hora local do user) | "manha" | "sabado" | "neutro"
+        filtered_items_count: número de filtros do user pra exibir no rodapé
+        ...
     """
     trending = trending or []
     sections = sections or []
@@ -525,12 +524,32 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     date_short = date_obj.strftime("%d/%m/%Y")
     issue_num = f"{date_obj.timetuple().tm_yday}"
 
-    if date_obj.hour < 12:
+    # Saudação inteligente:
+    # - "auto": calcula pela hora LOCAL do user (usando user_tz). Pra welcome (chega em horários variáveis).
+    # - "manha": sempre "Bom dia". Pro daily (sempre 6h BRT).
+    # - "sabado": "Bom sábado" — pro weekly digest.
+    # - "neutro": "Oi" — fallback.
+    if saudacao_mode == "manha":
         saudacao = "Bom dia"
-    elif date_obj.hour < 18:
-        saudacao = "Boa tarde"
-    else:
-        saudacao = "Boa noite"
+    elif saudacao_mode == "sabado":
+        saudacao = "Bom sábado"
+    elif saudacao_mode == "neutro":
+        saudacao = "Oi"
+    else:  # auto: hora local do user
+        try:
+            from zoneinfo import ZoneInfo
+            local_dt = date_obj.astimezone(ZoneInfo(user_tz)) if date_obj.tzinfo else date_obj
+            hour = local_dt.hour
+        except Exception:
+            hour = date_obj.hour  # fallback
+        if 5 <= hour < 12:
+            saudacao = "Bom dia"
+        elif 12 <= hour < 18:
+            saudacao = "Boa tarde"
+        elif 18 <= hour < 24:
+            saudacao = "Boa noite"
+        else:  # 0-4
+            saudacao = "Olá"
 
     total_noticias = sum(len(s["noticias"]) for s in sections)
     # intro_count: usado SÓ no H1 do hero — mostra apenas notícias (mais limpo)
@@ -705,6 +724,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
         <div style="font-family:{SANS_FONT};font-size:11px;color:{COLORS['ink_muted']};line-height:1.7;">
           Você está recebendo porque se cadastrou em <strong style="color:{COLORS['ink']};">Recorte ✂</strong>.<br/>
           <a href="{_esc(manage_link)}" style="color:{COLORS['ink_soft']};text-decoration:underline;font-weight:700;">⚙ Ajustar minhas preferências</a>
+          {('<br/><span style="font-family:' + MONO_FONT + ';font-size:10px;color:' + COLORS['ink_muted'] + ';opacity:0.7;letter-spacing:0.08em;">' + str(filtered_items_count) + ' filtro' + ('s' if filtered_items_count != 1 else '') + ' ativo' + ('s' if filtered_items_count != 1 else '') + ' · você no controle</span>') if filtered_items_count > 0 else ''}
           <br/><br/>
           <span style="font-size:10px;color:{COLORS['ink_muted']};opacity:0.8;">Curadoria editorial por agentes de IA especialistas · 200+ fontes brasileiras e internacionais · Conteúdo de terceiros. Direitos reservados aos veículos originais.</span>
           <div style="margin-top:10px;font-family:{MONO_FONT};font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:{COLORS['ink_muted']};opacity:0.6;">Última coleta · {date_obj.strftime('%d/%m %H:%M')} BRT</div>
