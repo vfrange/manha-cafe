@@ -1,4 +1,4 @@
-// Manhã ☕ — Edge Function de feedback
+// Recorte ✂ — Edge Function de feedback
 // Recebe cliques de "+ mais como essa" / "– menos como essa" / "pausar tema"
 // Endpoint: https://<project>.functions.supabase.co/feedback?i=ID&s=±1&t=TOKEN
 
@@ -31,8 +31,8 @@ async function hmacSign(itemId: string, signal: number): Promise<string> {
 
 function htmlPage(title: string, message: string, accent = "#FFD60A"): Response {
   const body = `<!DOCTYPE html><html lang="pt-BR"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${title} · Manhã ☕</title>
+<meta charset="utf-8"><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title} · Recorte ✂</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@700;900&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
 <style>
 body { margin:0; min-height:100vh; background:#FFF8EC; font-family:'DM Sans',system-ui,sans-serif; display:flex; align-items:center; justify-content:center; padding:24px; color:#0A0A0A; }
@@ -47,10 +47,17 @@ p { font-size:16px; color:#4A4A4A; line-height:1.5; margin:0 0 20px 0; }
 <div class="icon">☕</div>
 <h1>${title}</h1>
 <p>${message}</p>
-<div class="foot"><strong>Manhã ☕</strong> · sua newsletter aprende com você</div>
+<div class="foot"><strong>Recorte ✂</strong> · sua newsletter aprende com você</div>
 </div></body></html>`;
-  return new Response(body, {
-    headers: { "Content-Type": "text/html; charset=UTF-8" },
+  // Codifica explicitamente como bytes UTF-8 + Content-Length pra evitar
+  // que o proxy/CDN interprete o charset errado e fique com emojis quebrados.
+  const bytes = new TextEncoder().encode(body);
+  return new Response(bytes, {
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "content-length": String(bytes.length),
+      "cache-control": "no-store",
+    },
   });
 }
 
