@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Política de Privacidade · Recorte ✂</title>
+<meta name="description" content="Como o Recorte trata seus dados pessoais. Em conformidade com a LGPD.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Mulish:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --mint: #6EE7B7; --mint-deep: #10B981; --mint-dark: #047857; --mint-bg: #ECFDF5;
+  --yellow: #FFD60A; --yellow-bg: #FFF5BD;
+  --ink: #0A2540; --ink-soft: #4A5568; --ink-muted: #718096;
+  --bg: #FFFAF0; --line: #E2E8F0;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: 'Fraunces', Georgia, serif;
+  background: var(--bg); color: var(--ink);
+  font-size: 18px; line-height: 1.65;
+  font-variation-settings: "opsz" 14;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--mint-dark); text-decoration: underline; text-underline-offset: 3px; }
+a:hover { color: var(--ink); }
+
+/* HEADER */
+.header { background: var(--bg); position: sticky; top: 0; z-index: 100; border-bottom: 1.5px solid var(--ink); }
+.header-inner { max-width: 1080px; margin: 0 auto; padding: 18px 28px; display: flex; align-items: center; justify-content: space-between; }
+.brand { font-family: 'Fraunces', serif; font-weight: 700; font-size: 24px; letter-spacing: -0.025em; color: var(--ink); display: flex; align-items: center; gap: 12px; text-decoration: none; }
+.brand-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--bg); border: 2.5px solid var(--ink);
+  font-family: 'Fraunces', Georgia, serif;
+  font-style: italic; font-weight: 700;
+  font-size: 24px; color: var(--ink);
+  letter-spacing: -0.05em; line-height: 1;
+  padding-bottom: 2px;
+}
+.brand-dot { color: var(--mint-deep); }
+.nav { display: flex; align-items: center; gap: 28px; }
+.nav a { font-family: 'Mulish', sans-serif; font-size: 15px; font-weight: 700; color: var(--ink-soft); transition: color .15s; text-decoration: none; }
+.nav a:hover { color: var(--ink); }
+.nav-cta {
+  background: var(--ink); color: var(--bg) !important;
+  padding: 11px 20px; border-radius: 4px;
+  font-family: 'Fraunces', serif !important;
+  font-style: italic; font-weight: 700 !important;
+}
+.nav-cta:hover { background: var(--mint-deep); }
+@media (max-width: 640px) {
+  .header-inner { padding: 14px 20px; }
+  .nav { gap: 16px; }
+  .nav a:not(.nav-cta) { display: none; }
+}
+
+.tricolor { display: flex; height: 5px; }
+.tricolor span:nth-child(1) { flex: 1; background: var(--mint); }
+.tricolor span:nth-child(2) { flex: 0.4; background: var(--yellow); }
+.tricolor span:nth-child(3) { flex: 0.6; background: var(--ink); }
+
+.container { max-width: 760px; margin: 0 auto; padding: 0 28px; }
+@media (max-width: 640px) { .container { padding: 0 22px; } }
+
+.kicker { font-family: 'Mulish', sans-serif; font-weight: 800; font-size: 13px; letter-spacing: 0.22em; color: var(--mint-dark); text-transform: uppercase; }
+.kicker-line { border-top: 2px dashed var(--ink); opacity: 0.4; margin: 14px 0 28px; max-width: 320px; }
+
+.hero { padding: 64px 0 32px; }
+@media (max-width: 640px) { .hero { padding: 40px 0 24px; } }
+.hero h1 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700;
+  font-size: clamp(36px, 6vw, 56px);
+  line-height: 1.1; letter-spacing: -0.03em;
+  color: var(--ink); margin-bottom: 18px;
+  font-variation-settings: "opsz" 144;
+}
+.hero h1 em { font-style: italic; color: var(--mint-dark); font-weight: 500; }
+.hero .lead {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 20px; color: var(--ink-soft);
+  font-weight: 400; max-width: 600px;
+}
+.last-updated {
+  font-family: 'Mulish', sans-serif;
+  font-size: 13px; font-weight: 600;
+  color: var(--ink-muted);
+  margin-top: 18px;
+  letter-spacing: 0.06em;
+}
+
+.content { padding: 32px 0 56px; }
+.content h2 {
+  font-family: 'Fraunces', serif;
+  font-weight: 700; font-size: 28px;
+  color: var(--ink); margin-top: 48px; margin-bottom: 12px;
+  letter-spacing: -0.02em;
+}
+.content h2:first-child { margin-top: 0; }
+.content h2 em { font-style: italic; color: var(--mint-dark); font-weight: 500; }
+.content h2 .num {
+  font-family: 'Mulish', sans-serif;
+  font-weight: 800; font-size: 13px;
+  color: var(--mint-dark);
+  letter-spacing: 0.22em;
+  display: block;
+  margin-bottom: 6px;
+}
+.content h3 {
+  font-family: 'Fraunces', serif;
+  font-weight: 600; font-size: 20px;
+  color: var(--ink); margin-top: 28px; margin-bottom: 8px;
+}
+.content p {
+  font-family: 'Fraunces', serif;
+  font-size: 18px; line-height: 1.65;
+  color: var(--ink-soft); margin-bottom: 14px;
+  max-width: 700px;
+}
+.content p strong { color: var(--ink); font-weight: 700; }
+.content p em { color: var(--mint-dark); font-style: italic; font-weight: 500; }
+.content ul, .content ol {
+  margin: 8px 0 18px 22px;
+  font-family: 'Fraunces', serif;
+  font-size: 18px; line-height: 1.65;
+  color: var(--ink-soft);
+  max-width: 700px;
+}
+.content li { margin-bottom: 6px; }
+.content li strong { color: var(--ink); font-weight: 700; }
+
+.note-box {
+  background: var(--yellow-bg);
+  border: 2px solid var(--ink);
+  padding: 22px 26px;
+  margin: 24px 0;
+}
+.note-box p {
+  font-family: 'Fraunces', serif;
+  font-style: italic; font-size: 17px; line-height: 1.5;
+  color: var(--ink); margin: 0;
+}
+.note-box p strong {
+  font-style: normal; font-weight: 700;
+}
+
+table.processors {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0 20px;
+  font-family: 'Mulish', sans-serif;
+  font-size: 15px;
+}
+table.processors th, table.processors td {
+  border: 1.5px solid var(--ink);
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: top;
+}
+table.processors th {
+  background: var(--ink); color: var(--bg);
+  font-weight: 800;
+  font-size: 12px; letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+table.processors td { background: #fff; }
+
+/* FOOTER */
+.footer {
+  background: var(--ink); color: var(--mint-bg);
+  padding: 48px 28px 32px; margin-top: 56px;
+}
+.footer-inner { max-width: 1080px; margin: 0 auto; }
+.footer-cols { display: flex; gap: 48px; flex-wrap: wrap; margin-bottom: 32px; }
+.footer-col h4 { font-family: 'Mulish', sans-serif; font-size: 12px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: var(--mint); margin-bottom: 14px; }
+.footer-col a { display: block; font-family: 'Mulish', sans-serif; font-size: 14px; color: var(--mint-bg); margin-bottom: 8px; opacity: 0.85; text-decoration: none; }
+.footer-col a:hover { opacity: 1; color: var(--mint); }
+.footer-meta { font-family: 'Mulish', sans-serif; font-size: 12px; color: var(--mint-bg); opacity: 0.6; border-top: 1px solid rgba(110,231,183,0.2); padding-top: 18px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <a href="/" class="brand">
+      <span class="brand-icon">r<span class="brand-dot">.</span></span>
+      <span>Recorte ✂</span>
+    </a>
+    <nav class="nav">
+      <a href="/sobre.html">Sobre</a>
+      <a href="/faq.html">FAQ</a>
+      <a href="/cadastro.html" class="nav-cta">Receba grátis</a>
+    </nav>
+  </div>
+</div>
+<div class="tricolor"><span></span><span></span><span></span></div>
+
+<section class="hero">
+  <div class="container">
+    <div class="kicker">✂ Documento legal</div>
+    <div class="kicker-line"></div>
+    <h1>Política de <em>Privacidade</em></h1>
+    <p class="lead">Como tratamos seus dados pessoais. Em conformidade com a Lei Geral de Proteção de Dados (Lei 13.709/2018).</p>
+    <div class="last-updated">Última atualização · 15/05/2026 · v1.0</div>
+  </div>
+</section>
+
+<section class="content">
+  <div class="container">
+
+    <h2><span class="num">§ 01</span>Quem somos</h2>
+    <p>
+      O <strong>Recorte ✂</strong> é uma newsletter digital personalizada operada por <strong>Victor Frange</strong>, residente em São Paulo/SP, Brasil. Pra fins desta Política, "nós", "Recorte" e "controlador" referem-se à mesma pessoa, na qualidade de Controlador de Dados nos termos da LGPD.
+    </p>
+    <p>
+      Pra exercer seus direitos ou tirar dúvidas, fale com nosso <strong>Encarregado pelo Tratamento de Dados Pessoais (DPO)</strong> pelo e-mail <a href="mailto:privacidade@recorte.news">privacidade@recorte.news</a>.
+    </p>
+
+    <h2><span class="num">§ 02</span>Quais dados <em>coletamos</em></h2>
+    <p>
+      Coletamos só o que precisamos pra entregar uma newsletter feita pra você. Nada além disso. Os dados são:
+    </p>
+    <h3>Dados que você nos fornece</h3>
+    <ul>
+      <li><strong>Cadastro:</strong> nome, e-mail, telefone (opcional)</li>
+      <li><strong>Temas e interesses:</strong> os assuntos que você escolhe receber e os filtros do que NÃO quer receber</li>
+      <li><strong>Modo de leitura:</strong> Espresso (curto) ou Coado (longo)</li>
+    </ul>
+    <h3>Dados coletados automaticamente</h3>
+    <ul>
+      <li><strong>Comportamento:</strong> em quais notícias você clicou em <em>+ mais</em>, <em>− menos</em> ou em <em>pausar tema</em>. Usamos pra melhorar a curadoria.</li>
+      <li><strong>Fuso horário:</strong> capturado do navegador no cadastro, pra adaptar a saudação do e-mail.</li>
+      <li><strong>Métricas de envio:</strong> abertura e cliques nos e-mails (via Resend).</li>
+    </ul>
+
+    <div class="note-box">
+      <p><strong>O que não coletamos:</strong> CPF, RG, endereço, dados financeiros, geolocalização precisa, dados sensíveis (saúde, religião, orientação sexual, etc).</p>
+    </div>
+
+    <h2><span class="num">§ 03</span>Pra que <em>usamos</em></h2>
+    <p>Cada dado tem uma finalidade clara e limitada:</p>
+    <ul>
+      <li><strong>E-mail:</strong> entregar a newsletter diária e (eventualmente) emails operacionais (mudança de termos, suspensão temporária).</li>
+      <li><strong>Nome:</strong> personalizar a saudação ("Bom dia, Victor").</li>
+      <li><strong>Temas, filtros, modo de leitura:</strong> montar a edição personalizada.</li>
+      <li><strong>Comportamento (+/−/pausar):</strong> aprender suas preferências pra melhorar futuras edições.</li>
+      <li><strong>Telefone:</strong> recurso opcional, reservado pra futuras integrações (WhatsApp, recuperação de conta). <strong>Não usamos pra marketing.</strong></li>
+      <li><strong>Métricas de envio:</strong> entender se a entrega está funcionando e melhorar a deliverability.</li>
+    </ul>
+
+    <h2><span class="num">§ 04</span>Base <em>legal</em></h2>
+    <p>O tratamento dos seus dados se apoia em duas bases da LGPD:</p>
+    <ul>
+      <li><strong>Consentimento (Art. 7º, I):</strong> ao se cadastrar e marcar o aceite dos Termos e desta Política, você consente expressamente com o tratamento.</li>
+      <li><strong>Legítimo interesse (Art. 7º, IX):</strong> pra operar o serviço (envio do e-mail, métricas de entrega), exercemos legítimo interesse mediante balanceamento com seus direitos fundamentais.</li>
+    </ul>
+    <p>
+      Você pode revogar seu consentimento a qualquer momento, sem prejuízo do tratamento já realizado.
+    </p>
+
+    <h2><span class="num">§ 05</span>Com quem <em>compartilhamos</em></h2>
+    <p>
+      Não vendemos nem alugamos seus dados pra ninguém. Mas, pra operar o serviço, usamos fornecedores tecnológicos (operadores de dados nos termos da LGPD). Todos têm contratos próprios alinhados à LGPD:
+    </p>
+    <table class="processors">
+      <tr>
+        <th>Fornecedor</th>
+        <th>Função</th>
+        <th>Dados que recebe</th>
+      </tr>
+      <tr>
+        <td><strong>Supabase</strong> (EUA)</td>
+        <td>Banco de dados + Edge Functions</td>
+        <td>Cadastro, temas, filtros, métricas</td>
+      </tr>
+      <tr>
+        <td><strong>Resend</strong> (EUA)</td>
+        <td>Envio dos e-mails</td>
+        <td>Nome, e-mail, conteúdo da edição</td>
+      </tr>
+      <tr>
+        <td><strong>Anthropic</strong> (EUA)</td>
+        <td>Curadoria das notícias por IA</td>
+        <td>Seus temas + manchetes (não identificável)</td>
+      </tr>
+      <tr>
+        <td><strong>GitHub</strong> (EUA)</td>
+        <td>Hospedagem do site e automações</td>
+        <td>Logs operacionais</td>
+      </tr>
+    </table>
+    <p>
+      Transferências internacionais de dados são realizadas com salvaguardas adequadas, nos termos do Art. 33 da LGPD, em particular cláusulas contratuais padrão e adequação dos países envolvidos.
+    </p>
+
+    <h2><span class="num">§ 06</span>Por <em>quanto tempo</em> guardamos</h2>
+    <ul>
+      <li><strong>Cadastro ativo:</strong> enquanto você for assinante.</li>
+      <li><strong>Após cancelar inscrição:</strong> seus dados são <strong>anonimizados ou excluídos em até 30 dias</strong>.</li>
+      <li><strong>Logs operacionais:</strong> 90 dias (pra debugging e segurança).</li>
+      <li><strong>Métricas agregadas anônimas:</strong> indefinidamente (não identificam ninguém).</li>
+    </ul>
+
+    <h2><span class="num">§ 07</span>Seus <em>direitos</em> (LGPD Art. 18)</h2>
+    <p>Você pode, a qualquer momento e sem custo, exercer os direitos abaixo enviando e-mail pra <a href="mailto:privacidade@recorte.news">privacidade@recorte.news</a>:</p>
+    <ul>
+      <li><strong>Confirmação:</strong> saber se tratamos seus dados.</li>
+      <li><strong>Acesso:</strong> receber cópia dos dados que temos sobre você.</li>
+      <li><strong>Correção:</strong> atualizar dados incompletos ou desatualizados.</li>
+      <li><strong>Anonimização ou exclusão:</strong> apagar ou anonimizar dados desnecessários, excessivos ou tratados em desconformidade.</li>
+      <li><strong>Portabilidade:</strong> levar seus dados em formato estruturado pra outro fornecedor.</li>
+      <li><strong>Informação sobre compartilhamento:</strong> saber com quais terceiros compartilhamos.</li>
+      <li><strong>Revogação do consentimento:</strong> retirar autorização a qualquer momento.</li>
+      <li><strong>Oposição:</strong> opor-se a tratamentos baseados em legítimo interesse.</li>
+    </ul>
+    <p>
+      Respondemos em até <strong>15 dias úteis</strong>. Pra <strong>cancelar a inscrição</strong> rapidamente, você também pode clicar em "Cancelar inscrição" no rodapé de qualquer e-mail que enviamos.
+    </p>
+
+    <h2><span class="num">§ 08</span>Cookies e <em>tracking</em></h2>
+    <p>
+      O site <strong>recorte.news</strong> usa o mínimo possível de tecnologias de tracking. Atualmente, usamos apenas:
+    </p>
+    <ul>
+      <li><strong>Pixels de abertura de e-mail (via Resend):</strong> pra saber se a entrega funcionou. Não identifica navegação fora do e-mail.</li>
+      <li><strong>localStorage do navegador (no cadastro):</strong> só pra lembrar onde você parou se atualizar a página. Não é enviado pra ninguém.</li>
+    </ul>
+    <p>
+      Não usamos Google Analytics, Facebook Pixel, nem trackers de terceiros pra publicidade.
+    </p>
+
+    <h2><span class="num">§ 09</span>Segurança</h2>
+    <p>
+      Implementamos medidas técnicas e organizacionais razoáveis pra proteger seus dados, incluindo: criptografia em trânsito (HTTPS), acesso restrito por permissões (Row Level Security no banco), assinatura criptográfica (HMAC) em links de feedback, e secrets armazenados em cofre seguro (GitHub Secrets).
+    </p>
+    <p>
+      Nenhum sistema é 100% seguro. Se identificarmos um incidente de segurança que afete seus dados, comunicaremos você e a <strong>ANPD</strong> (Autoridade Nacional de Proteção de Dados) nos prazos legais.
+    </p>
+
+    <h2><span class="num">§ 10</span>Crianças e adolescentes</h2>
+    <p>
+      O Recorte é destinado a pessoas com <strong>18 anos ou mais</strong>. Não coletamos intencionalmente dados de menores. Se descobrirmos que cadastramos um menor, excluiremos os dados imediatamente.
+    </p>
+
+    <h2><span class="num">§ 11</span>Alterações nesta Política</h2>
+    <p>
+      Podemos atualizar esta Política pra refletir mudanças no serviço ou na legislação. Mudanças relevantes serão comunicadas por e-mail com pelo menos <strong>15 dias de antecedência</strong>. A versão atual estará sempre nesta página com a data de atualização no topo.
+    </p>
+
+    <h2><span class="num">§ 12</span>Como falar conosco</h2>
+    <p>
+      Dúvidas, solicitações ou reclamações sobre privacidade:
+    </p>
+    <ul>
+      <li><strong>E-mail:</strong> <a href="mailto:privacidade@recorte.news">privacidade@recorte.news</a></li>
+      <li><strong>DPO / Encarregado:</strong> Victor Frange</li>
+    </ul>
+    <p>
+      Você também tem direito de apresentar reclamação à <strong>Autoridade Nacional de Proteção de Dados (ANPD)</strong>: <a href="https://www.gov.br/anpd/" target="_blank" rel="noopener">www.gov.br/anpd</a>.
+    </p>
+
+    <div class="note-box">
+      <p>Esta Política compõe junto com os <a href="/termos.html"><strong>Termos de Uso</strong></a> o conjunto de regras do serviço Recorte ✂. Ao se cadastrar, você concorda com ambos os documentos.</p>
+    </div>
+
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-cols">
+      <div class="footer-col">
+        <h4>Recorte ✂</h4>
+        <a href="/sobre.html">Sobre</a>
+        <a href="/faq.html">FAQ</a>
+        <a href="/cadastro.html">Cadastrar</a>
+      </div>
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <a href="/termos.html">Termos de Uso</a>
+        <a href="/politica-privacidade.html">Política de Privacidade</a>
+        <a href="mailto:privacidade@recorte.news">Contato (privacidade)</a>
+      </div>
+    </div>
+    <div class="footer-meta">
+      © 2026 Recorte ✂ · Curadoria editorial por agentes de IA treinados e monitorados por humanos · São Paulo, Brasil
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
