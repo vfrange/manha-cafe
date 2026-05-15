@@ -166,7 +166,9 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
         if t["label"] not in by_label:
             by_label[t["label"]] = {
                 "label": t["label"], "country": country,
-                "scopes": [], "topic_id": t["id"], "news": []
+                "scopes": [], "topic_id": t["id"],
+                "source": t.get("source", "curated"),  # custom vs curated pra ordenacao
+                "news": []
             }
         by_label[t["label"]]["scopes"].append(country)
         by_label[t["label"]]["news"].extend(news)
@@ -184,6 +186,9 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
             deduped.append(n)
         group["news"] = deduped
         topics_with_news.append(group)
+
+    # Ordena: customizados primeiro, depois curados
+    topics_with_news.sort(key=lambda g: 0 if g.get("source") == "custom" else 1)
 
     sections = []
     if topics_with_news:
@@ -229,6 +234,10 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
     if trending and sections:
         dd._dedupe_sections_against_trends(sections, trending)
         sections = [s for s in sections if s.get("noticias")]
+
+    # Reordenar: customizados primeiro, depois curados
+    label_to_source = {t["label"]: t.get("source", "curated") for t in topics_with_news}
+    sections.sort(key=lambda s: 0 if label_to_source.get(s.get("topic"), "curated") == "custom" else 1)
 
     # Feedback links
     sections = dd.add_feedback_links(uid, sections)
