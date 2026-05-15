@@ -177,6 +177,17 @@ h1{font-family:'Fraunces',serif;font-weight:900;font-size:36px;line-height:1.1;l
       <div class="tags" id="tagsList"></div>
     </div>
 
+    <div class="section">
+      <div class="label">Filtros (até 20)</div>
+      <p class="muted-note" style="margin:0 0 10px">Veículos ou temas que você <strong>NÃO</strong> quer receber. Tem prioridade: nada da sua lista chega no email.</p>
+      <div class="row">
+        <input type="text" id="newFilterInput" class="field" maxlength="100">
+        <button class="btn btn-add" onclick="addFilter()">+ Adicionar</button>
+      </div>
+      <div class="scope-hint" id="filterCounter">0/20</div>
+      <div class="tags" id="filtersList"></div>
+    </div>
+
     <div style="margin-top:32px;display:flex;gap:12px;flex-wrap:wrap">
       <button class="btn btn-primary" onclick="saveChanges()" id="saveBtn">Salvar mudanças</button>
       <button class="btn btn-secondary" onclick="window.location.reload()">Descartar</button>
@@ -196,11 +207,12 @@ h1{font-family:'Fraunces',serif;font-weight:900;font-size:36px;line-height:1.1;l
 
 <script>
 // URL da Edge Function manage no Supabase — ⚠️ COLA AQUI A URL DO SEU PROJETO:
-const MANAGE_FN_URL = 'https://jegvgviwbkbrmuhcivle.supabase.co/functions/v1/manage';
+const MANAGE_FN_URL = 'https://SEUPROJETO.supabase.co/functions/v1/manage';
 
 let token = null; // { u, exp, t } da URL
 let currentUser = null;
 let currentTopics = []; // [{label, query, scopes:Set<'BR'|'GLOBAL'>}]
+let currentFilters = []; // ["Carta Capital", "celebridades", ...]
 
 // Detector de escopo (espelha cadastro.html)
 const BR_PATTERNS = [
@@ -262,6 +274,7 @@ async function init() {
       byLabel[tp.label].scopes.add(tp.country);
     });
     currentTopics = Object.values(byLabel);
+    currentFilters = Array.isArray(data.filtered_items) ? data.filtered_items.slice(0, 20) : [];
     renderEditor();
     document.getElementById('loadingScreen').style.display = 'none';
     document.getElementById('editor').style.display = 'block';
@@ -300,6 +313,43 @@ function renderEditor() {
     document.getElementById('modeCoado').checked = true;
   }
   renderTags();
+  renderFilters();
+}
+
+function renderFilters() {
+  const list = document.getElementById('filtersList');
+  const counter = document.getElementById('filterCounter');
+  if (!list) return;
+  list.innerHTML = '';
+  currentFilters.forEach((item, idx) => {
+    const tag = document.createElement('div');
+    tag.className = 'tag';
+    tag.style.background = 'var(--ink)';
+    tag.innerHTML = `
+      <span class="tag-label">${item.replace(/</g, '&lt;')}</span>
+      <button type="button" class="tag-remove filter-rm" data-idx="${idx}" aria-label="Remover">×</button>
+    `;
+    list.appendChild(tag);
+  });
+  if (counter) counter.textContent = `${currentFilters.length}/20`;
+}
+
+function addFilter() {
+  const input = document.getElementById('newFilterInput');
+  const value = (input.value || '').trim().slice(0, 100);
+  if (!value) return;
+  if (currentFilters.length >= 20) {
+    toast('Máximo de 20 filtros. Remova algum antes.', 'error');
+    return;
+  }
+  // dedup case-insensitive
+  if (currentFilters.some(f => f.toLowerCase() === value.toLowerCase())) {
+    input.value = '';
+    return;
+  }
+  currentFilters.push(value);
+  input.value = '';
+  renderFilters();
 }
 
 document.addEventListener('change', (e) => {
@@ -383,6 +433,17 @@ document.addEventListener('input', (e) => {
 });
 document.addEventListener('keydown', (e) => {
   if (e.target.id === 'newTopicInput' && e.key === 'Enter') { e.preventDefault(); addTopic(); }
+  if (e.target.id === 'newFilterInput' && e.key === 'Enter') { e.preventDefault(); addFilter(); }
+});
+
+document.addEventListener('click', (e) => {
+  if (e.target.classList && e.target.classList.contains('filter-rm')) {
+    const idx = parseInt(e.target.dataset.idx);
+    if (!isNaN(idx)) {
+      currentFilters.splice(idx, 1);
+      renderFilters();
+    }
+  }
 });
 
 // ===== SAVE =====
@@ -410,6 +471,7 @@ async function saveChanges() {
     await callManage('update', {
       user_updates: { active: newActive, trending_enabled: newTrending, email_mode: newMode },
       topics_replacement: topicsReplacement,
+      filtered_items: currentFilters,
     });
 
     toast('Salvo! Próxima edição já vem com as mudanças.', 'success');
