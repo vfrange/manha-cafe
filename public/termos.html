@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Termos de Uso · Recorte ✂</title>
+<meta name="description" content="Termos de uso do Recorte — a newsletter de notícias personalizada.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Mulish:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --mint: #6EE7B7; --mint-deep: #10B981; --mint-dark: #047857; --mint-bg: #ECFDF5;
+  --yellow: #FFD60A; --yellow-bg: #FFF5BD;
+  --ink: #0A2540; --ink-soft: #4A5568; --ink-muted: #718096;
+  --bg: #FFFAF0; --line: #E2E8F0;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: 'Fraunces', Georgia, serif;
+  background: var(--bg); color: var(--ink);
+  font-size: 18px; line-height: 1.65;
+  font-variation-settings: "opsz" 14;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--mint-dark); text-decoration: underline; text-underline-offset: 3px; }
+a:hover { color: var(--ink); }
+
+.header { background: var(--bg); position: sticky; top: 0; z-index: 100; border-bottom: 1.5px solid var(--ink); }
+.header-inner { max-width: 1080px; margin: 0 auto; padding: 18px 28px; display: flex; align-items: center; justify-content: space-between; }
+.brand { font-family: 'Fraunces', serif; font-weight: 700; font-size: 24px; letter-spacing: -0.025em; color: var(--ink); display: flex; align-items: center; gap: 12px; text-decoration: none; }
+.brand-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--bg); border: 2.5px solid var(--ink);
+  font-family: 'Fraunces', Georgia, serif;
+  font-style: italic; font-weight: 700;
+  font-size: 24px; color: var(--ink);
+  letter-spacing: -0.05em; line-height: 1;
+  padding-bottom: 2px;
+}
+.brand-dot { color: var(--mint-deep); }
+.nav { display: flex; align-items: center; gap: 28px; }
+.nav a { font-family: 'Mulish', sans-serif; font-size: 15px; font-weight: 700; color: var(--ink-soft); text-decoration: none; transition: color .15s; }
+.nav a:hover { color: var(--ink); }
+.nav-cta {
+  background: var(--ink); color: var(--bg) !important;
+  padding: 11px 20px; border-radius: 4px;
+  font-family: 'Fraunces', serif !important;
+  font-style: italic; font-weight: 700 !important;
+}
+.nav-cta:hover { background: var(--mint-deep); }
+@media (max-width: 640px) {
+  .header-inner { padding: 14px 20px; }
+  .nav { gap: 16px; }
+  .nav a:not(.nav-cta) { display: none; }
+}
+
+.tricolor { display: flex; height: 5px; }
+.tricolor span:nth-child(1) { flex: 1; background: var(--mint); }
+.tricolor span:nth-child(2) { flex: 0.4; background: var(--yellow); }
+.tricolor span:nth-child(3) { flex: 0.6; background: var(--ink); }
+
+.container { max-width: 760px; margin: 0 auto; padding: 0 28px; }
+@media (max-width: 640px) { .container { padding: 0 22px; } }
+
+.kicker { font-family: 'Mulish', sans-serif; font-weight: 800; font-size: 13px; letter-spacing: 0.22em; color: var(--mint-dark); text-transform: uppercase; }
+.kicker-line { border-top: 2px dashed var(--ink); opacity: 0.4; margin: 14px 0 28px; max-width: 320px; }
+
+.hero { padding: 64px 0 32px; }
+@media (max-width: 640px) { .hero { padding: 40px 0 24px; } }
+.hero h1 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700;
+  font-size: clamp(36px, 6vw, 56px);
+  line-height: 1.1; letter-spacing: -0.03em;
+  color: var(--ink); margin-bottom: 18px;
+  font-variation-settings: "opsz" 144;
+}
+.hero h1 em { font-style: italic; color: var(--mint-dark); font-weight: 500; }
+.hero .lead {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 20px; color: var(--ink-soft);
+  font-weight: 400; max-width: 600px;
+}
+.last-updated {
+  font-family: 'Mulish', sans-serif;
+  font-size: 13px; font-weight: 600;
+  color: var(--ink-muted);
+  margin-top: 18px;
+  letter-spacing: 0.06em;
+}
+
+.content { padding: 32px 0 56px; }
+.content h2 {
+  font-family: 'Fraunces', serif;
+  font-weight: 700; font-size: 28px;
+  color: var(--ink); margin-top: 48px; margin-bottom: 12px;
+  letter-spacing: -0.02em;
+}
+.content h2:first-child { margin-top: 0; }
+.content h2 em { font-style: italic; color: var(--mint-dark); font-weight: 500; }
+.content h2 .num {
+  font-family: 'Mulish', sans-serif;
+  font-weight: 800; font-size: 13px;
+  color: var(--mint-dark);
+  letter-spacing: 0.22em;
+  display: block;
+  margin-bottom: 6px;
+}
+.content p {
+  font-family: 'Fraunces', serif;
+  font-size: 18px; line-height: 1.65;
+  color: var(--ink-soft); margin-bottom: 14px;
+  max-width: 700px;
+}
+.content p strong { color: var(--ink); font-weight: 700; }
+.content p em { color: var(--mint-dark); font-style: italic; font-weight: 500; }
+.content ul {
+  margin: 8px 0 18px 22px;
+  font-family: 'Fraunces', serif;
+  font-size: 18px; line-height: 1.65;
+  color: var(--ink-soft);
+  max-width: 700px;
+}
+.content li { margin-bottom: 6px; }
+.content li strong { color: var(--ink); font-weight: 700; }
+
+.note-box {
+  background: var(--yellow-bg);
+  border: 2px solid var(--ink);
+  padding: 22px 26px;
+  margin: 24px 0;
+}
+.note-box p {
+  font-family: 'Fraunces', serif;
+  font-style: italic; font-size: 17px; line-height: 1.5;
+  color: var(--ink); margin: 0;
+}
+.note-box p strong {
+  font-style: normal; font-weight: 700;
+}
+
+.footer { background: var(--ink); color: var(--mint-bg); padding: 48px 28px 32px; margin-top: 56px; }
+.footer-inner { max-width: 1080px; margin: 0 auto; }
+.footer-cols { display: flex; gap: 48px; flex-wrap: wrap; margin-bottom: 32px; }
+.footer-col h4 { font-family: 'Mulish', sans-serif; font-size: 12px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: var(--mint); margin-bottom: 14px; }
+.footer-col a { display: block; font-family: 'Mulish', sans-serif; font-size: 14px; color: var(--mint-bg); margin-bottom: 8px; opacity: 0.85; text-decoration: none; }
+.footer-col a:hover { opacity: 1; color: var(--mint); }
+.footer-meta { font-family: 'Mulish', sans-serif; font-size: 12px; color: var(--mint-bg); opacity: 0.6; border-top: 1px solid rgba(110,231,183,0.2); padding-top: 18px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <a href="/" class="brand">
+      <span class="brand-icon">r<span class="brand-dot">.</span></span>
+      <span>Recorte ✂</span>
+    </a>
+    <nav class="nav">
+      <a href="/sobre.html">Sobre</a>
+      <a href="/faq.html">FAQ</a>
+      <a href="/cadastro.html" class="nav-cta">Receba grátis</a>
+    </nav>
+  </div>
+</div>
+<div class="tricolor"><span></span><span></span><span></span></div>
+
+<section class="hero">
+  <div class="container">
+    <div class="kicker">✂ Documento legal</div>
+    <div class="kicker-line"></div>
+    <h1>Termos de <em>Uso</em></h1>
+    <p class="lead">As regras do jogo. Curtas, claras e em português de gente.</p>
+    <div class="last-updated">Última atualização · 15/05/2026 · v1.0</div>
+  </div>
+</section>
+
+<section class="content">
+  <div class="container">
+
+    <h2><span class="num">§ 01</span>O que é o <em>Recorte</em></h2>
+    <p>
+      O <strong>Recorte ✂</strong> é uma newsletter digital gratuita que entrega notícias personalizadas pra cada leitor, com base nos temas, fontes e preferências que você indica. Operado por <strong>Victor Frange</strong> (São Paulo/SP, Brasil), com curadoria automatizada por agentes de IA treinados e monitorados por humanos.
+    </p>
+
+    <h2><span class="num">§ 02</span>Aceitação dos <em>Termos</em></h2>
+    <p>
+      Ao se cadastrar no Recorte (em <a href="https://recorte.news/cadastro.html">recorte.news/cadastro.html</a>), você declara que:
+    </p>
+    <ul>
+      <li>tem <strong>18 anos ou mais</strong>;</li>
+      <li>leu e concorda com estes Termos e com a <a href="/politica-privacidade.html"><strong>Política de Privacidade</strong></a>;</li>
+      <li>os dados que forneceu (nome, e-mail, telefone) são verdadeiros e seus;</li>
+      <li>autoriza o envio dos e-mails periódicos do Recorte.</li>
+    </ul>
+    <p>
+      Se não concorda com algum ponto, simplesmente não use o serviço. Se já é assinante e deixar de concordar, é só cancelar a inscrição (link no rodapé de cada e-mail).
+    </p>
+
+    <h2><span class="num">§ 03</span>O <em>serviço</em></h2>
+    <p>
+      O Recorte oferece, sem custo financeiro:
+    </p>
+    <ul>
+      <li>Uma edição <strong>diária</strong> (segunda a sexta, 6h da manhã, horário de Brasília)</li>
+      <li>Uma edição especial <strong>aos sábados</strong> ("Recorte da Semana", 8h)</li>
+      <li>Personalização contínua baseada nos seus temas, filtros e comportamento</li>
+      <li>Painel <strong>/manage</strong> pra você ajustar preferências a qualquer momento</li>
+      <li>Botões <em>+ mais</em>, <em>− menos</em> e <em>pausar tema</em> dentro do e-mail pra refinar a curadoria</li>
+    </ul>
+    <p>
+      O serviço pode ser interrompido temporariamente pra manutenção, atualização ou em casos de força maior. Faremos o possível pra avisar com antecedência.
+    </p>
+
+    <h2><span class="num">§ 04</span>Conteúdo de <em>terceiros</em></h2>
+    <p>
+      As notícias no Recorte são <strong>links e sumários curtos</strong> apontando pra matérias originais de veículos como G1, Folha, Reuters, NYT, FT, entre outros. <strong>Não somos donos do conteúdo</strong> — somos uma camada de curadoria sobre fontes públicas.
+    </p>
+    <p>
+      Cada notícia leva o nome do veículo de origem e um link direto. Pra acessar a matéria completa, você é redirecionado pro site do publisher original, onde valem os termos daquele veículo (paywall, anúncios, etc).
+    </p>
+    <p>
+      Os direitos autorais sobre o conteúdo original são exclusivos dos respectivos veículos. <strong>O Recorte exerce apenas curadoria editorial</strong>, com sumários gerados por IA limitados ao mínimo necessário pra contextualizar.
+    </p>
+
+    <h2><span class="num">§ 05</span>Suas <em>responsabilidades</em></h2>
+    <p>Ao usar o Recorte, você se compromete a:</p>
+    <ul>
+      <li><strong>Não revender, reembaralhar ou redistribuir</strong> o conteúdo do e-mail em outros serviços comerciais;</li>
+      <li><strong>Não usar engenharia reversa</strong>, scraping automatizado, bots ou tentativas de extrair dados de outros leitores;</li>
+      <li><strong>Não cadastrar terceiros</strong> sem o consentimento expresso deles;</li>
+      <li><strong>Não usar o Recorte pra atividades ilícitas</strong> ou que violem direitos de terceiros;</li>
+      <li>Manter seus dados de cadastro atualizados.</li>
+    </ul>
+    <p>
+      O Recorte pode <strong>suspender ou encerrar</strong> contas que descumpram estas regras, com ou sem aviso prévio, dependendo da gravidade.
+    </p>
+
+    <h2><span class="num">§ 06</span>Curadoria por <em>IA</em></h2>
+    <p>
+      O Recorte usa agentes de inteligência artificial pra selecionar, traduzir e resumir notícias. <strong>Esses agentes são treinados e monitorados por humanos</strong>, mas podem errar. Não garantimos:
+    </p>
+    <ul>
+      <li>completude da cobertura jornalística (você pode perder uma notícia importante);</li>
+      <li>imparcialidade absoluta na seleção (apesar do nosso esforço pra evitar viés);</li>
+      <li>precisão de cada resumo gerado (sempre confirme com o veículo original em decisões importantes).</li>
+    </ul>
+    <p>
+      O Recorte é uma <strong>ferramenta de descoberta editorial</strong>, não fonte primária de informação. Pra decisões legais, financeiras, médicas ou jurídicas, consulte a fonte original e profissionais qualificados.
+    </p>
+
+    <h2><span class="num">§ 07</span>Propriedade <em>intelectual</em> do Recorte</h2>
+    <p>
+      A marca <strong>Recorte ✂</strong>, o logo, a identidade visual, o layout das edições, os textos editoriais autorais e os algoritmos de curadoria são de propriedade exclusiva do operador. Não podem ser usados sem autorização prévia.
+    </p>
+    <p>
+      O sumário gerado para você dentro do e-mail é pra seu uso pessoal. Compartilhamentos casuais (encaminhar um e-mail pra um amigo, postar print numa rede social) são bem-vindos. Republicação comercial não.
+    </p>
+
+    <h2><span class="num">§ 08</span>Cancelar <em>inscrição</em></h2>
+    <p>
+      Você pode cancelar a qualquer momento, sem justificativa:
+    </p>
+    <ul>
+      <li>Clicando em <strong>"Cancelar inscrição"</strong> no rodapé de qualquer e-mail (1 clique);</li>
+      <li>Acessando o painel <strong>/manage</strong>;</li>
+      <li>Enviando e-mail pra <a href="mailto:privacidade@recorte.news">privacidade@recorte.news</a>.</li>
+    </ul>
+    <p>
+      Cancelar é imediato. Seus dados são apagados ou anonimizados em até 30 dias (ver Política de Privacidade § 06).
+    </p>
+
+    <h2><span class="num">§ 09</span>Limitação de <em>responsabilidade</em></h2>
+    <p>
+      O Recorte é fornecido "como está" e "conforme disponível". Não nos responsabilizamos por:
+    </p>
+    <ul>
+      <li>Decisões tomadas com base no conteúdo recebido;</li>
+      <li>Indisponibilidade temporária do serviço, atrasos ou falhas de entrega;</li>
+      <li>Conteúdo, paywall, anúncios ou comportamento dos sites de terceiros linkados;</li>
+      <li>Danos indiretos, lucros cessantes ou consequências reflexas decorrentes do uso.</li>
+    </ul>
+    <p>
+      Esta limitação está dentro do permitido pela legislação brasileira aplicável.
+    </p>
+
+    <h2><span class="num">§ 10</span>Alterações nos <em>Termos</em></h2>
+    <p>
+      Podemos atualizar estes Termos a qualquer momento. Mudanças relevantes serão comunicadas por e-mail com pelo menos <strong>15 dias de antecedência</strong>. A versão atual está sempre disponível aqui.
+    </p>
+    <p>
+      Se discordar de alguma alteração, é só cancelar a inscrição. Caso contrário, o uso continuado após o aviso é considerado aceite.
+    </p>
+
+    <h2><span class="num">§ 11</span>Lei aplicável e <em>foro</em></h2>
+    <p>
+      Estes Termos são regidos pelas leis da <strong>República Federativa do Brasil</strong>. Para resolver controvérsias, fica eleito o foro da Comarca de <strong>São Paulo/SP</strong>, com renúncia expressa a qualquer outro, por mais privilegiado que seja.
+    </p>
+
+    <h2><span class="num">§ 12</span>Contato</h2>
+    <p>
+      Dúvidas sobre estes Termos: <a href="mailto:contato@recorte.news">contato@recorte.news</a>.<br>
+      Privacidade e LGPD: <a href="mailto:privacidade@recorte.news">privacidade@recorte.news</a>.
+    </p>
+
+    <div class="note-box">
+      <p>Estes Termos compõem junto com a <a href="/politica-privacidade.html"><strong>Política de Privacidade</strong></a> o conjunto de regras do serviço Recorte ✂. Ao se cadastrar, você concorda com ambos os documentos.</p>
+    </div>
+
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-cols">
+      <div class="footer-col">
+        <h4>Recorte ✂</h4>
+        <a href="/sobre.html">Sobre</a>
+        <a href="/faq.html">FAQ</a>
+        <a href="/cadastro.html">Cadastrar</a>
+      </div>
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <a href="/termos.html">Termos de Uso</a>
+        <a href="/politica-privacidade.html">Política de Privacidade</a>
+        <a href="mailto:privacidade@recorte.news">Contato (privacidade)</a>
+      </div>
+    </div>
+    <div class="footer-meta">
+      © 2026 Recorte ✂ · Curadoria editorial por agentes de IA treinados e monitorados por humanos · São Paulo, Brasil
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
