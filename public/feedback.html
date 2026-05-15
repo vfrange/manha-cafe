@@ -128,7 +128,7 @@
       .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
-  // Toast minimalista (+/-): 3s + fade-out
+  // Toast minimalista (+/-): 4s + fade-out
   function renderToast(emoji, h2, msg){
     root.innerHTML =
       '<div class="toast">' +
@@ -136,7 +136,7 @@
         '<h2>' + h2 + '</h2>' +
         (msg ? '<p>' + msg + '</p>' : '') +
       '</div>';
-    scheduleClose(3000);
+    scheduleClose(4000);
   }
 
   // Card grande (pausar tema): 4s + Desfazer + fade-out
@@ -155,7 +155,7 @@
     scheduleClose(4000);
   }
 
-  // Card de undo confirmado: 3s
+  // Card de undo confirmado: 4s + fade-out
   function renderUndone(label){
     root.innerHTML =
       '<div class="toast">' +
@@ -163,7 +163,7 @@
         '<h2>Pause <em>cancelado!</em></h2>' +
         '<p><strong>"' + esc(label) + '"</strong> volta a aparecer no próximo email.</p>' +
       '</div>';
-    scheduleClose(3000);
+    scheduleClose(4000);
   }
 
   // Card de erro: sem auto-close
