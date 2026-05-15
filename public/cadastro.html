@@ -989,7 +989,7 @@
           trending_scope: 'br,global',             // sempre os dois
           trending_country: null,
           welcome_sent: false,                     // será marcado true pelo welcome workflow
-          email_mode: 'coado',                     // default; user pode trocar no /manage
+          email_mode: 'espresso',                  // default novo: modo resumido (manchete + 1 frase)
           timezone: userTimezone                   // capturado do navegador
         }, { onConflict: 'email' })
         .select().single();
