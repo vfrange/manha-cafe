@@ -572,7 +572,8 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
                  daily_quote="", daily_quote_author="",
                  email_mode="coado", weekly_mode=False,
                  user_tz="America/Sao_Paulo", saudacao_mode="auto",
-                 filtered_items_count=0, is_welcome=False):
+                 filtered_items_count=0, is_welcome=False,
+                 unsub_url="#"):
     """
     Renderiza o HTML completo do email diário.
 
@@ -584,6 +585,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
         filtered_items_count: número de filtros do user pra exibir no rodapé
         is_welcome: se True, injeta bloco de boas-vindas no topo (antes do hero do daily).
                     Esse bloco aparece SÓ no primeiro email do user.
+        unsub_url: URL assinada pra cancelar inscrição (1-click). Vai no footer + header List-Unsubscribe.
         ...
     """
     trending = trending or []
@@ -695,6 +697,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
         </td></tr>"""
 
     manage_link = manage_url
+    unsub_link = unsub_url or "#"
 
     google_fonts_link = '<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,800;9..144,900&family=Mulish:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">'
 
@@ -799,14 +802,26 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
       </td></tr>
 
       <!-- FOOTER -->
-      <tr><td style="background:{COLORS['bg_2']};padding:24px 36px;text-align:center;" class="px-mob">
+      <tr><td style="background:{COLORS['bg_2']};padding:28px 36px;text-align:center;" class="px-mob">
         <div style="font-family:{SANS_FONT};font-size:11px;color:{COLORS['ink_muted']};line-height:1.7;">
-          Você está recebendo porque se cadastrou em <strong style="color:{COLORS['ink']};">Recorte ✂</strong>.<br/>
-          <a href="{_esc(manage_link)}" style="color:{COLORS['ink_soft']};text-decoration:underline;font-weight:700;">⚙ Ajustar minhas preferências</a>
+          Você está recebendo porque se cadastrou em <strong style="color:{COLORS['ink']};">Recorte ✂</strong>.
           {('<br/><span style="font-family:' + MONO_FONT + ';font-size:10px;color:' + COLORS['ink_muted'] + ';opacity:0.7;letter-spacing:0.08em;">' + str(filtered_items_count) + ' filtro' + ('s' if filtered_items_count != 1 else '') + ' ativo' + ('s' if filtered_items_count != 1 else '') + ' · você no controle</span>') if filtered_items_count > 0 else ''}
           <br/><br/>
-          <span style="font-size:10px;color:{COLORS['ink_muted']};opacity:0.8;">Curadoria editorial por agentes de IA especialistas · 200+ fontes brasileiras e internacionais · Conteúdo de terceiros. Direitos reservados aos veículos originais.</span>
-          <div style="margin-top:10px;font-family:{MONO_FONT};font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:{COLORS['ink_muted']};opacity:0.6;">Última coleta · {date_obj.strftime('%d/%m %H:%M')} BRT</div>
+          <a href="{_esc(manage_link)}" style="color:{COLORS['ink_soft']};text-decoration:underline;font-weight:700;font-size:12px;">⚙ Ajustar minhas preferências</a>
+          &nbsp;&nbsp;·&nbsp;&nbsp;
+          <a href="{_esc(unsub_link)}" style="color:{COLORS['ink_soft']};text-decoration:underline;font-weight:700;font-size:12px;">✕ Cancelar inscrição</a>
+          <br/><br/>
+          <span style="font-size:10px;color:{COLORS['ink_muted']};opacity:0.8;line-height:1.65;">Curadoria editorial por agentes de IA treinados e monitorados por humanos · 200+ fontes brasileiras e internacionais · Conteúdo de terceiros. Direitos reservados aos veículos originais.</span>
+          <br/><br/>
+          <a href="https://recorte.news/termos.html" style="color:{COLORS['ink_muted']};text-decoration:underline;font-size:10px;opacity:0.7;">Termos de Uso</a>
+          &nbsp;·&nbsp;
+          <a href="https://recorte.news/politica-privacidade.html" style="color:{COLORS['ink_muted']};text-decoration:underline;font-size:10px;opacity:0.7;">Política de Privacidade</a>
+          &nbsp;·&nbsp;
+          <a href="mailto:contato@recorte.news" style="color:{COLORS['ink_muted']};text-decoration:underline;font-size:10px;opacity:0.7;">Contato</a>
+          <div style="margin-top:14px;font-size:10px;color:{COLORS['ink_muted']};opacity:0.65;line-height:1.6;">
+            Recorte ✂ · Operado pela Equipe Recorte ✂ · São Paulo/SP · Brasil
+          </div>
+          <div style="margin-top:6px;font-family:{MONO_FONT};font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:{COLORS['ink_muted']};opacity:0.55;">Última coleta · {date_obj.strftime('%d/%m %H:%M')} BRT</div>
         </div>
       </td></tr>
 
