@@ -41,15 +41,28 @@ def manage_sign(user_id: str, exp: int, secret: str = None) -> str:
     return hmac.new(secret.encode("utf-8"), msg, hashlib.sha256).hexdigest()[:24]
 
 
-def manage_url(base_url: str, user_id: str, ttl_days: int = 30) -> str:
-    """Monta URL assinada pra página /manage. Expira em ttl_days."""
-    if not base_url or base_url == "#":
+# ============ UNSUBSCRIBE TOKEN ============
+def unsub_sign(user_id: str, secret: str = None) -> str:
+    """HMAC do payload unsub|user_id truncado em 24 chars.
+    Sem expiração — unsubscribe deve funcionar sempre, mesmo em emails antigos."""
+    secret = secret or os.environ.get("FEEDBACK_SECRET", "")
+    if not secret:
+        raise ValueError("FEEDBACK_SECRET ausente")
+    msg = f"unsub|{user_id}".encode("utf-8")
+    return hmac.new(secret.encode("utf-8"), msg, hashlib.sha256).hexdigest()[:24]
+
+
+def unsub_verify(user_id: str, token: str, secret: str = None) -> bool:
+    expected = unsub_sign(user_id, secret)
+    return hmac.compare_digest(expected, token)
+
+
+def unsub_url(supabase_url: str, user_id: str) -> str:
+    """Monta URL pra cancelar inscrição.
+    Aponta pra edge function 'unsubscribe' que aceita GET e POST (RFC 8058 one-click)."""
+    if not supabase_url or not user_id:
         return "#"
-    exp = int(time.time()) + ttl_days * 86400
-    token = manage_sign(user_id, exp)
-    # base_url pode ser https://x.github.io/manha-cafe/ ou https://x.github.io/manha-cafe/manage.html
-    base = base_url.rstrip("/")
-    if not base.endswith(".html"):
-        base = base + "/manage.html"
-    return f"{base}?u={user_id}&exp={exp}&t={token}"
+    base = supabase_url.rstrip("/")
+    token = unsub_sign(user_id)
+    return f"{base}/functions/v1/unsubscribe?u={user_id}&t={token}"
 
