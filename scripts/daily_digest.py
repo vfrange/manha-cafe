@@ -39,8 +39,8 @@ TARGET_HOUR_BRT = int(os.environ.get("TARGET_HOUR_BRT", "-1"))
 DRY_RUN = os.environ.get("DRY_RUN", "false").lower() == "true"
 
 MODEL = "claude-haiku-4-5-20251001"
-MAX_NEWS_OUT_PER_TOPIC = 3
-MAX_TRENDING_OUT = 5
+MAX_NEWS_OUT_PER_TOPIC = 2
+MAX_TRENDING_OUT = 10
 
 COUNTRY_NAMES = {
     "BR": "🇧🇷 Brasil", "US": "🇺🇸 EUA", "GB": "🇬🇧 Reino Unido",
@@ -681,6 +681,7 @@ def process_user(user, now_brt):
     # 5) RENDER + ENVIO
     # Link assinado HMAC pra página /manage (válido 30 dias)
     signed_manage = gen_manage_url(MANAGE_URL, uid, ttl_days=30)
+    email_mode = (user.get("email_mode") or "coado").lower()
 
     html = render_email(
         user_name=user["name"], date_obj=now_brt,
@@ -688,6 +689,7 @@ def process_user(user, now_brt):
         sections=sections, manage_url=signed_manage,
         user_id=uid,
         daily_recap=daily_recap,
+        email_mode=email_mode,
     )
     result = send_email(user["email"], user["name"], html, now_brt)
     log(f"  ✓ enviado", id=result.get("id"))
