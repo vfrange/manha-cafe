@@ -229,13 +229,26 @@ def _call_claude_json(prompt, max_tokens=4000, retries=2, log_prefix=""):
     return {}
 
 
-def _curate_news_batch(user_name, topics_with_news, learned_profile=""):
-    """Processa UM batch de temas (até MAX_TOPICS_PER_BATCH)."""
+def _curate_news_batch(user_name, topics_with_news, learned_profile="", filtered_items=None):
+    """Processa UM batch de temas (até MAX_TOPICS_PER_BATCH). Aplica filtros do user se passados."""
     payload = []
     has_political = False
     for t in topics_with_news:
         # PRE-FILTER: descarta matérias com sinais de conteúdo proibido
         clean_news = [n for n in t["news"][:MAX_NEWS_INPUT_PER_TOPIC] if is_safe_news(n)]
+        # Pre-filter também por filtros do user (case-insensitive)
+        if filtered_items:
+            norm_filters = [f.strip().lower() for f in filtered_items if isinstance(f, str) and f.strip()]
+            if norm_filters:
+                clean_news = [
+                    n for n in clean_news
+                    if not any(
+                        f in (n.get("source") or "").lower() or
+                        f in (n.get("title") or "").lower() or
+                        f in (n.get("summary") or "").lower()
+                        for f in norm_filters
+                    )
+                ]
         if not clean_news:
             continue  # tema sem matéria limpa após filtro
         topic_is_political = is_political_topic(t["label"])
@@ -266,8 +279,21 @@ Priorize notícias que casem com o que ele gosta. Evite (ou despriorize) o que e
 
     bias_section = POLITICAL_BIAS_INSTRUCTIONS if has_political else ""
 
+    # Instrução de filtros (lista de "não receber")
+    filter_instruction = ""
+    if filtered_items:
+        filter_list = ", ".join(f'"{f}"' for f in filtered_items[:20])
+        filter_instruction = f"""
+
+🚫 **FILTROS DURO DO USUÁRIO** — proibido incluir notícias que envolvam estes temas/veículos:
+{filter_list}
+
+Se o "fonte" de uma matéria estiver nessa lista, DESCARTE-A integralmente. Se a manchete trata de um tema dessa lista, DESCARTE-A. Em dúvida, descarte.
+"""
+
     prompt = f"""Você é editor de uma newsletter premium em PT-BR ao estilo Morning Brew, escrevendo para {user_name}.
 {profile_section}
+{filter_instruction}
 {SAFETY_INSTRUCTIONS}
 {bias_section}
 Para cada tema abaixo, selecione as **até {MAX_NEWS_OUT_PER_TOPIC} notícias mais relevantes** do dia (priorize: impacto real, novidade, alinhamento com perfil; evite duplicatas e clickbait).
@@ -300,10 +326,14 @@ Dados:
     # POST-FILTER: re-valida cada item curado
     for sec in secoes:
         sec["noticias"] = [n for n in sec.get("noticias", []) if is_safe_curated(n)]
+    # POST-FILTER: aplica filtros do user (caso Claude tenha escapado)
+    if filtered_items:
+        for sec in secoes:
+            sec["noticias"] = _apply_user_filters(sec.get("noticias", []), filtered_items)
     return secoes
 
 
-def curate_news(user_name, topics_with_news, learned_profile=""):
+def curate_news(user_name, topics_with_news, learned_profile="", filtered_items=None):
     """
     Curadoria com batching: divide temas em grupos de até MAX_TOPICS_PER_BATCH
     pra evitar JSON gigante que pode quebrar.
@@ -320,7 +350,7 @@ def curate_news(user_name, topics_with_news, learned_profile=""):
 
     for idx, batch in enumerate(batches, 1):
         log(f"  batch {idx}/{len(batches)}: {len(batch)} temas")
-        sections = _curate_news_batch(user_name, batch, learned_profile)
+        sections = _curate_news_batch(user_name, batch, learned_profile, filtered_items)
         all_sections.extend(sections)
 
     return all_sections
@@ -331,6 +361,40 @@ def _norm_for_dedup(text: str) -> str:
     if not text:
         return ""
     return re.sub(r'[^a-z0-9]', '', text.lower())
+
+
+def _apply_user_filters(items, filtered_items):
+    """
+    Aplica filtros do usuário (lista de 'temas/veículos a NÃO receber').
+    Match case-insensitive em substring contra:
+    - campo 'fonte' (pega bloqueios de veículos: "Carta Capital", "UOL")
+    - campo 'manchete' e 'resumo' (pega bloqueios de tema: "celebridades")
+
+    Retorna lista filtrada (sem os matches).
+    """
+    if not filtered_items or not items:
+        return items
+
+    # Normaliza filtros: lowercase, strip
+    norm_filters = [f.strip().lower() for f in filtered_items if isinstance(f, str) and f.strip()]
+    if not norm_filters:
+        return items
+
+    out = []
+    for it in items:
+        fonte = (it.get("fonte") or "").lower()
+        manchete = (it.get("manchete") or "").lower()
+        resumo = (it.get("resumo") or "").lower()
+        # Bloqueia se algum filtro aparecer como substring em fonte/manchete/resumo
+        blocked = any(f in fonte or f in manchete or f in resumo for f in norm_filters)
+        if blocked:
+            continue
+        out.append(it)
+
+    removed = len(items) - len(out)
+    if removed:
+        log(f"  ⚠ filtros do user: removeu {removed} item(ns) por bloqueios explícitos")
+    return out
 
 
 def _dedupe_trends(items):
@@ -392,8 +456,13 @@ def _dedupe_sections_against_trends(sections, trending):
     return removed
 
 
-def curate_trends(user_name, scope_label, trends, learned_profile=""):
-    """Em Alta: agora formato completo (manchete + resumo + fatos_chave) igual seções."""
+def curate_trends(user_name, scope_label, trends, learned_profile="",
+                  user_topics_labels=None, filtered_items=None):
+    """
+    Em Alta: até 5 trends.
+    Se user_topics_labels forem passados, monta híbrido: 3 gerais + 2 relacionados aos temas.
+    Se filtered_items presente, instrui Claude a evitar veículos/temas filtrados E aplica pós-filtro.
+    """
     if not trends:
         return []
 
@@ -406,11 +475,46 @@ def curate_trends(user_name, scope_label, trends, learned_profile=""):
     if learned_profile.strip():
         profile_section = f"\n**PERFIL DO USUÁRIO**: {learned_profile}\nUse pra priorizar trends que casem com interesses dele.\n"
 
+    # Modo híbrido se temos os temas do user
+    has_topics = bool(user_topics_labels)
+    if has_topics:
+        topics_str = ", ".join(user_topics_labels[:15])
+        mix_instruction = f"""
+
+🎯 **SELEÇÃO HÍBRIDA — total de 5 itens**:
+- **3 eventos GERAIS**: top stories do dia, alta circulação, qualquer assunto relevante (sem filtro por interesse)
+- **2 eventos RELACIONADOS aos temas do usuário**: itens que se conectem aos temas dele, mesmo que não sejam os top virais gerais.
+
+**Temas do usuário pra cruzar nos 2 itens "RELACIONADOS"**: {topics_str}
+
+⚠️ Esses 5 itens NÃO podem ser repetidos depois nas notícias por tema. Os 2 "RELACIONADOS" são a versão "trending" desses interesses; as notícias por tema serão *outras* manchetes sobre os mesmos assuntos.
+"""
+        total_out = 5
+    else:
+        mix_instruction = ""
+        total_out = MAX_TRENDING_OUT
+
+    # Instrução de filtros (lista negra)
+    filter_instruction = ""
+    if filtered_items:
+        filter_list = ", ".join(f'"{f}"' for f in filtered_items[:20])
+        filter_instruction = f"""
+
+🚫 **FILTROS DURO DO USUÁRIO** — proibido incluir trends que envolvam estes temas/veículos:
+{filter_list}
+
+Se um trend é de um veículo dessa lista (campo "fonte"), DESCARTE-O integralmente, mesmo que o conteúdo seja relevante.
+Se um trend é sobre um tema dessa lista, DESCARTE-O.
+Não tente reinterpretar — se em dúvida, descarte.
+"""
+
     prompt = f"""Você é editor da seção "🔥 Em Alta" em PT-BR pra {user_name}, escopo: **{scope_label}**.
 {profile_section}
+{filter_instruction}
+{mix_instruction}
 {SAFETY_INSTRUCTIONS}
 
-Selecione os **{MAX_TRENDING_OUT} eventos mais relevantes** que estão em alta hoje (top stories + redes sociais + viralizações). Priorize: eventos significativos, lançamentos, esporte/cultura de impacto. Evite fofoca rasa, conteúdo regional sem contexto, ou jargão obscuro.
+Selecione os **{total_out} eventos mais relevantes** que estão em alta hoje (top stories + redes sociais + viralizações). Priorize: eventos significativos, lançamentos, esporte/cultura de impacto. Evite fofoca rasa, conteúdo regional sem contexto, ou jargão obscuro.
 
 🚫 **REGRA CRÍTICA DE DEDUPLICAÇÃO**: NUNCA inclua duas manchetes sobre o MESMO evento, mesmo que venham de fontes diferentes ou com palavras ligeiramente diferentes. Se ver vários trends brutos sobre o mesmo acontecimento (ex: "Lula faz pronunciamento" e "Pronunciamento de Lula" e "Discurso presidencial"), escolha APENAS UM (o de fonte mais relevante) e descarte os outros. Cada item do output deve representar UM evento ÚNICO. Em caso de dúvida sobre se 2 trends são o mesmo evento, considere que SÃO e una.
 
@@ -438,6 +542,9 @@ Trends brutos:
     items = parsed.get("trending", []) if parsed else []
     # Post-filter: safety
     items = [it for it in items if is_safe_curated(it)]
+    # Post-filter: filtros do user (case-insensitive substring no campo fonte ou manchete)
+    if filtered_items:
+        items = _apply_user_filters(items, filtered_items)
     # Post-filter: dedup interno
     before = len(items)
     items = _dedupe_trends(items)
@@ -542,8 +649,10 @@ def add_feedback_links(user_id, sections):
 def load_profile(user_id):
     res = supabase.table("user_profile").select("*").eq("user_id", user_id).execute()
     if res.data:
-        return res.data[0]
-    return {"learned_text": "", "paused_topics": []}
+        prof = res.data[0]
+        prof.setdefault("filtered_items", [])
+        return prof
+    return {"learned_text": "", "paused_topics": [], "filtered_items": []}
 
 
 def is_topic_paused(topic_label, paused_topics, now):
@@ -589,10 +698,17 @@ def process_user(user, now_brt, weekly=False):
     profile = load_profile(uid)
     learned = profile.get("learned_text", "") or ""
     paused = profile.get("paused_topics", []) or []
+    filtered_items = profile.get("filtered_items", []) or []
     if learned:
         log(f"  perfil: {learned[:80]}...")
     if paused:
         log(f"  temas pausados: {len(paused)}")
+    if filtered_items:
+        log(f"  filtros do user: {len(filtered_items)} itens")
+
+    # Pré-busca os labels dos temas do user (pra Em Alta híbrido)
+    _topics_pre = supabase.table("topics").select("label").eq("user_id", uid).execute()
+    user_topic_labels = [t["label"] for t in (_topics_pre.data or [])]
 
     # 1) TRENDING — suporta CSV multi-scope ex: "br,global,country:IL"
     trending = []
@@ -621,7 +737,11 @@ def process_user(user, now_brt, weekly=False):
             raw_trends = fetch_trending(tcountry)
             log(f"  trends brutos", count=len(raw_trends), scope=tcountry)
             if raw_trends:
-                curated = curate_trends(user["name"], tlabel, raw_trends, learned)
+                curated = curate_trends(
+                    user["name"], tlabel, raw_trends, learned,
+                    user_topics_labels=user_topic_labels,
+                    filtered_items=filtered_items,
+                )
                 # marca o escopo de origem em cada item pra debug/futuro uso
                 for item in curated:
                     item.setdefault("scope_origin", tlabel)
@@ -683,7 +803,7 @@ def process_user(user, now_brt, weekly=False):
 
     sections = []
     if topics_with_news:
-        raw_sections = curate_news(user["name"], topics_with_news, learned)
+        raw_sections = curate_news(user["name"], topics_with_news, learned, filtered_items=filtered_items)
         # casa metadados de volta pelo label (topic_id + scopes reais)
         label_meta = {t["label"]: {"topic_id": t["topic_id"], "scopes": t["scopes"]} for t in topics_with_news}
         # mapa link → lang pra reanexar idioma na resposta do Claude
@@ -754,6 +874,17 @@ def process_user(user, now_brt, weekly=False):
     signed_manage = gen_manage_url(MANAGE_URL, uid, ttl_days=30)
     email_mode = (user.get("email_mode") or "coado").lower()
 
+    # Saudação: o daily roda 6h BRT (sempre manhã); weekly roda sábado 8h BRT.
+    # Mas este path TAMBÉM serve o welcome (que pode rodar a qualquer hora) — nesse caso usa auto.
+    user_tz = user.get("timezone") or "America/Sao_Paulo"
+    is_welcome = not user.get("welcome_sent")
+    if is_welcome:
+        saudacao_mode = "auto"  # respeita fuso do user
+    elif weekly:
+        saudacao_mode = "sabado"
+    else:
+        saudacao_mode = "manha"
+
     html = render_email(
         user_name=user["name"], date_obj=now_brt,
         trending=trending, trending_label=trending_label,
@@ -764,6 +895,9 @@ def process_user(user, now_brt, weekly=False):
         daily_quote_author=daily_quote_author,
         email_mode=email_mode,
         weekly_mode=weekly,
+        user_tz=user_tz,
+        saudacao_mode=saudacao_mode,
+        filtered_items_count=len(filtered_items),
     )
     result = send_email(user["email"], user["name"], html, now_brt, weekly=weekly)
     log(f"  ✓ enviado", id=result.get("id"))
