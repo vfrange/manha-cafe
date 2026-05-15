@@ -30,7 +30,7 @@ from anthropic import Anthropic
 
 # Importa tudo do daily_digest pra reaproveitar lógica
 import daily_digest as dd
-from feedback_token import manage_url as gen_manage_url
+from feedback_token import manage_url as gen_manage_url, unsub_url as gen_unsub_url
 from email_template import render_email
 
 # ============ CONFIG ============
@@ -253,6 +253,7 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
 
     # Render
     signed_manage = gen_manage_url(MANAGE_URL, uid, ttl_days=30)
+    signed_unsub = gen_unsub_url(SUPABASE_URL, uid)
     email_mode = (user.get("email_mode") or "coado").lower()
 
     # Saudação: prepare é sempre madrugada → o email vai disparar de manhã (daily 6h ou sábado 8h)
@@ -268,6 +269,7 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
         email_mode=email_mode, weekly_mode=weekly,
         user_tz=user_tz, saudacao_mode=saudacao_mode,
         filtered_items_count=len(filtered_items),
+        unsub_url=signed_unsub,
     )
 
     # Subject
