@@ -391,11 +391,11 @@ Trends brutos:
 
 def generate_daily_recap(user_name, sections, trending, learned_profile=""):
     """
-    Gera o 'Seu dia em 60 segundos' — resumo executivo do email.
-    ~150 palavras cobrindo as 3-5 seções mais importantes.
+    Gera o 'Seu dia em 60 segundos' + uma quote de destaque pro topo.
+    Retorna dict {recap, quote, quote_author} ou string vazia se nada.
     """
     if not sections and not trending:
-        return ""
+        return {"recap": "", "quote": "", "quote_author": ""}
 
     # Compila uma lista enxuta do que tem no email pra passar pro Claude
     summary_input = []
@@ -410,7 +410,7 @@ def generate_daily_recap(user_name, sections, trending, learned_profile=""):
             summary_input.append({"area": topic, "manchete": n.get("manchete", "")})
 
     if not summary_input:
-        return ""
+        return {"recap": "", "quote": "", "quote_author": ""}
 
     profile_section = ""
     if learned_profile.strip():
@@ -418,31 +418,36 @@ def generate_daily_recap(user_name, sections, trending, learned_profile=""):
 
     prompt = f"""Você escreve "Seu dia em 60 segundos" — o briefing executivo no topo do email do {user_name}, estilo Morning Brew.
 {profile_section}
-Cria UM PARÁGRAFO único de **140-180 palavras** em PT-BR que faça o usuário entender, em 1 minuto, o que rolou hoje no mundo dele.
+**TAREFA 1 — RECAP**: Cria UM PARÁGRAFO único de **140-180 palavras** em PT-BR que faça o usuário entender, em 1 minuto, o que rolou hoje no mundo dele.
 
-Regras:
+Regras do recap:
 - Tom direto, esperto, sem clichê. Lê como se fosse um amigo bem informado contando.
 - Cobre 4-6 fatos do dia, escolhendo os de maior impacto/novidade.
 - Conecta áreas quando faz sentido ("...na mesma semana em que..." / "...enquanto isso...").
-- Termina com 1 frase de fechamento (NÃO precisa ser conclusão definitiva — pode ser observação ou gancho).
+- Termina com 1 frase de fechamento.
 - NÃO use bullets. NÃO use markdown. NÃO repita "hoje". UM parágrafo corrido.
+
+**TAREFA 2 — QUOTE**: Pinça UMA frase forte ou citação marcante de alguma das manchetes/notícias do dia. Pode ser declaração de pessoa pública, dado impressionante, ou conclusão de matéria. **Máximo 18 palavras**. Use aspas curvas “”. Pode ser uma observação sua sobre o dia inteiro também, no estilo de uma editorial. Deve ter caráter, personalidade.
 
 Manchetes de hoje:
 {json.dumps(summary_input, ensure_ascii=False, indent=2)}
 
-Responda APENAS o texto do parágrafo, sem aspas, sem JSON, sem cabeçalho."""
+Responda APENAS JSON VÁLIDO neste formato exato:
+{{"recap": "<parágrafo>", "quote": "<frase com aspas curvas>", "quote_author": "<autor ou contexto curto, ex: 'André Lara Resende, FSP' ou 'da redação do Recorte'>"}}"""
 
     try:
-        resp = claude.messages.create(model=MODEL, max_tokens=600,
+        resp = claude.messages.create(model=MODEL, max_tokens=900,
                                        messages=[{"role": "user", "content": prompt}])
         text = resp.content[0].text.strip()
-        # Remove possíveis aspas envolventes e markdown stray
-        text = text.strip('"\'`').strip()
-        text = re.sub(r"^\*\*.*?\*\*\s*", "", text)
-        return text
+        parsed = _robust_json_parse(text)
+        return {
+            "recap": (parsed.get("recap") or "").strip(),
+            "quote": (parsed.get("quote") or "").strip(),
+            "quote_author": (parsed.get("quote_author") or "").strip(),
+        }
     except Exception as e:
         log(f"  ⚠ erro generate_daily_recap: {e}")
-        return ""
+        return {"recap": "", "quote": "", "quote_author": ""}
 
 
 # ============ EMAIL ITEMS + FEEDBACK LINKS ============
@@ -674,9 +679,14 @@ def process_user(user, now_brt):
 
     # 4) RESUMO EXECUTIVO "Seu dia em 60 segundos"
     log(f"  gerando recap executivo...")
-    daily_recap = generate_daily_recap(user["name"], sections, trending, learned)
+    recap_data = generate_daily_recap(user["name"], sections, trending, learned)
+    daily_recap = recap_data.get("recap", "") if isinstance(recap_data, dict) else (recap_data or "")
+    daily_quote = recap_data.get("quote", "") if isinstance(recap_data, dict) else ""
+    daily_quote_author = recap_data.get("quote_author", "") if isinstance(recap_data, dict) else ""
     if daily_recap:
         log(f"  ✓ recap gerado ({len(daily_recap)} chars)")
+    if daily_quote:
+        log(f"  ✓ quote do dia: {daily_quote[:60]}")
 
     # 5) RENDER + ENVIO
     # Link assinado HMAC pra página /manage (válido 30 dias)
@@ -689,6 +699,8 @@ def process_user(user, now_brt):
         sections=sections, manage_url=signed_manage,
         user_id=uid,
         daily_recap=daily_recap,
+        daily_quote=daily_quote,
+        daily_quote_author=daily_quote_author,
         email_mode=email_mode,
     )
     result = send_email(user["email"], user["name"], html, now_brt)
