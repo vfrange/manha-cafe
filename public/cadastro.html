@@ -843,7 +843,7 @@
     // Limite de 20 temas no total — intercepta marcação
     grid.querySelectorAll('.topic-chip input').forEach(cb => {
       cb.addEventListener('change', (e) => {
-        if (e.target.checked && getTotalTopicsCount() > 12) {
+        if (e.target.checked && getTotalTopicsCount() > 15) {
           e.target.checked = false;
           alert('Máximo de 15 temas no total (curados + personalizados) 🙂');
         }
