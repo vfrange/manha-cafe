@@ -1,6 +1,5 @@
 // Recorte X - Edge Function de feedback
 // Recebe cliques de "+ mais como essa" / "- menos como essa" / "pausar tema"
-// Endpoint: https://<project>.functions.supabase.co/feedback?i=ID&s=+/-1&t=TOKEN
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { encodeHex } from "https://deno.land/std@0.224.0/encoding/hex.ts";
@@ -29,18 +28,29 @@ async function hmacSign(itemId: string, signal: number): Promise<string> {
   return encodeHex(new Uint8Array(sig)).slice(0, 12);
 }
 
+// Escapa caracteres especiais como HTML entities (numeric).
+// Garante que mesmo se o gateway re-encoda bytes, o browser
+// renderiza o emoji/acento certo a partir do entity.
+function esc(s: string): string {
+  return s.replace(/[\u0080-\uFFFF]/g, (c) => `&#x${c.charCodeAt(0).toString(16)};`)
+          .replace(/[\u{10000}-\u{10FFFF}]/gu, (c) => `&#x${c.codePointAt(0)!.toString(16)};`);
+}
+
+// Constantes HTML como entities (sem caracteres non-ASCII no source)
+const E_THUMBSUP = "&#x1F44D;";   // thumbs up
+const E_THUMBSDOWN = "&#x1F44E;"; // thumbs down
+const E_COFFEE = "&#x2615;";      // coffee
+const E_SCISSORS = "&#x2702;";    // scissors
+const E_MIDDOT = "&#xB7;";        // middle dot
+
 function htmlPage(title: string, message: string, accent = "#FFD60A"): Response {
-  // Emojis e acentos usando escape sequences Unicode pra garantir
-  // que o source eh ASCII puro (zero risco de double-encoding no editor/clipboard).
-  // JavaScript expande \u#### em runtime pro caractere correto, e o Response
-  // serve bytes UTF-8 corretos sem nenhuma re-codificacao intermediaria.
   const body = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${title} \u00b7 Recorte \u2702</title>
+<title>${title} ${E_MIDDOT} Recorte ${E_SCISSORS}</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@700;900&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
 <style>
 body { margin:0; min-height:100vh; background:#FFF8EC; font-family:'DM Sans',system-ui,sans-serif; display:flex; align-items:center; justify-content:center; padding:24px; color:#0A0A0A; }
@@ -54,10 +64,10 @@ p { font-size:16px; color:#4A4A4A; line-height:1.5; margin:0 0 20px 0; }
 </head>
 <body>
 <div class="card">
-<div class="icon">\u2615</div>
+<div class="icon">${E_COFFEE}</div>
 <h1>${title}</h1>
 <p>${message}</p>
-<div class="foot"><strong>Recorte \u2702</strong> \u00b7 sua newsletter aprende com voc\u00ea</div>
+<div class="foot"><strong>Recorte ${E_SCISSORS}</strong> ${E_MIDDOT} sua newsletter aprende com voc&ecirc;</div>
 </div>
 </body>
 </html>`;
@@ -78,17 +88,17 @@ Deno.serve(async (req) => {
     const token = url.searchParams.get("t") || "";
 
     if (!itemId || (signal !== 1 && signal !== -1) || !token) {
-      return htmlPage("Link inv\u00e1lido", "Esse link parece incompleto. Tente clicar no bot\u00e3o direto do e-mail.", "#FF5A1F");
+      return htmlPage("Link inv&aacute;lido", "Esse link parece incompleto. Tente clicar no bot&atilde;o direto do e-mail.", "#FF5A1F");
     }
 
     const expected = await hmacSign(itemId, signal);
     if (expected !== token) {
-      return htmlPage("Link inv\u00e1lido", "Esse link n\u00e3o passou na verifica\u00e7\u00e3o de seguran\u00e7a.", "#FF5A1F");
+      return htmlPage("Link inv&aacute;lido", "Esse link n&atilde;o passou na verifica&ccedil;&atilde;o de seguran&ccedil;a.", "#FF5A1F");
     }
 
     const { data: item } = await supabase.from("email_items").select("*").eq("id", itemId).single();
     if (!item) {
-      return htmlPage("Item n\u00e3o encontrado", "Esse feedback se refere a um item antigo que j\u00e1 n\u00e3o est\u00e1 dispon\u00edvel.", "#FF5A1F");
+      return htmlPage("Item n&atilde;o encontrado", "Esse feedback se refere a um item antigo que j&aacute; n&atilde;o est&aacute; dispon&iacute;vel.", "#FF5A1F");
     }
 
     const userId = item.user_id;
@@ -119,8 +129,8 @@ Deno.serve(async (req) => {
       });
 
       return htmlPage(
-        "Anotado! \u{1F44E}",
-        `Tema pausado. Voc\u00ea n\u00e3o vai ver <strong>"${topicLabel}"</strong> nos pr\u00f3ximos 7 dias.`,
+        `Anotado! ${E_THUMBSDOWN}`,
+        `Tema pausado. Voc&ecirc; n&atilde;o vai ver <strong>"${esc(topicLabel)}"</strong> nos pr&oacute;ximos 7 dias.`,
       );
     }
 
@@ -133,23 +143,24 @@ Deno.serve(async (req) => {
         payload: payload,
       });
 
+      const title = payload.title || "essa";
       if (signal === 1) {
         return htmlPage(
-          "Anotado! \u{1F44D}",
-          `\u00d3timo! Vou trazer mais coisas como <strong>"${payload.title || 'essa'}"</strong>.`,
+          `Anotado! ${E_THUMBSUP}`,
+          `&Oacute;timo! Vou trazer mais coisas como <strong>"${esc(title)}"</strong>.`,
         );
       } else {
         return htmlPage(
-          "Anotado! \u{1F44E}",
-          `Vou trazer menos coisas como <strong>"${payload.title || 'essa'}"</strong>.`,
+          `Anotado! ${E_THUMBSDOWN}`,
+          `Vou trazer menos coisas como <strong>"${esc(title)}"</strong>.`,
           "#FF5A1F",
         );
       }
     }
 
-    return htmlPage("A\u00e7\u00e3o n\u00e3o reconhecida", "Esse tipo de feedback n\u00e3o foi processado.", "#FF5A1F");
+    return htmlPage("A&ccedil;&atilde;o n&atilde;o reconhecida", "Esse tipo de feedback n&atilde;o foi processado.", "#FF5A1F");
   } catch (e) {
     console.error("feedback error:", e);
-    return htmlPage("Algo deu errado", "N\u00e3o conseguimos registrar seu feedback. Tente de novo daqui a pouco.", "#FF5A1F");
+    return htmlPage("Algo deu errado", "N&atilde;o conseguimos registrar seu feedback. Tente de novo daqui a pouco.", "#FF5A1F");
   }
 });
