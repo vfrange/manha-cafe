@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<title>Recorte ✂ · Anotado</title>
+<title>Recorte ✂</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700;900&family=Mulish:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -13,95 +13,228 @@
     --yellow:#FFD60A; --orange:#FF5A1F;
   }
   *{box-sizing:border-box}
-  body{margin:0;min-height:100vh;background:var(--bg);font-family:'Mulish',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;padding:24px;color:var(--ink)}
-  .card{max-width:480px;width:100%;background:#fff;border:2px solid var(--ink);box-shadow:8px 8px 0 var(--ink);padding:40px;text-align:center}
-  .icon{width:80px;height:80px;margin:0 auto 24px;background:var(--yellow);border:2px solid var(--ink);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:40px;box-shadow:6px 6px 0 var(--ink)}
-  .icon.warn{background:var(--orange);color:#fff}
-  .icon.success{background:var(--mint)}
-  h1{font-family:'Fraunces',serif;font-weight:900;font-size:36px;letter-spacing:-0.03em;margin:0 0 14px;line-height:1.1}
-  h1 em{font-style:italic;color:var(--mint-dark);font-weight:700}
-  p{font-size:16px;color:var(--ink-soft);line-height:1.5;margin:0 0 20px}
-  p strong{color:var(--ink)}
-  .foot{font-size:12px;color:var(--ink-muted);margin-top:24px;letter-spacing:0.02em}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg)}
+  body{
+    font-family:'Mulish',system-ui,sans-serif;
+    color:var(--ink);
+    display:flex;align-items:center;justify-content:center;
+    padding:24px;min-height:100vh;
+    transition:opacity 800ms ease-out;
+  }
+  body.fading{opacity:0}
+
+  /* === LAYOUT TOAST (compacto, +/-) === */
+  .toast{
+    max-width:380px;width:100%;
+    background:#fff;border:2px solid var(--ink);
+    box-shadow:6px 6px 0 var(--ink);
+    padding:24px 28px;
+    text-align:center;
+    animation:slideIn 280ms cubic-bezier(.2,.9,.3,1.2);
+  }
+  .toast .emoji{font-size:32px;line-height:1;margin-bottom:8px;display:block}
+  .toast h2{
+    font-family:'Fraunces',serif;font-weight:700;
+    font-size:22px;letter-spacing:-0.02em;
+    margin:0 0 4px;line-height:1.15;
+  }
+  .toast h2 em{font-style:italic;color:var(--mint-dark)}
+  .toast p{
+    font-size:13px;color:var(--ink-muted);margin:0;line-height:1.4;
+  }
+
+  /* === LAYOUT CARD (pausar tema, com Desfazer) === */
+  .card{
+    max-width:460px;width:100%;
+    background:#fff;border:2px solid var(--ink);
+    box-shadow:8px 8px 0 var(--ink);
+    padding:36px 32px;
+    text-align:center;
+    animation:slideIn 320ms cubic-bezier(.2,.9,.3,1.2);
+  }
+  .card .icon{
+    width:72px;height:72px;margin:0 auto 20px;
+    background:var(--yellow);
+    border:2px solid var(--ink);border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:36px;
+    box-shadow:5px 5px 0 var(--ink);
+  }
+  .card .icon.success{background:var(--mint)}
+  .card .icon.warn{background:var(--orange);color:#fff}
+  .card h1{
+    font-family:'Fraunces',serif;font-weight:900;
+    font-size:30px;letter-spacing:-0.025em;
+    margin:0 0 12px;line-height:1.1;
+  }
+  .card h1 em{font-style:italic;color:var(--mint-dark);font-weight:700}
+  .card p{
+    font-size:15px;color:var(--ink-soft);margin:0 0 18px;line-height:1.5;
+  }
+  .card p strong{color:var(--ink)}
+  .undo-row{
+    margin-top:18px;
+    display:flex;align-items:center;justify-content:center;gap:14px;
+    flex-wrap:wrap;
+  }
+  .btn-undo{
+    display:inline-block;padding:10px 22px;
+    background:var(--ink);color:#fff;text-decoration:none;
+    font-family:'Mulish',sans-serif;font-weight:700;
+    font-size:12px;letter-spacing:0.08em;text-transform:uppercase;
+    border:2px solid var(--ink);
+    box-shadow:4px 4px 0 var(--mint-deep);
+    transition:transform .12s, box-shadow .12s;
+    cursor:pointer;
+  }
+  .btn-undo:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--mint-deep)}
+  .countdown{
+    font-size:11px;color:var(--ink-muted);
+    font-style:italic;letter-spacing:0.02em;
+  }
+  .foot{
+    font-size:11px;color:var(--ink-muted);margin-top:24px;
+    letter-spacing:0.02em;
+  }
   .foot strong{color:var(--ink)}
-  .actions{margin-top:24px}
-  .btn{display:inline-block;padding:12px 24px;background:var(--ink);color:#fff;text-decoration:none;font-family:'Mulish',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;border:2px solid var(--ink);box-shadow:4px 4px 0 var(--mint-deep);transition:transform .12s, box-shadow .12s}
-  .btn:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--mint-deep)}
+
+  @keyframes slideIn{
+    from{opacity:0;transform:translateY(8px) scale(.98)}
+    to{opacity:1;transform:translateY(0) scale(1)}
+  }
+
   @media(max-width:520px){
     .card{padding:28px 22px}
-    h1{font-size:28px}
+    .card h1{font-size:24px}
+    .toast{padding:20px 22px}
   }
 </style>
 </head>
 <body>
-<div class="card" id="card">
-  <div class="icon" id="icon">☕</div>
-  <h1 id="title">Carregando…</h1>
-  <p id="msg"></p>
-  <div class="actions">
-    <a href="https://recorte.news" class="btn">Voltar ao Recorte ✂</a>
-  </div>
-  <div class="foot"><strong>Recorte ✂</strong> · sua newsletter aprende com você</div>
-</div>
+<div id="root"></div>
+
 <script>
 (function(){
   var p = new URLSearchParams(window.location.search);
   var kind = p.get('kind') || 'unknown';
   var label = p.get('label') || '';
   var title = p.get('title') || '';
-  var iconEl = document.getElementById('icon');
-  var titleEl = document.getElementById('title');
-  var msgEl = document.getElementById('msg');
+  var undoUrl = p.get('undoUrl') || '';
+  var root = document.getElementById('root');
 
-  function set(emoji, t, m, cls){
-    iconEl.textContent = emoji;
-    if (cls) iconEl.className = 'icon ' + cls;
-    titleEl.innerHTML = t;
-    msgEl.innerHTML = m;
-  }
-
-  switch(kind){
-    case 'topic_paused':
-      set('👎', 'Anotado!',
-        'Tema pausado. Você não vai ver <strong>"' + escapeHtml(label) + '"</strong> nos próximos <em>7 dias</em>.',
-        'success');
-      break;
-    case 'news_more':
-      set('👍', 'Anotado!',
-        'Ótimo! Vou trazer <em>mais</em> coisas como <strong>"' + escapeHtml(title) + '"</strong>.',
-        'success');
-      break;
-    case 'news_less':
-      set('👎', 'Anotado!',
-        'Vou trazer <em>menos</em> coisas como <strong>"' + escapeHtml(title) + '"</strong>.',
-        'warn');
-      break;
-    case 'invalid':
-    case 'invalid_token':
-      set('⚠', 'Link inválido',
-        'Esse link parece incompleto ou não passou na verificação de segurança. Tente clicar no botão direto do e-mail.',
-        'warn');
-      break;
-    case 'not_found':
-      set('🔍', 'Item não encontrado',
-        'Esse feedback se refere a um item antigo que já não está disponível.',
-        'warn');
-      break;
-    case 'error':
-      set('⚠', 'Algo deu errado',
-        'Não conseguimos registrar seu feedback. Tente de novo daqui a pouco.',
-        'warn');
-      break;
-    default:
-      set('?', 'Hmm…',
-        'Não entendi essa ação. Volte ao seu Recorte e tente de novo.',
-        'warn');
-  }
-
-  function escapeHtml(s){
+  function esc(s){
     return String(s)
       .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
       .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  // Toast minimalista (+/-): 2s + fade-out
+  function renderToast(emoji, h2, msg){
+    root.innerHTML =
+      '<div class="toast">' +
+        '<span class="emoji">' + emoji + '</span>' +
+        '<h2>' + h2 + '</h2>' +
+        (msg ? '<p>' + msg + '</p>' : '') +
+      '</div>';
+    scheduleClose(2000);
+  }
+
+  // Card grande (pausar tema): 4s + Desfazer + fade-out
+  function renderPause(label, undoUrl){
+    root.innerHTML =
+      '<div class="card">' +
+        '<div class="icon success">👎</div>' +
+        '<h1>Tema <em>pausado</em></h1>' +
+        '<p>Você não vai ver <strong>"' + esc(label) + '"</strong> nos próximos <em>7 dias</em>.</p>' +
+        '<div class="undo-row">' +
+          '<a href="' + esc(undoUrl) + '" class="btn-undo">↶ Desfazer</a>' +
+          '<span class="countdown" id="cd">Fecha em 4s</span>' +
+        '</div>' +
+        '<div class="foot"><strong>Recorte ✂</strong> · sua newsletter aprende com você</div>' +
+      '</div>';
+    scheduleClose(4000);
+  }
+
+  // Card de undo confirmado: 2s
+  function renderUndone(label){
+    root.innerHTML =
+      '<div class="toast">' +
+        '<span class="emoji">↶</span>' +
+        '<h2>Pause <em>cancelado</em></h2>' +
+        '<p><strong>"' + esc(label) + '"</strong> volta a aparecer no próximo email.</p>' +
+      '</div>';
+    scheduleClose(2000);
+  }
+
+  // Card de erro: sem auto-close
+  function renderError(emoji, h1, msg){
+    root.innerHTML =
+      '<div class="card">' +
+        '<div class="icon warn">' + emoji + '</div>' +
+        '<h1>' + h1 + '</h1>' +
+        '<p>' + msg + '</p>' +
+        '<div class="undo-row">' +
+          '<a href="https://recorte.news" class="btn-undo">Ir ao site</a>' +
+        '</div>' +
+        '<div class="foot"><strong>Recorte ✂</strong></div>' +
+      '</div>';
+  }
+
+  function scheduleClose(ms){
+    var secs = Math.round(ms / 1000);
+    var cd = document.getElementById('cd');
+    if (cd) {
+      var interval = setInterval(function(){
+        secs--;
+        if (secs > 0 && cd) {
+          cd.textContent = 'Fecha em ' + secs + 's';
+        } else {
+          clearInterval(interval);
+        }
+      }, 1000);
+    }
+    // Inicia fade-out 800ms antes
+    setTimeout(function(){
+      document.body.classList.add('fading');
+    }, Math.max(ms - 800, 100));
+    // Fecha aba
+    setTimeout(function(){
+      window.close();
+      // Fallback se browser nao permitir close
+      setTimeout(function(){
+        document.body.style.opacity = '1';
+        document.body.classList.remove('fading');
+        var n = document.querySelector('.countdown, .foot');
+        if (n) n.innerHTML = '↑ pode fechar essa aba';
+      }, 300);
+    }, ms);
+  }
+
+  switch(kind){
+    case 'news_more':
+      renderToast('👍', 'ok, <em>registrado</em>', 'Mais coisas como essa.');
+      break;
+    case 'news_less':
+      renderToast('👎', 'ok, <em>registrado</em>', 'Menos coisas como essa.');
+      break;
+    case 'topic_paused':
+      renderPause(label, undoUrl);
+      break;
+    case 'topic_undone':
+      renderUndone(label);
+      break;
+    case 'invalid':
+    case 'invalid_token':
+      renderError('⚠', 'Link inválido', 'Esse link parece incompleto ou não passou na verificação. Tente clicar no botão direto do e-mail.');
+      break;
+    case 'not_found':
+      renderError('🔍', 'Não encontrado', 'Esse feedback se refere a um item antigo que já não está disponível.');
+      break;
+    case 'error':
+      renderError('⚠', 'Algo deu errado', 'Não conseguimos registrar seu feedback. Tente de novo daqui a pouco.');
+      break;
+    default:
+      renderError('?', 'Hmm…', 'Não entendi essa ação. Volte ao seu Recorte e tente de novo.');
   }
 })();
 </script>
