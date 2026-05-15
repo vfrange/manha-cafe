@@ -641,10 +641,12 @@
 
   // ===== RENDER =====
   function renderDate() {
+    const el = document.getElementById('todayDate');
+    if (!el) return;  // elemento foi removido no novo header — só ignora silenciosamente
     const meses = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
     const dias = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
     const d = new Date();
-    document.getElementById('todayDate').textContent = `${dias[d.getDay()]} · ${String(d.getDate()).padStart(2,'0')} ${meses[d.getMonth()]} ${d.getFullYear()}`;
+    el.textContent = `${dias[d.getDay()]} · ${String(d.getDate()).padStart(2,'0')} ${meses[d.getMonth()]} ${d.getFullYear()}`;
   }
 
   function renderTopics() {
