@@ -53,6 +53,16 @@ h1{font-family:'Fraunces',serif;font-weight:900;font-size:36px;line-height:1.1;l
 .toast.success{background:var(--mint-deep)}
 .toast.error{background:var(--red)}
 .toast.show{display:block}
+.mode-options{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+@media (max-width:520px){.mode-options{grid-template-columns:1fr}}
+.mode-card{position:relative;cursor:pointer;display:block}
+.mode-card input{position:absolute;opacity:0;width:0;height:0}
+.mode-card-inner{display:flex;align-items:center;gap:14px;padding:16px;border:2px solid var(--ink);background:#fff;transition:all .12s}
+.mode-card:hover .mode-card-inner{background:var(--bg2)}
+.mode-card input:checked + .mode-card-inner{background:var(--mint);border-color:var(--mint-dark)}
+.mode-emoji{font-size:28px;line-height:1}
+.mode-info strong{font-family:'Fraunces',serif;font-size:16px;display:block;color:var(--ink)}
+.mode-desc{font-size:12px;color:var(--ink-muted);margin-top:3px;line-height:1.4}
 .muted-note{font-size:13px;color:var(--ink-muted);margin-top:6px;line-height:1.5}
 .loading{text-align:center;padding:60px 0;color:var(--ink-muted);font-family:'Fraunces',serif;font-style:italic}
 .danger-zone{margin-top:48px;padding:20px;border:2px dashed var(--red);background:#fff}
@@ -116,6 +126,33 @@ h1{font-family:'Fraunces',serif;font-weight:900;font-size:36px;line-height:1.1;l
     </div>
 
     <div class="section">
+      <div class="label">Modo de leitura</div>
+      <p class="muted-note" style="margin:0 0 12px">Escolha quanto contexto quer ler em cada notícia.</p>
+      <div class="mode-options">
+        <label class="mode-card" id="modeCoadoLabel">
+          <input type="radio" name="emailMode" value="coado" id="modeCoado">
+          <div class="mode-card-inner">
+            <div class="mode-emoji">☕</div>
+            <div class="mode-info">
+              <strong>Café Coado</strong>
+              <div class="mode-desc">Análise completa: manchete + resumo + fatos-chave · ~8-10 min</div>
+            </div>
+          </div>
+        </label>
+        <label class="mode-card" id="modeEspressoLabel">
+          <input type="radio" name="emailMode" value="espresso" id="modeEspresso">
+          <div class="mode-card-inner">
+            <div class="mode-emoji">⚡</div>
+            <div class="mode-info">
+              <strong>Espresso</strong>
+              <div class="mode-desc">Só o essencial: manchete + 1 frase + link · ~4-5 min</div>
+            </div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div class="section">
       <div class="label">🔥 Em alta (trending topics)</div>
       <div class="toggle-row">
         <div>
@@ -131,9 +168,9 @@ h1{font-family:'Fraunces',serif;font-weight:900;font-size:36px;line-height:1.1;l
 
     <div class="section">
       <div class="label">Seus temas</div>
-      <p class="muted-note" style="margin:0 0 10px">Empresas, marcas, segmentos, eventos que você quer acompanhar. Detecto automaticamente se é BR ou Global; clique nas bandeirinhas pra ajustar.</p>
+      <p class="muted-note" style="margin:0 0 10px">Empresas, marcas, segmentos, eventos que você quer acompanhar (máximo 12). Detecto automaticamente se é BR ou Global; clique nas bandeirinhas pra ajustar.</p>
       <div class="row">
-        <input type="text" id="newTopicInput" class="field" placeholder="ex: , FIIs, OpenAI…">
+        <input type="text" id="newTopicInput" class="field" placeholder="ex: Nubank, FIIs, OpenAI, Apple…">
         <button class="btn btn-add" onclick="addTopic()">+ Adicionar</button>
       </div>
       <div class="scope-hint" id="scopeHint">↳ digite acima e eu detecto o escopo</div>
@@ -159,7 +196,7 @@ h1{font-family:'Fraunces',serif;font-weight:900;font-size:36px;line-height:1.1;l
 
 <script>
 // URL da Edge Function manage no Supabase — ⚠️ COLA AQUI A URL DO SEU PROJETO:
-const MANAGE_FN_URL = 'https://jegvgviwbkbrmuhcivle.supabase.co/functions/v1/manage';
+const MANAGE_FN_URL = 'https://jegvgviwbkbrmuhcivle.supabase.co';
 
 let token = null; // { u, exp, t } da URL
 let currentUser = null;
@@ -255,6 +292,13 @@ function renderEditor() {
   document.getElementById('activeToggle').checked = currentUser.active !== false;
   document.getElementById('activeLabel').textContent = currentUser.active !== false ? 'Ativa' : 'Pausada';
   document.getElementById('trendingToggle').checked = currentUser.trending_enabled !== false;
+  // Modo de leitura
+  const mode = (currentUser.email_mode || 'coado').toLowerCase();
+  if (mode === 'espresso') {
+    document.getElementById('modeEspresso').checked = true;
+  } else {
+    document.getElementById('modeCoado').checked = true;
+  }
   renderTags();
 }
 
@@ -316,7 +360,7 @@ function addTopic() {
   const input = document.getElementById('newTopicInput');
   const val = input.value.trim();
   if (!val) return;
-  if (currentTopics.length >= 20) return toast('Máximo de 20 temas', 'error');
+  if (currentTopics.length >= 12) return toast('Máximo de 12 temas', 'error');
   if (currentTopics.some(tp => tp.label.toLowerCase() === val.toLowerCase())) return toast('Esse tema já está', 'error');
   if (isBlockedTopic(val)) return toast('Tema rejeitado por política de uso (sem how-to perigoso)', 'error');
   const { scopes } = detectScope(val);
@@ -348,6 +392,7 @@ async function saveChanges() {
   try {
     const newActive = document.getElementById('activeToggle').checked;
     const newTrending = document.getElementById('trendingToggle').checked;
+    const newMode = document.querySelector('input[name="emailMode"]:checked')?.value || 'coado';
 
     // Monta topics_replacement: 1 record por (label × scope)
     const topicsReplacement = [];
@@ -363,13 +408,14 @@ async function saveChanges() {
     });
 
     await callManage('update', {
-      user_updates: { active: newActive, trending_enabled: newTrending },
+      user_updates: { active: newActive, trending_enabled: newTrending, email_mode: newMode },
       topics_replacement: topicsReplacement,
     });
 
     toast('Salvo! Próxima edição já vem com as mudanças.', 'success');
     currentUser.active = newActive;
     currentUser.trending_enabled = newTrending;
+    currentUser.email_mode = newMode;
   } catch (e) {
     toast('Erro: ' + e.message, 'error');
   } finally {
