@@ -615,9 +615,9 @@
     // Limite de 20 temas no total — intercepta marcação
     grid.querySelectorAll('.topic-chip input').forEach(cb => {
       cb.addEventListener('change', (e) => {
-        if (e.target.checked && getTotalTopicsCount() > 20) {
+        if (e.target.checked && getTotalTopicsCount() > 12) {
           e.target.checked = false;
-          alert('Máximo de 20 temas no total (curados + personalizados) 🙂');
+          alert('Máximo de 12 temas no total (curados + personalizados) 🙂');
         }
       });
     });
@@ -692,7 +692,7 @@
     const input = document.getElementById('customTopicInput');
     const val = input.value.trim();
     if (!val) return;
-    if (getTotalTopicsCount() >= 20) { alert('Máximo de 20 temas no total (curados + personalizados) 🙂'); return; }
+    if (getTotalTopicsCount() >= 12) { alert('Máximo de 12 temas no total (curados + personalizados) 🙂'); return; }
     if (customTopics.some(t => t.label.toLowerCase() === val.toLowerCase())) { alert('Esse tema já está na lista'); return; }
     const { scopes } = detectScope(val);
     customTopics.push({ label: val, query: val, scopes });
@@ -777,8 +777,8 @@
 
     // Limite de 20 temas únicos (curados + personalizados)
     const uniqueLabels = new Set(topics.map(t => t.label.toLowerCase()));
-    if (uniqueLabels.size > 20) {
-      alert('Máximo de 20 temas no total. Você selecionou ' + uniqueLabels.size + '. Remova alguns antes de continuar.');
+    if (uniqueLabels.size > 12) {
+      alert('Máximo de 12 temas no total. Você selecionou ' + uniqueLabels.size + '. Remova alguns antes de continuar.');
       btn.disabled = false; btn.textContent = 'Começar a receber →';
       return;
     }
@@ -805,7 +805,8 @@
           trending_enabled: trendingEnabled,
           trending_scope: 'br,global',             // sempre os dois
           trending_country: null,
-          welcome_sent: false                      // será marcado true pelo welcome workflow
+          welcome_sent: false,                     // será marcado true pelo welcome workflow
+          email_mode: 'coado'                      // default; user pode trocar no /manage
         }, { onConflict: 'email' })
         .select().single();
       if (uErr) throw uErr;
