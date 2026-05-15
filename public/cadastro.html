@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -201,14 +202,14 @@
   .how-banner {
     background: var(--yellow-bg);
     border: 2px solid var(--ink);
-    padding: 14px 18px;
+    padding: 16px 20px;
     margin-bottom: 24px;
-    display: flex; align-items: center; gap: 12px;
+    display: flex; align-items: center; gap: 14px;
     font-family: 'Mulish', sans-serif;
-    font-size: 13px; line-height: 1.5; color: var(--ink);
+    font-size: 14.5px; line-height: 1.55; color: var(--ink);
     box-shadow: 4px 4px 0 var(--ink);
   }
-  .how-banner .how-icon { font-size: 22px; flex-shrink: 0; }
+  .how-banner .how-icon { font-size: 24px; flex-shrink: 0; }
   .how-banner strong { font-weight: 800; }
 
   /* FORM */
@@ -240,8 +241,57 @@
     color: var(--ink);
     font-variation-settings: "SOFT" 50, "opsz" 30;
   }
-  .step-hint { font-size: 13px; color: var(--ink-muted); margin-top: 2px; line-height: 1.5; }
+  .step-hint { font-size: 14.5px; color: var(--ink-muted); margin-top: 4px; line-height: 1.6; }
   .step-hint strong { color: var(--ink); font-weight: 700; }
+  .step-hint em { font-style: italic; color: var(--mint-dark); }
+
+  /* === CARDS DE MODO DE LEITURA === */
+  .mode-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 4px;
+  }
+  @media (max-width: 560px) { .mode-row { grid-template-columns: 1fr; } }
+
+  .mode-card {
+    display: block;
+    position: relative;
+    cursor: pointer;
+    padding: 20px 22px;
+    background: #fff;
+    border: 2px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--ink-muted);
+    transition: transform .12s, box-shadow .12s, background .12s;
+  }
+  .mode-card:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--ink-muted); }
+  .mode-card input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .mode-card.selected {
+    background: var(--mint-bg);
+    box-shadow: 5px 5px 0 var(--mint-dark);
+    border-color: var(--ink);
+  }
+  .mode-card.selected:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 var(--mint-dark); }
+  .mode-emoji { font-size: 28px; line-height: 1; display: block; margin-bottom: 10px; }
+  .mode-name {
+    font-family: 'Fraunces', serif;
+    font-weight: 700; font-size: 19px;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .mode-name em { font-style: italic; color: var(--mint-dark); }
+  .mode-desc { font-size: 13.5px; color: var(--ink-soft); line-height: 1.5; }
+  .mode-badge {
+    position: absolute; top: 12px; right: 12px;
+    background: var(--mint-dark); color: #fff;
+    font-family: 'Mulish', sans-serif;
+    font-size: 9px; font-weight: 800;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 2px;
+    opacity: 0; transition: opacity .12s;
+  }
+  .mode-card.selected .mode-badge { opacity: 1; }
 
   .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   @media (max-width: 560px) { .input-row { grid-template-columns: 1fr; } }
@@ -299,8 +349,8 @@
   }
   .toggle.on { background: var(--mint); }
   .toggle.on::after { left: 29px; background: var(--ink); }
-  .toggle-label { font-size: 15px; font-weight: 600; color: var(--ink); }
-  .toggle-sub { font-size: 13px; color: var(--ink-muted); }
+  .toggle-label { font-size: 16px; font-weight: 600; color: var(--ink); }
+  .toggle-sub { font-size: 14px; color: var(--ink-muted); line-height: 1.5; margin-top: 2px; }
 
   /* TOPIC CHIPS */
   .topics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
@@ -424,7 +474,7 @@
     display: flex; align-items: center; justify-content: space-between;
     gap: 16px; flex-wrap: wrap;
   }
-  .submit-info { font-size: 13px; color: var(--ink-muted); max-width: 280px; }
+  .submit-info { font-size: 14px; color: var(--ink-muted); max-width: 320px; line-height: 1.55; }
   .btn-submit {
     background: var(--mint); color: var(--ink); border: 2px solid var(--ink);
     padding: 18px 32px;
@@ -530,10 +580,36 @@
       </div>
     </div>
 
-    <!-- 02 TRENDING TOPICS -->
+    <!-- 02 MODO DE LEITURA -->
     <div class="step">
       <div class="step-header">
         <span class="step-num">02</span>
+        <div>
+          <div class="step-title">Como você quer ler?</div>
+          <div class="step-hint">Dois ritmos. O <strong>Espresso</strong> é o que recomendamos pra começar — chega rápido, em 5 a 7 minutos. O <strong>Coado</strong> é pra quem curte uma leitura mais densa, com mais contexto. <em>Você pode trocar a qualquer momento.</em></div>
+        </div>
+      </div>
+      <div class="mode-row">
+        <label class="mode-card selected" id="modeEspressoCard">
+          <input type="radio" name="readingMode" value="espresso" checked>
+          <span class="mode-badge">Recomendado</span>
+          <span class="mode-emoji">⚡</span>
+          <div class="mode-name"><em>Espresso</em></div>
+          <div class="mode-desc">Manchete + 1 frase do que importa. Leitura em ~5 a 7 min.</div>
+        </label>
+        <label class="mode-card" id="modeCoadoCard">
+          <input type="radio" name="readingMode" value="coado">
+          <span class="mode-emoji">☕</span>
+          <div class="mode-name"><em>Coado</em></div>
+          <div class="mode-desc">Análise completa com contexto e dados. Leitura em ~12 a 15 min.</div>
+        </label>
+      </div>
+    </div>
+
+    <!-- 03 TRENDING TOPICS -->
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">03</span>
         <div>
           <div class="step-title">Trending Topics 🔥</div>
           <div class="step-hint">Os termos mais buscados do dia no <strong>Brasil e no mundo</strong> — aparecem no topo do e-mail, antes das suas notícias.</div>
@@ -543,19 +619,18 @@
         <div class="toggle on" id="trendingToggle" onclick="toggleTrending()"></div>
         <div>
           <div class="toggle-label" id="trendingLabel">Incluir Trending Topics</div>
-          <div class="toggle-sub">~10 termos no topo do e-mail (5 do BR + 5 do mundo)</div>
+          <div class="toggle-sub">Mistura entre virais do dia e do que conversa com os seus temas</div>
         </div>
       </div>
     </div>
 
-    <!-- 03 TEMAS CURADOS -->
-    <!-- 03 PERSONALIZADO (em destaque — mostra a extrema personalização) -->
+    <!-- 04 PERSONALIZADO -->
     <div class="step">
       <div class="step-header">
-        <span class="step-num">03</span>
+        <span class="step-num">04</span>
         <div>
           <div class="step-title">Seus temas (do jeito que você quiser)</div>
-          <div class="step-hint">Escreva qualquer coisa: empresas, marcas, eventos, concorrentes, segmentos. <strong>É aqui que o Recorte fica único</strong> — porque ninguém mais escreve as mesmas coisas que você. Detecto se é tema brasileiro ou global automaticamente; clique nas bandeirinhas pra ajustar se eu errar. <em>Ou escolha dos curados abaixo, se preferir.</em></div>
+          <div class="step-hint">Escreva qualquer coisa: empresas, marcas, eventos, concorrentes, segmentos. <strong>É aqui que o Recorte fica único</strong> — porque ninguém mais escreve as mesmas coisas que você. Detecto se é tema brasileiro ou global automaticamente; clique nas bandeirinhas pra ajustar se eu errar. <em>Ou escolha temas curados abaixo, se preferir.</em></div>
         </div>
       </div>
       <div class="custom-input-row">
@@ -566,22 +641,22 @@
       <div class="tags-list" id="tagsList"></div>
     </div>
 
-    <!-- 04 CURADOS -->
+    <!-- 05 CURADOS -->
     <div class="step">
       <div class="step-header">
-        <span class="step-num">04</span>
+        <span class="step-num">05</span>
         <div>
-          <div class="step-title">Ou marque dos temas curados</div>
-          <div class="step-hint">Pra cada um marcado, eu trago notícias do <strong>Brasil e do mundo</strong> automaticamente, traduzidas em PT-BR.</div>
+          <div class="step-title">Ou marque temas de seu interesse abaixo</div>
+          <div class="step-hint">Pra cada um marcado, eu trago notícias do <strong>Brasil e do mundo</strong> automaticamente, traduzidas em PT-BR. Os temas escritos por você no item acima aparecem <strong>primeiro</strong> no e-mail.</div>
         </div>
       </div>
       <div class="topics-grid" id="topicsGrid"></div>
     </div>
 
-    <!-- 05 FILTROS — opcional -->
+    <!-- 06 FILTROS — opcional -->
     <div class="step">
       <div class="step-header">
-        <span class="step-num">05</span>
+        <span class="step-num">06</span>
         <div>
           <div class="step-title">Filtros (opcional)</div>
           <div class="step-hint">
@@ -594,7 +669,7 @@
         <button type="button" class="btn-add" id="addFilterBtn">+ Adicionar</button>
       </div>
       <div class="topics-list" id="filtersList"></div>
-      <div class="step-hint" id="filtersCounter" style="margin-top:8px;font-size:12px;color:var(--ink-muted);">0/20</div>
+      <div class="step-hint" id="filtersCounter" style="margin-top:8px;font-size:13px;color:var(--ink-muted);">0/20</div>
     </div>
 
     <div class="submit-row">
@@ -835,6 +910,27 @@
     lbl.textContent = trendingEnabled ? 'Incluir Trending Topics' : 'Pular Trending Topics';
   }
 
+  // ===== MODO DE LEITURA (radio cards) =====
+  document.addEventListener('change', (e) => {
+    if (e.target.name === 'readingMode') {
+      document.getElementById('modeEspressoCard').classList.toggle('selected', e.target.value === 'espresso');
+      document.getElementById('modeCoadoCard').classList.toggle('selected', e.target.value === 'coado');
+    }
+  });
+  // Click no card todo seleciona o radio (label nativo já faz, mas garantia visual)
+  ['modeEspressoCard', 'modeCoadoCard'].forEach((id) => {
+    const card = document.getElementById(id);
+    if (card) {
+      card.addEventListener('click', () => {
+        const radio = card.querySelector('input[type="radio"]');
+        if (radio) {
+          radio.checked = true;
+          radio.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      });
+    }
+  });
+
   // ===== FILTROS (lista de "não receber") =====
   let filteredItems = [];
 
@@ -974,6 +1070,10 @@
       if (tz && typeof tz === 'string' && tz.includes('/')) userTimezone = tz;
     } catch {}
 
+    // Captura modo de leitura escolhido (default espresso)
+    const selectedMode = document.querySelector('input[name="readingMode"]:checked');
+    const emailMode = (selectedMode && selectedMode.value === 'coado') ? 'coado' : 'espresso';
+
     try {
       const { data: userData, error: uErr } = await sbClient
         .from('users')
@@ -989,7 +1089,7 @@
           trending_scope: 'br,global',             // sempre os dois
           trending_country: null,
           welcome_sent: false,                     // será marcado true pelo welcome workflow
-          email_mode: 'espresso',                  // default novo: modo resumido (manchete + 1 frase)
+          email_mode: emailMode,                   // 'espresso' (default) ou 'coado' (escolha do user)
           timezone: userTimezone                   // capturado do navegador
         }, { onConflict: 'email' })
         .select().single();
