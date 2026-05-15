@@ -35,10 +35,14 @@ jobs:
           mkdir -p dist
           # index.html: landing institucional (página inicial em recorte.news/)
           cp public/index.html dist/index.html
-          # cadastro.html: página de cadastro simples (links antigos)
+          # cadastro.html: página de cadastro
           cp public/cadastro.html dist/cadastro.html
           # manage.html: página de preferências
           cp public/manage.html dist/manage.html
+          # sobre.html: manifesto + visão + missão + como funciona
+          cp public/sobre.html dist/sobre.html
+          # faq.html: perguntas frequentes
+          cp public/faq.html dist/faq.html
           # 404 fallback redireciona pro index
           echo '<!DOCTYPE html><meta http-equiv="refresh" content="0; url=/">' > dist/404.html
 
