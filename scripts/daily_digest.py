@@ -196,6 +196,39 @@ def _robust_json_parse(text):
     return {}
 
 
+def _call_claude_json(prompt, max_tokens=4000, retries=2, log_prefix=""):
+    """
+    Chama Claude e parseia JSON. Se falhar, tenta de novo (até `retries` vezes adicionais).
+    Reforça o prompt em cada retry pra forçar JSON limpo.
+    Retorna dict (vazio se tudo falhar).
+    """
+    last_err = None
+    current_prompt = prompt
+    for attempt in range(1, retries + 2):  # 1ª tentativa + retries
+        try:
+            resp = claude.messages.create(
+                model=MODEL, max_tokens=max_tokens,
+                messages=[{"role": "user", "content": current_prompt}]
+            )
+            text = resp.content[0].text.strip()
+            parsed = _robust_json_parse(text)
+            if parsed:  # retorno não-vazio = sucesso
+                if attempt > 1:
+                    log(f"  ✓ Claude OK na tentativa {attempt}{log_prefix}")
+                return parsed
+            # JSON inválido — log e retry
+            if attempt <= retries:
+                log(f"  ⚠ JSON inválido tentativa {attempt}/{retries+1}{log_prefix}, retentando...")
+                current_prompt = prompt + "\n\n⚠️ ATENÇÃO: A resposta anterior teve JSON inválido. Responda APENAS com JSON válido, sem markdown, sem ```, sem nenhum texto antes ou depois. Apenas o objeto JSON."
+        except Exception as e:
+            last_err = e
+            if attempt <= retries:
+                log(f"  ⚠ Claude API erro tentativa {attempt}{log_prefix}: {e}, retentando...")
+                time.sleep(1.5)  # backoff curto
+    log(f"  ✗ JSON do Claude irrecuperável após {retries+1} tentativas{log_prefix}" + (f" (último erro: {last_err})" if last_err else ""))
+    return {}
+
+
 def _curate_news_batch(user_name, topics_with_news, learned_profile=""):
     """Processa UM batch de temas (até MAX_TOPICS_PER_BATCH)."""
     payload = []
@@ -262,19 +295,12 @@ Dados:
 **RESPONDA APENAS JSON VÁLIDO**:
 {{"secoes":[{{"tema":"<nome>","noticias":[{{"manchete":"...","resumo":"...","fatos_chave":["...","..."],"link":"...","fonte":"...","lang":"...","pol_bias":"..."}}]}}]}}"""
 
-    try:
-        resp = claude.messages.create(model=MODEL, max_tokens=12000,
-                                       messages=[{"role": "user", "content": prompt}])
-        text = resp.content[0].text.strip()
-        parsed = _robust_json_parse(text)
-        secoes = parsed.get("secoes", [])
-        # POST-FILTER: re-valida cada item curado
-        for sec in secoes:
-            sec["noticias"] = [n for n in sec.get("noticias", []) if is_safe_curated(n)]
-        return secoes
-    except Exception as e:
-        log(f"  ✗ Claude API erro no batch: {e}")
-        return []
+    parsed = _call_claude_json(prompt, max_tokens=12000, retries=2, log_prefix=" (curate_news)")
+    secoes = parsed.get("secoes", []) if parsed else []
+    # POST-FILTER: re-valida cada item curado
+    for sec in secoes:
+        sec["noticias"] = [n for n in sec.get("noticias", []) if is_safe_curated(n)]
+    return secoes
 
 
 def curate_news(user_name, topics_with_news, learned_profile=""):
@@ -328,6 +354,44 @@ def _dedupe_trends(items):
     return out
 
 
+def _dedupe_sections_against_trends(sections, trending):
+    """
+    Remove notícias de cada seção que já apareceram em trending (Em Alta).
+    Evita repetir a mesma manchete entre "Em Alta hoje" e "Notícias por tema".
+    Critério: mesmo link OU manchetes muito similares (assinatura de 50 chars).
+    Modifica sections in-place e retorna o total de itens removidos.
+    """
+    if not trending or not sections:
+        return 0
+
+    trend_links = set()
+    trend_sigs = set()
+    for t in trending:
+        link = (t.get("link") or "").strip().lower()
+        if link:
+            trend_links.add(link)
+        sig = _norm_for_dedup(t.get("manchete", ""))[:50]
+        if sig:
+            trend_sigs.add(sig)
+
+    removed = 0
+    for sec in sections:
+        original = sec.get("noticias", [])
+        kept = []
+        for n in original:
+            link = (n.get("link") or "").strip().lower()
+            sig = _norm_for_dedup(n.get("manchete", ""))[:50]
+            if (link and link in trend_links) or (sig and sig in trend_sigs):
+                removed += 1
+                continue
+            kept.append(n)
+        sec["noticias"] = kept
+
+    if removed:
+        log(f"  ⚠ dedup cruzado: removeu {removed} notícia(s) repetida(s) entre Em Alta e temas")
+    return removed
+
+
 def curate_trends(user_name, scope_label, trends, learned_profile=""):
     """Em Alta: agora formato completo (manchete + resumo + fatos_chave) igual seções."""
     if not trends:
@@ -370,23 +434,16 @@ Trends brutos:
 **APENAS JSON VÁLIDO**:
 {{"trending":[{{"manchete":"...","resumo":"...","fatos_chave":["..."],"link":"...","fonte":"..."}}]}}"""
 
-    try:
-        resp = claude.messages.create(model=MODEL, max_tokens=6000,
-                                       messages=[{"role": "user", "content": prompt}])
-        text = resp.content[0].text.strip()
-        parsed = _robust_json_parse(text)
-        items = parsed.get("trending", [])
-        # Post-filter: safety
-        items = [it for it in items if is_safe_curated(it)]
-        # Post-filter: dedup
-        before = len(items)
-        items = _dedupe_trends(items)
-        if len(items) < before:
-            log(f"  ⚠ dedup removeu {before - len(items)} duplicatas do Em Alta")
-        return items
-    except Exception as e:
-        log(f"  ✗ erro curate_trends, retornando vazio: {e}")
-        return []
+    parsed = _call_claude_json(prompt, max_tokens=6000, retries=2, log_prefix=" (curate_trends)")
+    items = parsed.get("trending", []) if parsed else []
+    # Post-filter: safety
+    items = [it for it in items if is_safe_curated(it)]
+    # Post-filter: dedup interno
+    before = len(items)
+    items = _dedupe_trends(items)
+    if len(items) < before:
+        log(f"  ⚠ dedup removeu {before - len(items)} duplicatas do Em Alta")
+    return items
 
 
 def generate_daily_recap(user_name, sections, trending, learned_profile=""):
@@ -435,19 +492,14 @@ Manchetes de hoje:
 Responda APENAS JSON VÁLIDO neste formato exato:
 {{"recap": "<parágrafo>", "quote": "<frase com aspas curvas>", "quote_author": "<autor ou contexto curto, ex: 'André Lara Resende, FSP' ou 'da redação do Recorte'>"}}"""
 
-    try:
-        resp = claude.messages.create(model=MODEL, max_tokens=900,
-                                       messages=[{"role": "user", "content": prompt}])
-        text = resp.content[0].text.strip()
-        parsed = _robust_json_parse(text)
-        return {
-            "recap": (parsed.get("recap") or "").strip(),
-            "quote": (parsed.get("quote") or "").strip(),
-            "quote_author": (parsed.get("quote_author") or "").strip(),
-        }
-    except Exception as e:
-        log(f"  ⚠ erro generate_daily_recap: {e}")
+    parsed = _call_claude_json(prompt, max_tokens=900, retries=2, log_prefix=" (recap)")
+    if not parsed:
         return {"recap": "", "quote": "", "quote_author": ""}
+    return {
+        "recap": (parsed.get("recap") or "").strip(),
+        "quote": (parsed.get("quote") or "").strip(),
+        "quote_author": (parsed.get("quote_author") or "").strip(),
+    }
 
 
 # ============ EMAIL ITEMS + FEEDBACK LINKS ============
@@ -677,6 +729,12 @@ def process_user(user, now_brt, weekly=False):
         log("  nada pra mandar, pulando")
         return False
 
+    # 2.5) DEDUP CRUZADO: remove notícias dos temas que já aparecem em Em Alta
+    if trending and sections:
+        _dedupe_sections_against_trends(sections, trending)
+        # Se alguma seção ficou vazia após o dedup, remove ela
+        sections = [s for s in sections if s.get("noticias")]
+
     # 3) GERA email_items + URLs de feedback
     sections = add_feedback_links(uid, sections)
 
@@ -751,14 +809,39 @@ def main():
 
     log(f"usuários elegíveis (catch-up)", count=len(users), total_ativos=len(all_users))
 
-    for user in users:
-        try:
-            process_user(user, now_brt)
-        except Exception as e:
-            log(f"  ✗ ERRO {user.get('email','?')}: {e}")
-            import traceback; traceback.print_exc()
+    if not users:
+        log("=== fim (nada pra processar) ===")
+        return
 
-    log("=== fim ===")
+    # Paraleliza processamento de usuários — cada user_process é independente.
+    # Anthropic + Supabase clients são thread-safe (HTTP).
+    # Pool default = 5; ajustável via env PARALLEL_WORKERS.
+    workers = int(os.environ.get("PARALLEL_WORKERS", "5"))
+    workers = max(1, min(workers, len(users)))  # nunca > total de users
+    log(f"processando em paralelo", workers=workers, users=len(users))
+
+    def _safe_process(u):
+        try:
+            process_user(u, now_brt)
+            return ("ok", u.get("email", "?"), None)
+        except Exception as e:
+            import traceback
+            tb = traceback.format_exc()
+            return ("err", u.get("email", "?"), f"{e}\n{tb}")
+
+    ok_count = 0
+    err_count = 0
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        futures = {ex.submit(_safe_process, u): u for u in users}
+        for fut in as_completed(futures):
+            status, email, info = fut.result()
+            if status == "ok":
+                ok_count += 1
+            else:
+                err_count += 1
+                log(f"  ✗ ERRO {email}: {info}")
+
+    log(f"=== fim ===", ok=ok_count, err=err_count)
 
 
 if __name__ == "__main__":
