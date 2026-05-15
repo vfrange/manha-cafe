@@ -163,6 +163,81 @@ def _render_tricolor_band():
 
 
 # ============================================================================
+# WELCOME BLOCK — aparece SÓ no primeiro email do user
+# ============================================================================
+def _render_welcome_block():
+    """
+    Bloco de boas-vindas no topo do welcome email. Após o tricolor band,
+    antes do hero do daily. So usado se is_welcome=True em render_email.
+    """
+    yellow_bg = COLORS.get("yellow_bg", "#FFF5BD")
+    mint_bg = COLORS.get("mint_bg_light", "#D1FAE5")
+    return f"""<tr><td style="padding:32px 36px 0;" class="px-mob">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{yellow_bg};background:linear-gradient(135deg,{yellow_bg} 0%,{mint_bg} 100%);border:2px solid {COLORS['ink']};box-shadow:6px 6px 0 {COLORS['ink']};">
+    <tr><td style="padding:36px 32px;" class="px-mob">
+
+      <!-- Badge -->
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:18px;"><tr>
+        <td style="background:{COLORS['ink']};border:1.5px solid {COLORS['ink']};padding:5px 12px;font-family:{SANS_FONT};font-size:10px;font-weight:800;letter-spacing:0.22em;text-transform:uppercase;color:{COLORS['mint']};">✂ Sua primeira edição</td>
+      </tr></table>
+
+      <!-- Headline -->
+      <h1 style="font-family:{SERIF_FONT};font-weight:900;font-size:38px;line-height:1.05;letter-spacing:-0.03em;color:{COLORS['ink']};margin:0 0 14px 0;">
+        Você acabou de <em style="font-style:italic;font-weight:700;color:{COLORS['mint_dark']};">cortar</em><br/>
+        <span style="background:linear-gradient(180deg,transparent 65%,{COLORS['yellow']} 65%);padding:0 3px;">o ruído.</span>
+      </h1>
+
+      <!-- Intro -->
+      <p style="font-family:{SERIF_FONT};font-weight:500;font-size:18px;line-height:1.5;color:{COLORS['ink_soft']};margin:0 0 24px 0;">
+        Daqui pra frente, notícia é feita <strong style="color:{COLORS['ink']};font-weight:700;">pra você</strong>. Não pra "todo mundo".
+      </p>
+
+      <!-- 3 Features (table-based pra compatibilidade Outlook) -->
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
+        <tr>
+          <td width="32%" style="background:#fff;border:1.5px solid {COLORS['ink']};padding:14px 10px;text-align:center;vertical-align:top;" class="feat-mob">
+            <div style="font-size:24px;line-height:1;margin-bottom:6px;">☕</div>
+            <div style="font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:{COLORS['ink']};margin-bottom:3px;">Todo dia</div>
+            <div style="font-family:{SANS_FONT};font-size:12px;line-height:1.3;color:{COLORS['ink_muted']};font-weight:500;">06h da manhã, antes do café</div>
+          </td>
+          <td width="2%" style="font-size:0;line-height:0;">&nbsp;</td>
+          <td width="32%" style="background:#fff;border:1.5px solid {COLORS['ink']};padding:14px 10px;text-align:center;vertical-align:top;" class="feat-mob">
+            <div style="font-size:24px;line-height:1;margin-bottom:6px;">🗞</div>
+            <div style="font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:{COLORS['ink']};margin-bottom:3px;">Aos sábados</div>
+            <div style="font-family:{SANS_FONT};font-size:12px;line-height:1.3;color:{COLORS['ink_muted']};font-weight:500;">08h, a semana em retrospectiva</div>
+          </td>
+          <td width="2%" style="font-size:0;line-height:0;">&nbsp;</td>
+          <td width="32%" style="background:#fff;border:1.5px solid {COLORS['ink']};padding:14px 10px;text-align:center;vertical-align:top;" class="feat-mob">
+            <div style="font-size:24px;line-height:1;margin-bottom:6px;">🎛</div>
+            <div style="font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:{COLORS['ink']};margin-bottom:3px;">Você no controle</div>
+            <div style="font-family:{SANS_FONT};font-size:12px;line-height:1.3;color:{COLORS['ink_muted']};font-weight:500;">Ajuste suas preferências a qualquer momento</div>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Manifesto compacto -->
+      <div style="border-top:1px solid {COLORS['ink']};padding-top:18px;font-family:{SERIF_FONT};font-style:italic;font-size:15px;line-height:1.55;color:{COLORS['ink_soft']};">
+        Cada manhã, agentes de IA treinados e monitorados por humanos leem o mundo, cruzam com os <strong style="font-style:normal;color:{COLORS['ink']};font-weight:700;">seus temas</strong>, removem o que você filtrou, e montam uma edição que só existe pra <strong style="font-style:normal;color:{COLORS['ink']};font-weight:700;">um leitor</strong> — você.
+      </div>
+
+    </td></tr>
+  </table>
+</td></tr>
+
+<!-- Linha de corte entre welcome e daily -->
+<tr><td style="padding:32px 36px;" class="px-mob">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td style="border-top:3px dashed {COLORS['ink']};font-size:0;line-height:0;height:0;">&nbsp;</td>
+    </tr>
+  </table>
+  <div style="text-align:center;margin-top:-18px;">
+    <span style="display:inline-block;background:{COLORS['bg']};padding:0 16px;font-size:30px;color:{COLORS['mint_dark']};line-height:1;">✂</span>
+  </div>
+</td></tr>"""
+
+
+# ============================================================================
 # TRENDING SECTION
 # ============================================================================
 def _render_trending_section(trending, scope_label, email_mode="coado"):
@@ -497,7 +572,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
                  daily_quote="", daily_quote_author="",
                  email_mode="coado", weekly_mode=False,
                  user_tz="America/Sao_Paulo", saudacao_mode="auto",
-                 filtered_items_count=0):
+                 filtered_items_count=0, is_welcome=False):
     """
     Renderiza o HTML completo do email diário.
 
@@ -507,6 +582,8 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
         user_tz: timezone IANA do user (ex: "America/Sao_Paulo"). Usado pra saudação no welcome.
         saudacao_mode: "auto" (calcula pela hora local do user) | "manha" | "sabado" | "neutro"
         filtered_items_count: número de filtros do user pra exibir no rodapé
+        is_welcome: se True, injeta bloco de boas-vindas no topo (antes do hero do daily).
+                    Esse bloco aparece SÓ no primeiro email do user.
         ...
     """
     trending = trending or []
@@ -561,8 +638,8 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     stat_noticias = total_noticias or 0
     stat_trending = len(trending)
     stat_temas = len(sections)
-    # Minutos: ~15s/manchete espresso (resumida), ~30s/manchete coado (análise completa)
-    secs_each = 15 if email_mode == "espresso" else 30
+    # Minutos: ~10s/manchete espresso (resumida), ~20s/manchete coado (análise completa)
+    secs_each = 10 if email_mode == "espresso" else 20
     stat_minutos = max(2, round((stat_noticias + stat_trending) * secs_each / 60))
 
     # Textos do hero — variam entre daily e weekly
@@ -669,6 +746,8 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
       </td></tr>
 
       {_render_tricolor_band()}
+
+      {_render_welcome_block() if is_welcome else ""}
 
       {tts_html}
 
