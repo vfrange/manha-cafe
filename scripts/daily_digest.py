@@ -19,7 +19,7 @@ from supabase import create_client
 from anthropic import Anthropic
 
 from email_template import render_email
-from feedback_token import short_id, feedback_url, manage_url as gen_manage_url
+from feedback_token import short_id, feedback_url, manage_url as gen_manage_url, unsub_url as gen_unsub_url
 from sources import google_news, hacker_news, reddit, br_rss, bluesky, youtube_trending, intl_rss
 from safety import (
     is_safe_news, is_safe_curated, SAFETY_INSTRUCTIONS,
@@ -736,7 +736,7 @@ def is_topic_paused(topic_label, paused_topics, now):
 
 
 # ============ SENDER ============
-def send_email(to_email, to_name, html, date_obj, weekly=False):
+def send_email(to_email, to_name, html, date_obj, weekly=False, user_id=None):
     first = to_name.split()[0]
     if weekly:
         subject = f"🗞 Seu Recorte da Semana, {first} — {date_obj.strftime('%d/%m')}"
@@ -748,9 +748,18 @@ def send_email(to_email, to_name, html, date_obj, weekly=False):
         with open(fname, "w", encoding="utf-8") as f:
             f.write(html)
         return {"id": "dry-run"}
+    # Headers RFC 2369 / 8058 — Gmail/Apple Mail mostram "Cancelar inscrição" no header e suportam 1-click
+    headers = {}
+    if user_id:
+        unsub = gen_unsub_url(SUPABASE_URL, user_id)
+        headers = {
+            "List-Unsubscribe": f"<{unsub}>, <mailto:unsubscribe@recorte.news?subject=Unsubscribe>",
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        }
     return resend.Emails.send({
         "from": FROM_EMAIL, "to": to_email,
         "subject": subject, "html": html,
+        "headers": headers,
     })
 
 
@@ -952,6 +961,7 @@ def process_user(user, now_brt, weekly=False):
     # 5) RENDER + ENVIO
     # Link assinado HMAC pra página /manage (válido 30 dias)
     signed_manage = gen_manage_url(MANAGE_URL, uid, ttl_days=30)
+    signed_unsub = gen_unsub_url(SUPABASE_URL, uid)
     email_mode = (user.get("email_mode") or "coado").lower()
 
     # Saudação: o daily roda 6h BRT (sempre manhã); weekly roda sábado 8h BRT.
@@ -979,8 +989,9 @@ def process_user(user, now_brt, weekly=False):
         saudacao_mode=saudacao_mode,
         filtered_items_count=len(filtered_items),
         is_welcome=is_welcome,
+        unsub_url=signed_unsub,
     )
-    result = send_email(user["email"], user["name"], html, now_brt, weekly=weekly)
+    result = send_email(user["email"], user["name"], html, now_brt, weekly=weekly, user_id=uid)
     log(f"  ✓ enviado", id=result.get("id"))
     supabase.table("users").update({
         "last_sent_at": now_brt.isoformat(),
