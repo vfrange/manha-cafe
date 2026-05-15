@@ -33,8 +33,9 @@ jobs:
       - name: Preparar dist
         run: |
           mkdir -p dist
-          # cadastro.html vira index.html (página inicial)
-          cp public/cadastro.html dist/index.html
+          # index.html: landing institucional (página inicial em recorte.news/)
+          cp public/index.html dist/index.html
+          # cadastro.html: página de cadastro simples (links antigos)
           cp public/cadastro.html dist/cadastro.html
           # manage.html: página de preferências
           cp public/manage.html dist/manage.html
