@@ -67,7 +67,7 @@ def _render_tricolor_band():
 # ============================================================================
 # TRENDING SECTION
 # ============================================================================
-def _render_trending_section(trending, scope_label):
+def _render_trending_section(trending, scope_label, email_mode="coado"):
     if not trending:
         return ""
 
@@ -75,11 +75,25 @@ def _render_trending_section(trending, scope_label):
     for idx, item in enumerate(trending):
         # Suporta formato NOVO (manchete/resumo/fatos_chave) e formato VELHO (termo/contexto)
         manchete = _esc(item.get("manchete") or item.get("termo", ""))
-        resumo = _esc(item.get("resumo") or item.get("contexto", ""))
-        # Defensivo: pula trends sem campos mínimos
-        if not manchete or not resumo:
+        resumo_raw = item.get("resumo") or item.get("contexto", "")
+        if not manchete or not resumo_raw:
             continue
+
+        is_espresso = (email_mode == "espresso")
+        if is_espresso:
+            import re as _re
+            m = _re.split(r'(?<=[.!?])\s+', resumo_raw, maxsplit=1)
+            resumo_show = m[0] if m else resumo_raw
+            if len(resumo_show) > 180:
+                resumo_show = resumo_show[:177].rstrip() + "..."
+        else:
+            resumo_show = resumo_raw
+        resumo = _esc(resumo_show)
+
         fatos = item.get("fatos_chave") or []
+        if is_espresso:
+            fatos = []  # esconde fatos no modo espresso
+
         link = item.get("link", "")
         fonte = item.get("fonte", "")
         buscas = item.get("buscas", "")
@@ -167,7 +181,7 @@ def _slugify(text):
     return s or "tema"
 
 
-def _render_news_sections(sections):
+def _render_news_sections(sections, email_mode="coado"):
     out = ""
     for idx, sec in enumerate(sections):
         slug = _slugify(sec.get("topic", f"tema-{idx}"))
@@ -187,9 +201,23 @@ def _render_news_sections(sections):
             if not n.get("manchete") or not n.get("resumo"):
                 continue
 
-            # Fatos-chave (bullets) — opcional
+            is_espresso = (email_mode == "espresso")
+
+            # Resumo: completo no coado, 1ª frase no espresso
+            resumo_full = n.get("resumo", "").strip()
+            if is_espresso:
+                # Pega 1ª frase (ou primeiros ~120 chars se não tiver pontuação)
+                import re as _re
+                m = _re.split(r'(?<=[.!?])\s+', resumo_full, maxsplit=1)
+                resumo_display = m[0] if m else resumo_full
+                if len(resumo_display) > 180:
+                    resumo_display = resumo_display[:177].rstrip() + "..."
+            else:
+                resumo_display = resumo_full
+
+            # Fatos-chave (bullets) — só no Café Coado
             fatos_html = ""
-            if n.get("fatos_chave"):
+            if not is_espresso and n.get("fatos_chave"):
                 fatos = n["fatos_chave"] if isinstance(n["fatos_chave"], list) else []
                 if fatos:
                     bullets = "".join(
@@ -240,8 +268,8 @@ def _render_news_sections(sections):
             noticias_html += f"""
             <tr><td style="padding:0 0 32px 0;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr><td style="font-family:{SERIF_FONT};font-weight:700;font-size:26px;line-height:1.18;color:{COLORS['ink']};letter-spacing:-0.02em;padding-bottom:14px;">{_esc(n.get('manchete',''))}</td></tr>
-                <tr><td style="font-family:{SANS_FONT};font-size:16px;line-height:1.6;color:{COLORS['ink_soft']};padding-bottom:16px;">{_esc(n.get('resumo',''))}</td></tr>
+                <tr><td style="font-family:{SERIF_FONT};font-weight:700;font-size:{'22' if is_espresso else '26'}px;line-height:1.18;color:{COLORS['ink']};letter-spacing:-0.02em;padding-bottom:{'8' if is_espresso else '14'}px;">{_esc(n.get('manchete',''))}</td></tr>
+                <tr><td style="font-family:{SANS_FONT};font-size:{'14' if is_espresso else '16'}px;line-height:1.6;color:{COLORS['ink_soft']};padding-bottom:{'10' if is_espresso else '16'}px;">{_esc(resumo_display)}</td></tr>
                 {fatos_html}
                 <tr><td style="font-family:{SANS_FONT};font-size:12px;color:{COLORS['ink_muted']};padding-bottom:8px;">
                   <a href="{_esc(n.get('link','#'))}" style="color:{COLORS['ink']};text-decoration:none;font-weight:800;border-bottom:2.5px solid {COLORS['mint_deep']};padding-bottom:1px;margin-right:12px;">Ler matéria →</a>
@@ -357,7 +385,7 @@ def _render_toc_bottom(trending, sections):
 # ============================================================================
 def render_email(user_name, date_obj, trending=None, trending_label="",
                  sections=None, manage_url="#", tts_url=None, tts_duration=None,
-                 user_id=None, daily_recap=None):
+                 user_id=None, daily_recap=None, email_mode="coado"):
     """
     Renderiza o HTML completo do email diário.
 
@@ -370,10 +398,14 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
         manage_url: URL pra ajustar preferências (com tokens)
         tts_url: URL opcional do áudio TTS (se ausente, esconde player)
         tts_duration: string tipo "5:32" (opcional)
+        email_mode: "coado" (default, análise completa) ou "espresso" (manchete + 1 frase)
     """
     trending = trending or []
     sections = sections or []
     first_name = user_name.split()[0] if user_name else "leitor"
+    email_mode = (email_mode or "coado").lower()
+    if email_mode not in ("coado", "espresso"):
+        email_mode = "coado"
 
     meses = ["janeiro","fevereiro","março","abril","maio","junho",
              "julho","agosto","setembro","outubro","novembro","dezembro"]
@@ -399,7 +431,10 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     stat_noticias = total_noticias or 0
     stat_trending = len(trending)
     stat_temas = len(sections)
-    stat_minutos = max(2, (stat_noticias * 1) + (stat_trending // 2))
+    # Minutos: ~25s/manchete espresso, ~50s/manchete coado
+    secs_each = 25 if email_mode == "espresso" else 50
+    stat_minutos = max(2, round((stat_noticias + stat_trending) * secs_each / 60))
+    mode_badge = "⚡ ESPRESSO" if email_mode == "espresso" else "☕ CAFÉ COADO"
 
     # TTS player (opcional)
     tts_html = ""
@@ -421,8 +456,8 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
           </tr></table>
         </td></tr>"""
 
-    trending_html = _render_trending_section(trending, trending_label)
-    sections_html = _render_news_sections(sections)
+    trending_html = _render_trending_section(trending, trending_label, email_mode=email_mode)
+    sections_html = _render_news_sections(sections, email_mode=email_mode)
     recap_html = _render_daily_recap(daily_recap)
 
     manage_link = manage_url
@@ -471,7 +506,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
           </td>
           <td valign="middle" align="right" style="font-family:{SERIF_FONT};font-style:italic;font-size:13px;color:{COLORS['mint_dark']};">
             {weekday},<br/><strong style="color:{COLORS['ink']};font-style:normal;font-weight:600;">{date_obj.day} de {meses[date_obj.month-1]}</strong>
-            <div style="font-family:{MONO_FONT};font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:{COLORS['mint_dark']};margin-top:4px;font-weight:500;font-style:normal;">EDIÇÃO Nº {issue_num}</div>
+            <div style="font-family:{MONO_FONT};font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:{COLORS['mint_dark']};margin-top:4px;font-weight:500;font-style:normal;">EDIÇÃO Nº {issue_num} · {mode_badge}</div>
           </td>
         </tr></table>
       </td></tr>
