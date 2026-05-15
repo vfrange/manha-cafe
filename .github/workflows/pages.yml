@@ -43,9 +43,9 @@ jobs:
           cp public/sobre.html dist/sobre.html
           # faq.html: perguntas frequentes
           cp public/faq.html dist/faq.html
-# feedback.html: página de confirmação de feedback (vem do redirect da edge function)
-           cp public/feedback.html dist/feedback.html
-           # 404 fallback redireciona pro index
+          # feedback.html: página de confirmação de feedback
+          cp public/feedback.html dist/feedback.html
+          # 404 fallback redireciona pro index
           echo '<!DOCTYPE html><meta http-equiv="refresh" content="0; url=/">' > dist/404.html
 
       - name: Setup Pages
