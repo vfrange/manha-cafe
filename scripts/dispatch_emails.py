@@ -26,6 +26,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import resend
 from supabase import create_client
 
+from feedback_token import unsub_url as gen_unsub_url
+
 # ============ CONFIG ============
 BRT = timezone(timedelta(hours=-3))
 
@@ -106,12 +108,19 @@ def dispatch_one(queue_row):
             supabase.table("email_queue").update({"status": "skipped", "error": "user inativo"}).eq("id", qid).execute()
             return ("skipped", qid, "user inativo")
 
-        # 3. Envia
+        # 3. Envia (com headers RFC 8058 List-Unsubscribe pra deliverability + opt-out 1-click)
+        unsub_url = gen_unsub_url(SUPABASE_URL, user_id)
         result = resend.Emails.send({
             "from": FROM_EMAIL,
             "to": user["email"],
             "subject": queue_row["subject"],
             "html": queue_row["html"],
+            "headers": {
+                # RFC 2369: link de unsubscribe (Gmail/Apple Mail mostram botão "Cancelar inscrição" no header)
+                "List-Unsubscribe": f"<{unsub_url}>, <mailto:unsubscribe@recorte.news?subject=Unsubscribe>",
+                # RFC 8058: indica que o link suporta opt-out one-click (sem confirmação intermediária)
+                "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+            },
         })
         resend_id = result.get("id") if isinstance(result, dict) else None
 
