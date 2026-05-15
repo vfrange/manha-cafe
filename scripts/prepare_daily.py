@@ -239,6 +239,9 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
     label_to_source = {t["label"]: t.get("source", "curated") for t in topics_with_news}
     sections.sort(key=lambda s: 0 if label_to_source.get(s.get("topic"), "curated") == "custom" else 1)
 
+    # Resolve URLs do Google News pra URLs reais dos publishers
+    dd.resolve_gnews_urls(sections, trending)
+
     # Feedback links
     sections = dd.add_feedback_links(uid, sections)
 
