@@ -128,7 +128,7 @@
       .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
-  // Toast minimalista (+/-): 2s + fade-out
+  // Toast minimalista (+/-): 3s + fade-out
   function renderToast(emoji, h2, msg){
     root.innerHTML =
       '<div class="toast">' +
@@ -136,7 +136,7 @@
         '<h2>' + h2 + '</h2>' +
         (msg ? '<p>' + msg + '</p>' : '') +
       '</div>';
-    scheduleClose(2000);
+    scheduleClose(3000);
   }
 
   // Card grande (pausar tema): 4s + Desfazer + fade-out
@@ -155,15 +155,15 @@
     scheduleClose(4000);
   }
 
-  // Card de undo confirmado: 2s
+  // Card de undo confirmado: 3s
   function renderUndone(label){
     root.innerHTML =
       '<div class="toast">' +
         '<span class="emoji">↶</span>' +
-        '<h2>Pause <em>cancelado</em></h2>' +
+        '<h2>Pause <em>cancelado!</em></h2>' +
         '<p><strong>"' + esc(label) + '"</strong> volta a aparecer no próximo email.</p>' +
       '</div>';
-    scheduleClose(2000);
+    scheduleClose(3000);
   }
 
   // Card de erro: sem auto-close
@@ -212,10 +212,10 @@
 
   switch(kind){
     case 'news_more':
-      renderToast('👍', 'ok, <em>registrado</em>', 'Mais coisas como essa.');
+      renderToast('👍', '<em>Registrado!</em>', 'Mais coisas como essa.');
       break;
     case 'news_less':
-      renderToast('👎', 'ok, <em>registrado</em>', 'Menos coisas como essa.');
+      renderToast('👎', '<em>Registrado!</em>', 'Menos coisas como essa.');
       break;
     case 'topic_paused':
       renderPause(label, undoUrl);
