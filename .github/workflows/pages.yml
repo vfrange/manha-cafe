@@ -43,8 +43,14 @@ jobs:
           cp public/sobre.html dist/sobre.html
           # faq.html: perguntas frequentes
           cp public/faq.html dist/faq.html
-          # feedback.html: página de confirmação de feedback
+          # feedback.html: confirmação dos botões +/- e pausar tema
           cp public/feedback.html dist/feedback.html
+          # termos.html: termos de uso (legal)
+          cp public/termos.html dist/termos.html
+          # politica-privacidade.html: LGPD
+          cp public/politica-privacidade.html dist/politica-privacidade.html
+          # unsubscribed.html: confirmação de cancelamento de inscrição
+          cp public/unsubscribed.html dist/unsubscribed.html
           # 404 fallback redireciona pro index
           echo '<!DOCTYPE html><meta http-equiv="refresh" content="0; url=/">' > dist/404.html
 
