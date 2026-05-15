@@ -578,6 +578,25 @@
       <div class="topics-grid" id="topicsGrid"></div>
     </div>
 
+    <!-- 05 FILTROS — opcional -->
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">05</span>
+        <div>
+          <div class="step-title">Filtros (opcional)</div>
+          <div class="step-hint">
+            Você no controle do que <strong>NÃO</strong> entra. Liste temas ou veículos que você não quer receber — pode ser um veículo específico (<em>"Carta Capital", "UOL"</em>) ou um assunto (<em>"celebridades", "política polarizada"</em>). Adicione um por vez, <strong>até 20 itens no total</strong>.
+          </div>
+        </div>
+      </div>
+      <div class="topics-add-row">
+        <input type="text" id="filterInput" placeholder="" maxlength="100">
+        <button type="button" class="btn-add" id="addFilterBtn">+ Adicionar</button>
+      </div>
+      <div class="topics-list" id="filtersList"></div>
+      <div class="step-hint" id="filtersCounter" style="margin-top:8px;font-size:12px;color:var(--ink-muted);">0/20</div>
+    </div>
+
     <div class="submit-row">
       <div class="submit-info">O e-mail chega <strong>todo dia às 6h da manhã</strong> (horário de Brasília). Você pode <strong>ajustar seus temas</strong> a qualquer momento — basta voltar a essa página com o mesmo e-mail.</div>
       <button type="submit" class="btn-submit" id="submitBtn">Começar a receber →</button>
@@ -816,6 +835,61 @@
     lbl.textContent = trendingEnabled ? 'Incluir Trending Topics' : 'Pular Trending Topics';
   }
 
+  // ===== FILTROS (lista de "não receber") =====
+  let filteredItems = [];
+
+  function renderFiltersList() {
+    const list = document.getElementById('filtersList');
+    list.innerHTML = '';
+    filteredItems.forEach((item, idx) => {
+      const tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.innerHTML = `
+        <span>${item.replace(/</g, '&lt;')}</span>
+        <button type="button" data-idx="${idx}" class="tag-remove" aria-label="Remover">×</button>
+      `;
+      list.appendChild(tag);
+    });
+    document.getElementById('filtersCounter').textContent = `${filteredItems.length}/20`;
+  }
+
+  function addFilter() {
+    const input = document.getElementById('filterInput');
+    const value = (input.value || '').trim().slice(0, 100);
+    if (!value) return;
+    if (filteredItems.length >= 20) {
+      alert('Máximo de 20 filtros. Remova algum antes de adicionar mais.');
+      return;
+    }
+    // dedup case-insensitive
+    const exists = filteredItems.some(f => f.toLowerCase() === value.toLowerCase());
+    if (exists) {
+      input.value = '';
+      return;
+    }
+    filteredItems.push(value);
+    input.value = '';
+    renderFiltersList();
+  }
+
+  document.addEventListener('click', (e) => {
+    if (e.target.id === 'addFilterBtn') addFilter();
+    if (e.target.classList && e.target.classList.contains('tag-remove')) {
+      const idx = parseInt(e.target.dataset.idx);
+      // verifica se é tag do filtersList ou de outro lugar (custom topics)
+      if (e.target.closest('#filtersList')) {
+        filteredItems.splice(idx, 1);
+        renderFiltersList();
+      }
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.target.id === 'filterInput' && e.key === 'Enter') {
+      e.preventDefault();
+      addFilter();
+    }
+  });
+
   // ===== SUBMIT =====
   document.getElementById('signupForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -893,6 +967,13 @@
       return;
     }
 
+    // Captura timezone do navegador (não pede permissão, instantâneo, ignora VPN)
+    let userTimezone = 'America/Sao_Paulo';  // fallback seguro
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (tz && typeof tz === 'string' && tz.includes('/')) userTimezone = tz;
+    } catch {}
+
     try {
       const { data: userData, error: uErr } = await sbClient
         .from('users')
@@ -908,7 +989,8 @@
           trending_scope: 'br,global',             // sempre os dois
           trending_country: null,
           welcome_sent: false,                     // será marcado true pelo welcome workflow
-          email_mode: 'coado'                      // default; user pode trocar no /manage
+          email_mode: 'coado',                     // default; user pode trocar no /manage
+          timezone: userTimezone                   // capturado do navegador
         }, { onConflict: 'email' })
         .select().single();
       if (uErr) throw uErr;
@@ -920,6 +1002,19 @@
           topics.map(t => ({ ...t, user_id: userData.id }))
         );
         if (tErr) throw tErr;
+      }
+
+      // Salva filtered_items em user_profile (se tiver algum)
+      if (filteredItems.length > 0) {
+        try {
+          await sbClient.from('user_profile').upsert({
+            user_id: userData.id,
+            filtered_items: filteredItems,
+          }, { onConflict: 'user_id' });
+        } catch (err) {
+          // não bloqueia o cadastro se falhar
+          console.warn('falha ao salvar filtros:', err);
+        }
       }
 
       // Dispara welcome instantâneo (não bloqueia se falhar)
