@@ -528,10 +528,11 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
         saudacao = "Boa noite"
 
     total_noticias = sum(len(s["noticias"]) for s in sections)
-    intro_parts = []
-    if trending: intro_parts.append(f"{len(trending)} em alta")
-    if total_noticias: intro_parts.append(f"{total_noticias} notícias")
-    intro_count = " e ".join(intro_parts) if intro_parts else "novidades"
+    # intro_count: usado SÓ no H1 do hero — mostra apenas notícias (mais limpo)
+    if total_noticias:
+        intro_count = f"{total_noticias} notícia{'s' if total_noticias != 1 else ''}"
+    else:
+        intro_count = "novidades"
 
     stat_noticias = total_noticias or 0
     stat_trending = len(trending)
@@ -546,7 +547,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
         hero_subtitle = "Os fatos que marcaram seus temas nos últimos 7 dias, com análise mais profunda. Bom fim de semana."
         mode_badge = "🗞 RECORTE DA SEMANA"
     else:
-        hero_h1 = f'Hoje tem <span style="background:linear-gradient(180deg,transparent 60%,{COLORS["mint"]} 60%);padding:0 2px;">{intro_count}</span> dos seus temas.'
+        hero_h1 = f'Hoje em <span style="background:linear-gradient(180deg,transparent 60%,{COLORS["mint"]} 60%);padding:0 2px;">{intro_count}</span><br/>só pra você.'
         hero_subtitle = "A cada toque em ＋ ou —, eu aprendo o que importa pra você. Bom café."
         mode_badge = "⚡ ESPRESSO" if email_mode == "espresso" else "☕ CAFÉ COADO"
 
@@ -618,7 +619,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
 
 <!-- preheader: visível no preview do inbox -->
 <div style="display:none;font-size:1px;color:{COLORS['bg']};line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
-  {saudacao}, {_esc(first_name)}. Hoje tem {intro_count} dos seus temas — em 5 minutos.
+  {saudacao}, {_esc(first_name)}. {"Sua semana em " + intro_count + " — antes do café." if weekly_mode else "Hoje em " + intro_count + " só pra você — em 5 minutos."}
 </div>
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{COLORS['bg']};">
