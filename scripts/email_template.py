@@ -819,7 +819,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
           &nbsp;·&nbsp;
           <a href="mailto:contato@recorte.news" style="color:{COLORS['ink_muted']};text-decoration:underline;font-size:10px;opacity:0.7;">Contato</a>
           <div style="margin-top:14px;font-size:10px;color:{COLORS['ink_muted']};opacity:0.65;line-height:1.6;">
-            Recorte ✂ · Operado pela Equipe Recorte ✂ · São Paulo/SP · Brasil
+            Recorte ✂ · Operado por Victor Frange · São Paulo/SP · Brasil
           </div>
           <div style="margin-top:6px;font-family:{MONO_FONT};font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:{COLORS['ink_muted']};opacity:0.55;">Última coleta · {date_obj.strftime('%d/%m %H:%M')} BRT</div>
         </div>
