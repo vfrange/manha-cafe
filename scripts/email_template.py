@@ -22,6 +22,104 @@ import unicodedata
 
 
 # ============================================================================
+# ÍCONES POR TEMA — SVGs minimalistas linha (16x16, herdam cor via currentColor)
+# Inline no HTML, sem fetch externo. Funcionam em todos clientes de email.
+# ============================================================================
+def _svg(path_d):
+    """Wraps um <path> em SVG 16x16 monocromático."""
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" '
+        'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" '
+        f'stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;">{path_d}</svg>'
+    )
+
+TOPIC_ICONS = {
+    # Economia — gráfico de barras crescente
+    "economia": _svg('<path d="M3 21V11M9 21V7M15 21V13M21 21V4"/><line x1="3" y1="21" x2="21" y2="21"/>'),
+    # Mercados financeiros — candle / setas mercado
+    "mercado":  _svg('<polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/>'),
+    # Tech & IA — chip
+    "tech":     _svg('<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="2" x2="9" y2="4"/><line x1="15" y1="2" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="22"/><line x1="15" y1="20" x2="15" y2="22"/><line x1="2" y1="9" x2="4" y2="9"/><line x1="2" y1="15" x2="4" y2="15"/><line x1="20" y1="9" x2="22" y2="9"/><line x1="20" y1="15" x2="22" y2="15"/>'),
+    # Geopolítica — globo
+    "geopol":   _svg('<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10z"/>'),
+    # Política — coluna/capitólio (3 pilares)
+    "polit":    _svg('<line x1="3" y1="22" x2="21" y2="22"/><line x1="3" y1="18" x2="21" y2="18"/><line x1="6" y1="18" x2="6" y2="6"/><line x1="12" y1="18" x2="12" y2="6"/><line x1="18" y1="18" x2="18" y2="6"/><polyline points="3 6 12 2 21 6"/>'),
+    # Governo (alias)
+    "governo":  _svg('<line x1="3" y1="22" x2="21" y2="22"/><line x1="3" y1="18" x2="21" y2="18"/><line x1="6" y1="18" x2="6" y2="6"/><line x1="12" y1="18" x2="12" y2="6"/><line x1="18" y1="18" x2="18" y2="6"/><polyline points="3 6 12 2 21 6"/>'),
+    # Food service — hambúrguer
+    "food":     _svg('<path d="M3 11h18a0 0 0 0 1 0 0 7 7 0 0 1-7 7h-4a7 7 0 0 1-7-7"/><path d="M21 8H3a9 9 0 0 1 9-6 9 9 0 0 1 9 6z"/><line x1="6" y1="15" x2="6.01" y2="15"/><line x1="10" y1="15" x2="10.01" y2="15"/><line x1="14" y1="15" x2="14.01" y2="15"/>'),
+    # Hambúrguer (alias)
+    "hamburg":  _svg('<path d="M3 11h18a0 0 0 0 1 0 0 7 7 0 0 1-7 7h-4a7 7 0 0 1-7-7"/><path d="M21 8H3a9 9 0 0 1 9-6 9 9 0 0 1 9 6z"/><line x1="6" y1="15" x2="6.01" y2="15"/><line x1="10" y1="15" x2="10.01" y2="15"/><line x1="14" y1="15" x2="14.01" y2="15"/>'),
+    # Varejo (alias food service)
+    "varejo":   _svg('<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>'),
+    # Negócios & M&A — handshake / fusão
+    "negocio":  _svg('<path d="M11 17l-5-5 5-5"/><path d="M13 7l5 5-5 5"/><line x1="6" y1="12" x2="18" y2="12"/>'),
+    "fusoes":   _svg('<path d="M11 17l-5-5 5-5"/><path d="M13 7l5 5-5 5"/><line x1="6" y1="12" x2="18" y2="12"/>'),
+    # Imobiliário — casa
+    "imob":     _svg('<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>'),
+    # Esportes — bola futebol
+    "esport":   _svg('<circle cx="12" cy="12" r="10"/><path d="M12 2L9 7l6 0z"/><path d="M22 12l-5-3 0 6z"/><path d="M12 22l3-5-6 0z"/><path d="M2 12l5 3 0-6z"/>'),
+    # SPFC / São Paulo Futebol Clube / Seleção (alias)
+    "futebol":  _svg('<circle cx="12" cy="12" r="10"/><path d="M12 2L9 7l6 0z"/><path d="M22 12l-5-3 0 6z"/><path d="M12 22l3-5-6 0z"/><path d="M2 12l5 3 0-6z"/>'),
+    "spfc":     _svg('<circle cx="12" cy="12" r="10"/><path d="M12 2L9 7l6 0z"/><path d="M22 12l-5-3 0 6z"/><path d="M12 22l3-5-6 0z"/><path d="M2 12l5 3 0-6z"/>'),
+    "selecao":  _svg('<circle cx="12" cy="12" r="10"/><path d="M12 2L9 7l6 0z"/><path d="M22 12l-5-3 0 6z"/><path d="M12 22l3-5-6 0z"/><path d="M2 12l5 3 0-6z"/>'),
+    "copa":     _svg('<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>'),
+    # Cultura & entretenimento — claquete
+    "cultura":  _svg('<polygon points="3 8 21 8 21 20 3 20 3 8"/><polyline points="3 8 5 4 9 4 7 8 11 8 9 4 13 4 11 8 15 8 13 4 17 4 15 8 19 8 17 4 21 4"/>'),
+    "entretenimento": _svg('<polygon points="3 8 21 8 21 20 3 20 3 8"/><polyline points="3 8 5 4 9 4 7 8 11 8 9 4 13 4 11 8 15 8 13 4 17 4 15 8 19 8 17 4 21 4"/>'),
+    # Ciência & saúde — DNA helix simplificado
+    "ciencia":  _svg('<path d="M4 3h16"/><path d="M4 21h16"/><path d="M4 8c4 3 12 3 16 0"/><path d="M4 16c4-3 12-3 16 0"/>'),
+    "saude":    _svg('<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>'),
+    "pesquisa": _svg('<path d="M4 3h16"/><path d="M4 21h16"/><path d="M4 8c4 3 12 3 16 0"/><path d="M4 16c4-3 12-3 16 0"/>'),
+    # Sustentabilidade & ESG — folha
+    "sustent":  _svg('<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19.2 2.96c.8 3.69 1.32 7.07.36 11.36-1.04 4.69-4.55 7.06-8.56 5.68z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/>'),
+    "esg":      _svg('<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19.2 2.96c.8 3.69 1.32 7.07.36 11.36-1.04 4.69-4.55 7.06-8.56 5.68z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/>'),
+    "clima":    _svg('<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19.2 2.96c.8 3.69 1.32 7.07.36 11.36-1.04 4.69-4.55 7.06-8.56 5.68z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/>'),
+    # Auto & mobilidade — carro
+    "auto":     _svg('<path d="M16 3h-8a2 2 0 0 0-2 2v5h12V5a2 2 0 0 0-2-2z"/><path d="M3 14v3a1 1 0 0 0 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M19 17h2a1 1 0 0 0 1-1v-3l-2-3h-4"/>'),
+    "mobilidade": _svg('<path d="M16 3h-8a2 2 0 0 0-2 2v5h12V5a2 2 0 0 0-2-2z"/><path d="M3 14v3a1 1 0 0 0 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M19 17h2a1 1 0 0 0 1-1v-3l-2-3h-4"/>'),
+    # Educação — capelo
+    "educacao": _svg('<path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>'),
+    "ensino":   _svg('<path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>'),
+    # Trabalho & carreira — maleta
+    "trabalho": _svg('<rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>'),
+    "carreira": _svg('<rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>'),
+    "rh":       _svg('<rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>'),
+    "startup":  _svg('<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>'),
+    "starups":  _svg('<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>'),
+    # Consumo & marcas — sacola de compras
+    "consumo":  _svg('<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>'),
+    "marcas":   _svg('<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>'),
+    "marketing":_svg('<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>'),
+    # Curiosidades — lâmpada
+    "curiosidade": _svg('<path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/>'),
+}
+
+# Default = tesoura (símbolo da marca pra temas personalizados sem match)
+DEFAULT_TOPIC_ICON = _svg(
+    '<circle cx="6" cy="6" r="3"/>'
+    '<circle cx="6" cy="18" r="3"/>'
+    '<line x1="20" y1="4" x2="8.12" y2="15.88"/>'
+    '<line x1="14.47" y1="14.48" x2="20" y2="20"/>'
+    '<line x1="8.12" y1="8.12" x2="12" y2="12"/>'
+)
+
+
+def _get_topic_icon(label):
+    """Acha o ícone do tema. Match parcial em lowercase. Default = tesoura."""
+    if not label:
+        return DEFAULT_TOPIC_ICON
+    label_norm = label.lower().strip()
+    # Remove acentos
+    label_norm = "".join(c for c in unicodedata.normalize("NFKD", label_norm)
+                        if not unicodedata.combining(c))
+    for key, svg in TOPIC_ICONS.items():
+        if key in label_norm:
+            return svg
+    return DEFAULT_TOPIC_ICON
+
+
+# ============================================================================
 # PALETA
 # ============================================================================
 COLORS = {
@@ -288,7 +386,7 @@ def _render_news_sections(sections, email_mode="coado"):
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-                    <td style="background:{COLORS['ink']};border:1.5px solid {COLORS['ink']};padding:4px 12px;font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:{COLORS['mint']};">★ {_esc(sec['topic'])}</td>
+                    <td style="background:{COLORS['ink']};border:1.5px solid {COLORS['ink']};padding:4px 12px;font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:{COLORS['mint']};">{_get_topic_icon(sec['topic'])} {_esc(sec['topic'])}</td>
                     <td>{country_chip}</td>
                   </tr></table></td>
                   {pause_btn}
