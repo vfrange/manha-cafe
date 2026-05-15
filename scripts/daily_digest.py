@@ -908,6 +908,7 @@ def process_user(user, now_brt, weekly=False):
         user_tz=user_tz,
         saudacao_mode=saudacao_mode,
         filtered_items_count=len(filtered_items),
+        is_welcome=is_welcome,
     )
     result = send_email(user["email"], user["name"], html, now_brt, weekly=weekly)
     log(f"  ✓ enviado", id=result.get("id"))
