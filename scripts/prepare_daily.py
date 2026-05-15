@@ -104,6 +104,13 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
     profile = dd.load_profile(uid)
     learned = profile.get("learned_text", "") or ""
     paused = profile.get("paused_topics", []) or []
+    filtered_items = profile.get("filtered_items", []) or []
+    if filtered_items:
+        log(f"  filtros do user: {len(filtered_items)} itens")
+
+    # Pré-busca os labels dos temas do user (pra Em Alta híbrido)
+    _topics_pre = supabase.table("topics").select("label").eq("user_id", uid).execute()
+    user_topic_labels = [t["label"] for t in (_topics_pre.data or [])]
 
     # Trending
     trending = []
@@ -127,7 +134,11 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
             raw_trends = dd.fetch_trending(tcountry)
             log(f"  trends brutos", count=len(raw_trends), scope=tcountry)
             if raw_trends:
-                curated = dd.curate_trends(user["name"], tlabel, raw_trends, learned)
+                curated = dd.curate_trends(
+                    user["name"], tlabel, raw_trends, learned,
+                    user_topics_labels=user_topic_labels,
+                    filtered_items=filtered_items,
+                )
                 for item in curated:
                     item.setdefault("scope_origin", tlabel)
                 trending.extend(curated)
@@ -176,7 +187,7 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
 
     sections = []
     if topics_with_news:
-        raw_sections = dd.curate_news(user["name"], topics_with_news, learned)
+        raw_sections = dd.curate_news(user["name"], topics_with_news, learned, filtered_items=filtered_items)
         label_meta = {t["label"]: {"topic_id": t["topic_id"], "scopes": t["scopes"]} for t in topics_with_news}
         link_to_lang = {}
         for t in topics_with_news:
@@ -232,6 +243,10 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
     signed_manage = gen_manage_url(MANAGE_URL, uid, ttl_days=30)
     email_mode = (user.get("email_mode") or "coado").lower()
 
+    # Saudação: prepare é sempre madrugada → o email vai disparar de manhã (daily 6h ou sábado 8h)
+    user_tz = user.get("timezone") or "America/Sao_Paulo"
+    saudacao_mode = "sabado" if weekly else "manha"
+
     html = render_email(
         user_name=user["name"], date_obj=now_brt,
         trending=trending, trending_label=trending_label,
@@ -239,6 +254,8 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
         user_id=uid,
         daily_recap=daily_recap, daily_quote=daily_quote, daily_quote_author=daily_quote_author,
         email_mode=email_mode, weekly_mode=weekly,
+        user_tz=user_tz, saudacao_mode=saudacao_mode,
+        filtered_items_count=len(filtered_items),
     )
 
     # Subject
