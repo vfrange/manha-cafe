@@ -490,7 +490,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
                  sections=None, manage_url="#", tts_url=None, tts_duration=None,
                  user_id=None, daily_recap=None,
                  daily_quote="", daily_quote_author="",
-                 email_mode="coado"):
+                 email_mode="coado", weekly_mode=False):
     """
     Renderiza o HTML completo do email diário.
 
@@ -539,7 +539,16 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     # Minutos: ~25s/manchete espresso, ~50s/manchete coado
     secs_each = 25 if email_mode == "espresso" else 50
     stat_minutos = max(2, round((stat_noticias + stat_trending) * secs_each / 60))
-    mode_badge = "⚡ ESPRESSO" if email_mode == "espresso" else "☕ CAFÉ COADO"
+
+    # Textos do hero — variam entre daily e weekly
+    if weekly_mode:
+        hero_h1 = f'<span style="background:linear-gradient(180deg,transparent 60%,{COLORS["mint"]} 60%);padding:0 2px;">Sua semana</span><br/>em {intro_count}.'
+        hero_subtitle = "Os fatos que marcaram seus temas nos últimos 7 dias, com análise mais profunda. Bom fim de semana."
+        mode_badge = "🗞 RECORTE DA SEMANA"
+    else:
+        hero_h1 = f'Hoje tem <span style="background:linear-gradient(180deg,transparent 60%,{COLORS["mint"]} 60%);padding:0 2px;">{intro_count}</span> dos seus temas.'
+        hero_subtitle = "A cada toque em ＋ ou —, eu aprendo o que importa pra você. Bom café."
+        mode_badge = "⚡ ESPRESSO" if email_mode == "espresso" else "☕ CAFÉ COADO"
 
     # TTS player (opcional)
     tts_html = ""
@@ -641,8 +650,8 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
       <!-- HERO -->
       <tr><td style="padding:44px 36px 28px;" class="px-mob">
         <div style="font-family:{SERIF_FONT};font-style:italic;font-size:15px;color:{COLORS['mint_dark']};margin-bottom:12px;">— {saudacao}, {_esc(first_name)}.</div>
-        <h1 class="hero-h1" style="font-family:{SERIF_FONT};font-weight:900;font-size:44px;line-height:1.0;letter-spacing:-0.04em;color:{COLORS['ink']};margin:0 0 18px 0;">Hoje tem <span style="background:linear-gradient(180deg,transparent 60%,{COLORS['mint']} 60%);padding:0 2px;">{intro_count}</span> dos seus temas.</h1>
-        <p style="font-family:{SANS_FONT};font-size:16px;line-height:1.55;color:{COLORS['ink_soft']};margin:0 0 24px 0;max-width:520px;">A cada toque em ＋ ou —, eu aprendo o que importa pra você. Bom café.</p>
+        <h1 class="hero-h1" style="font-family:{SERIF_FONT};font-weight:900;font-size:44px;line-height:1.0;letter-spacing:-0.04em;color:{COLORS['ink']};margin:0 0 18px 0;">{hero_h1}</h1>
+        <p style="font-family:{SANS_FONT};font-size:16px;line-height:1.55;color:{COLORS['ink_soft']};margin:0 0 24px 0;max-width:520px;">{hero_subtitle}</p>
 
         <!-- Quick stats bar -->
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid {COLORS['line']};border-bottom:1px solid {COLORS['line']};">
