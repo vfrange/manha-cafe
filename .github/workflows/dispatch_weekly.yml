@@ -31,5 +31,7 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+          FEEDBACK_SECRET: ${{ secrets.FEEDBACK_SECRET }}
+          MANAGE_URL: ${{ secrets.MANAGE_URL }}
           DISPATCH_WORKERS: '10'
         run: python dispatch_emails.py --kind weekly
