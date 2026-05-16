@@ -1,15 +1,12 @@
 name: Dispatch Daily
 
-# Disparo às 6h BRT em ponto (seg-sex). Lê fila email_queue (preparada
-# pelo prepare_daily.yml de madrugada) e envia via Resend.
-# Idempotente: claim atomic via status 'sending', dois workers não enviam o mesmo email.
+# Seg-Sex 6h BRT (com 3 fallbacks). Lê fila do prepare_daily e envia.
 
 on:
   schedule:
-    - cron: '0 9 * * 1-5'    # 06:00 BRT  ← horário exato de envio
-    - cron: '5 9 * * 1-5'    # 06:05 BRT (fallback 1)
-    - cron: '10 9 * * 1-5'   # 06:10 BRT (fallback 2)
-    - cron: '20 9 * * 1-5'   # 06:20 BRT (fallback 3)
+    - cron: '0 9 * * 1-5'    # 06:00 BRT
+    - cron: '0 10 * * 1-5'   # 07:00 BRT (fallback 1)
+    - cron: '0 11 * * 1-5'   # 08:00 BRT (fallback 2)
   workflow_dispatch:
 
 jobs:
@@ -33,5 +30,7 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+          FEEDBACK_SECRET: ${{ secrets.FEEDBACK_SECRET }}
+          MANAGE_URL: ${{ secrets.MANAGE_URL }}
           DISPATCH_WORKERS: '10'
         run: python dispatch_emails.py --kind daily
