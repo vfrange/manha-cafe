@@ -39,8 +39,69 @@ TARGET_HOUR_BRT = int(os.environ.get("TARGET_HOUR_BRT", "-1"))
 DRY_RUN = os.environ.get("DRY_RUN", "false").lower() == "true"
 
 MODEL = "claude-haiku-4-5-20251001"
-MAX_NEWS_OUT_PER_TOPIC = 2
+MAX_NEWS_OUT_PER_TOPIC = 2  # legado — agora cálculo dinâmico via daily_news_per_topic()
 MAX_TRENDING_OUT = 10
+
+# ============================================================================
+# CONFIG DE VOLUME — ESCADINHAS POR NÚMERO DE TEMAS
+# ============================================================================
+# A escadinha controla quantas notícias o user recebe baseado em quantos temas escolheu.
+# Mais temas → menos por tema (pra não saturar). E o "Em Alta" é ELÁSTICO:
+# preenche o que falta até atingir o cap total da edição.
+
+# --- DAILY (~5 min Espresso / ~9 min Coado em users medianos) ---
+DAILY_TOTAL_CAP = 28              # cap absoluto de notícias na edição daily
+DAILY_TRENDING_MIN = 3            # Em Alta nunca cai abaixo disso
+DAILY_TRENDING_MAX = 6            # Em Alta nunca passa disso (preserva foco nos temas)
+
+def daily_news_per_topic(topic_count: int) -> int:
+    """Escadinha do daily: quantas notícias por tema baseado em qtd de temas."""
+    if topic_count <= 3:
+        return 5
+    elif topic_count <= 6:
+        return 4
+    elif topic_count <= 10:
+        return 3
+    else:  # 11+
+        return 2
+
+def daily_trending_budget(topic_count: int) -> int:
+    """Em Alta elástico no daily: preenche o que sobra do cap."""
+    per_topic = daily_news_per_topic(topic_count)
+    used = per_topic * topic_count
+    remaining = DAILY_TOTAL_CAP - used
+    return max(DAILY_TRENDING_MIN, min(DAILY_TRENDING_MAX, remaining))
+
+
+# --- WEEKLY (~12 min Coado em users medianos, retrospectiva semanal) ---
+WEEKLY_TOTAL_CAP = 35             # cap absoluto de notícias na edição weekly
+WEEKLY_TRENDING_MIN = 5           # Em Alta nunca cai abaixo disso
+WEEKLY_TRENDING_MAX = 10          # Em Alta nunca passa disso
+
+def weekly_news_per_topic(topic_count: int) -> int:
+    """Escadinha do weekly: quantas notícias por tema."""
+    if topic_count <= 4:
+        return 5
+    elif topic_count <= 7:
+        return 4
+    elif topic_count <= 11:
+        return 3
+    else:  # 12-15
+        return 2
+
+def weekly_trending_budget(topic_count: int) -> int:
+    """Em Alta elástico no weekly: preenche o que sobra do cap."""
+    per_topic = weekly_news_per_topic(topic_count)
+    used = per_topic * topic_count
+    remaining = WEEKLY_TOTAL_CAP - used
+    return max(WEEKLY_TRENDING_MIN, min(WEEKLY_TRENDING_MAX, remaining))
+
+
+# Legados pra compatibilidade (alguns lugares ainda usam)
+WEEKLY_TRENDING_BUDGET = 10
+WEEKLY_NEWS_PER_TOPIC_FEW = 5
+WEEKLY_NEWS_PER_TOPIC_MANY = 3
+WEEKLY_THRESHOLD_FEW_TOPICS = 4
 
 COUNTRY_NAMES = {
     "BR": "🇧🇷 Brasil", "US": "🇺🇸 EUA", "GB": "🇬🇧 Reino Unido",
@@ -66,12 +127,16 @@ def log(msg, **kv):
 
 
 # ============ MULTI-SOURCE FETCH ============
-def fetch_all_sources(query, country, category=None, label=None, source_type="curated"):
+def fetch_all_sources(query, country, category=None, label=None, source_type="curated", weekly=False):
     """
     Roda todas as fontes em paralelo. Retorna lista combinada de notícias brutas.
     Para temas BR, prioriza RSS BR + Google News BR + Reddit.
     Para temas Global/Tech, prioriza Google News Global + HN + Reddit.
     Para temas CURADOS GLOBAL, adiciona RSS direto de NYT/WaPo/BBC/etc.
+
+    Args:
+        weekly: se True, busca notícias dos últimos 7 dias (Recorte da Semana).
+                Senão, busca padrão (últimas 24-48h).
     """
     is_br = country == "BR"
     is_global = country == "GLOBAL"
@@ -79,16 +144,25 @@ def fetch_all_sources(query, country, category=None, label=None, source_type="cu
         kw in query.lower() for kw in ["tech","ia ","ai","intelig","gpt","openai","software"]
     )
 
+    # Filtros temporais quando weekly=True
+    gnews_when = "7d" if weekly else None
+    reddit_time = "week" if weekly else "day"
+    # No weekly aumentamos limites das fontes pra ter mais material pra curar
+    gnews_max = 15 if weekly else 8
+    reddit_max = 8 if weekly else 4
+    hn_max = 10 if weekly else 5
+    br_max = 15 if weekly else 8
+
     fetchers = []
-    fetchers.append(("google_news", lambda: google_news.fetch(query, country, max_items=8)))
+    fetchers.append(("google_news", lambda: google_news.fetch(query, country, max_items=gnews_max, when=gnews_when)))
     if is_tech:
-        fetchers.append(("hacker_news", lambda: hacker_news.fetch(query, max_items=5)))
-    fetchers.append(("reddit", lambda: reddit.fetch(query, category=category, max_items=4)))
+        fetchers.append(("hacker_news", lambda: hacker_news.fetch(query, max_items=hn_max)))
+    fetchers.append(("reddit", lambda: reddit.fetch(query, category=category, max_items=reddit_max, time_filter=reddit_time)))
     if is_br:
-        fetchers.append(("br_rss", lambda: br_rss.fetch(query, category=category, max_items=8)))
+        fetchers.append(("br_rss", lambda: br_rss.fetch(query, category=category, max_items=br_max)))
     # RSS internacional: só pra temas CURADOS GLOBAIS (não para customs)
     if is_global and source_type == "curated" and label:
-        fetchers.append(("intl_rss", lambda: intl_rss.fetch_for_topic(label, max_per_feed=2)))
+        fetchers.append(("intl_rss", lambda: intl_rss.fetch_for_topic(label, max_per_feed=4 if weekly else 2)))
 
     results = []
     with ThreadPoolExecutor(max_workers=6) as ex:
@@ -112,20 +186,29 @@ def fetch_all_sources(query, country, category=None, label=None, source_type="cu
     return deduped
 
 
-def fetch_trending(country):
-    """Combina trends: Google News Top Stories + Reddit + Bluesky + YouTube Trending."""
+def fetch_trending(country, weekly=False):
+    """Combina trends: Google News Top Stories + Reddit + Bluesky + YouTube Trending.
+
+    Args:
+        weekly: se True, prioriza top da semana (top stories continua igual,
+                Reddit muda pra t=week).
+    """
     trends = []
 
     # 1) Google News Top Stories (manchetes em alta) — sempre tenta
+    # Obs: Top Stories do Google News é sempre "agora", não tem filtro semanal nativo.
+    # Pra weekly, complementamos com Reddit top da semana e maior volume.
     try:
         trends.extend(google_news.fetch_trends(country))
     except Exception as e:
         log(f"  ⚠ google news top: {e}")
 
     # 2) Reddit top (viralidade social geral)
+    reddit_time = "week" if weekly else "day"
+    reddit_max = 12 if weekly else 6
     if country in ("GLOBAL", "US"):
         try:
-            trends.extend(reddit.fetch_trending_general(max_items=6))
+            trends.extend(reddit.fetch_trending_general(max_items=reddit_max, time_filter=reddit_time))
         except Exception as e:
             log(f"  ⚠ reddit trending: {e}")
 
@@ -229,13 +312,24 @@ def _call_claude_json(prompt, max_tokens=4000, retries=2, log_prefix=""):
     return {}
 
 
-def _curate_news_batch(user_name, topics_with_news, learned_profile="", filtered_items=None):
-    """Processa UM batch de temas (até MAX_TOPICS_PER_BATCH). Aplica filtros do user se passados."""
+def _curate_news_batch(user_name, topics_with_news, learned_profile="", filtered_items=None,
+                       weekly=False, news_per_topic=None):
+    """Processa UM batch de temas (até MAX_TOPICS_PER_BATCH). Aplica filtros do user se passados.
+
+    Args:
+        weekly: se True, prompts focam em retrospectiva semanal e sintese contextualizada.
+        news_per_topic: limite de notícias por tema (sobrescreve MAX_NEWS_OUT_PER_TOPIC).
+                        Se None, usa default daily (2). Weekly tipicamente passa 3 ou 4.
+    """
+    out_per_topic = news_per_topic if news_per_topic is not None else MAX_NEWS_OUT_PER_TOPIC
+
     payload = []
     has_political = False
     for t in topics_with_news:
         # PRE-FILTER: descarta matérias com sinais de conteúdo proibido
-        clean_news = [n for n in t["news"][:MAX_NEWS_INPUT_PER_TOPIC] if is_safe_news(n)]
+        # No weekly, aceitamos mais matérias por tema (até 12 brutas)
+        max_input = 12 if weekly else MAX_NEWS_INPUT_PER_TOPIC
+        clean_news = [n for n in t["news"][:max_input] if is_safe_news(n)]
         # Pre-filter também por filtros do user (case-insensitive)
         if filtered_items:
             norm_filters = [f.strip().lower() for f in filtered_items if isinstance(f, str) and f.strip()]
@@ -291,12 +385,26 @@ Priorize notícias que casem com o que ele gosta. Evite (ou despriorize) o que e
 Se o "fonte" de uma matéria estiver nessa lista, DESCARTE-A integralmente. Se a manchete trata de um tema dessa lista, DESCARTE-A. Em dúvida, descarte.
 """
 
+    # Contexto temporal e instruções específicas pra weekly
+    if weekly:
+        time_context = "Esta é a **edição SEMANAL** do Recorte (Recorte da Semana), enviada aos sábados. As notícias abaixo cobrem os **últimos 7 dias**."
+        editorial_brief = f"Para cada tema, selecione as **até {out_per_topic} notícias mais marcantes da SEMANA** (priorize: eventos com desdobramento ao longo dos dias, marcos relevantes, análise de tendência; ignore atualizações intra-dia repetitivas)."
+        resumo_instr = "**resumo**: 4-5 frases (140-220 palavras) em PT-BR. Foque em **síntese semanal**: o que aconteceu, como evoluiu nos dias, contexto, e implicação. Para temas com vários acontecimentos na semana, costure-os numa narrativa coesa em vez de listar isoladamente."
+        fatos_instr = "**fatos_chave**: array de 4 a 6 bullets curtos (cada um 6-18 palavras) com pontos-chave da semana — números, datas dos acontecimentos, players, valores, decisões."
+    else:
+        time_context = "As notícias abaixo são dos últimos 1-2 dias (edição diária)."
+        editorial_brief = f"Para cada tema abaixo, selecione as **até {out_per_topic} notícias mais relevantes** do dia (priorize: impacto real, novidade, alinhamento com perfil; evite duplicatas e clickbait)."
+        resumo_instr = "**resumo**: 3-4 frases (100-160 palavras) em PT-BR. Explica o que aconteceu, números/fatos centrais, contexto e implicação imediata"
+        fatos_instr = "**fatos_chave**: array de 3 a 5 bullets curtos (cada um 6-15 palavras) com os pontos mais importantes — números, datas, players, valores, decisões. Ex: [\"Selic caiu de 13,75% para 13,25%\", \"1ª redução em 12 meses\", \"Mercado esperava corte de 0,75 ponto\"]"
+
     prompt = f"""Você é editor de uma newsletter premium em PT-BR ao estilo Morning Brew, escrevendo para {user_name}.
 {profile_section}
 {filter_instruction}
 {SAFETY_INSTRUCTIONS}
 {bias_section}
-Para cada tema abaixo, selecione as **até {MAX_NEWS_OUT_PER_TOPIC} notícias mais relevantes** do dia (priorize: impacto real, novidade, alinhamento com perfil; evite duplicatas e clickbait).
+{time_context}
+
+{editorial_brief}
 
 🇧🇷 **REGRA CRÍTICA DE IDIOMA**: TODO o conteúdo gerado DEVE estar em **português brasileiro natural**, MESMO QUE a matéria original esteja em inglês, espanhol ou outro idioma. Traduza com fluência.
 
@@ -306,8 +414,8 @@ Para cada tema abaixo, selecione as **até {MAX_NEWS_OUT_PER_TOPIC} notícias ma
 
 Para cada notícia selecionada, retorne:
 - **manchete**: título em PT-BR direto, máx 90 caracteres, sem clickbait
-- **resumo**: 3-4 frases (100-160 palavras) em PT-BR. Explica o que aconteceu, números/fatos centrais, contexto e implicação imediata
-- **fatos_chave**: array de 3 a 5 bullets curtos (cada um 6-15 palavras) com os pontos mais importantes — números, datas, players, valores, decisões. Ex: ["Selic caiu de 13,75% para 13,25%", "1ª redução em 12 meses", "Mercado esperava corte de 0,75 ponto"]
+- {resumo_instr}
+- {fatos_instr}
 - **link**: copie o link original
 - **fonte**: nome do veículo
 - **lang**: código do idioma original da matéria (ex: "en", "fr", "de"). Omita se for PT-BR.
@@ -333,10 +441,15 @@ Dados:
     return secoes
 
 
-def curate_news(user_name, topics_with_news, learned_profile="", filtered_items=None):
+def curate_news(user_name, topics_with_news, learned_profile="", filtered_items=None,
+                weekly=False, news_per_topic=None):
     """
     Curadoria com batching: divide temas em grupos de até MAX_TOPICS_PER_BATCH
     pra evitar JSON gigante que pode quebrar.
+
+    Args:
+        weekly: edição semanal (prompt e budget diferentes)
+        news_per_topic: limite por tema (default 2 daily; weekly tipicamente passa 3 ou 4).
     """
     if not topics_with_news:
         return []
@@ -346,11 +459,14 @@ def curate_news(user_name, topics_with_news, learned_profile="", filtered_items=
         topics_with_news[i:i+MAX_TOPICS_PER_BATCH]
         for i in range(0, len(topics_with_news), MAX_TOPICS_PER_BATCH)
     ]
-    log(f"  curando em {len(batches)} batch(es) de até {MAX_TOPICS_PER_BATCH} temas")
+    log(f"  curando em {len(batches)} batch(es) de até {MAX_TOPICS_PER_BATCH} temas{' (modo weekly)' if weekly else ''}")
 
     for idx, batch in enumerate(batches, 1):
         log(f"  batch {idx}/{len(batches)}: {len(batch)} temas")
-        sections = _curate_news_batch(user_name, batch, learned_profile, filtered_items)
+        sections = _curate_news_batch(
+            user_name, batch, learned_profile, filtered_items,
+            weekly=weekly, news_per_topic=news_per_topic,
+        )
         all_sections.extend(sections)
 
     return all_sections
@@ -457,16 +573,20 @@ def _dedupe_sections_against_trends(sections, trending):
 
 
 def curate_trends(user_name, scope_label, trends, learned_profile="",
-                  user_topics_labels=None, filtered_items=None):
+                  user_topics_labels=None, filtered_items=None, max_out=None, weekly=False):
     """
-    Em Alta: até 5 trends.
-    Se user_topics_labels forem passados, monta híbrido: 3 gerais + 2 relacionados aos temas.
+    Em Alta: até 5 trends (default daily) ou 10 (weekly).
+    Se user_topics_labels forem passados, monta híbrido:
+      - Daily: 3 gerais + 2 relacionados (total 5)
+      - Weekly: 5 gerais + 5 relacionados (total 10)
+    Se max_out fornecido, sobrescreve o limite total.
     Se filtered_items presente, instrui Claude a evitar veículos/temas filtrados E aplica pós-filtro.
+    Se weekly=True, prompt muda pra "retrospectiva da semana".
     """
     if not trends:
         return []
 
-    MAX_TRENDS_INPUT = 18
+    MAX_TRENDS_INPUT = 30 if weekly else 18
     # Pre-filter
     trends_clean = [t for t in trends if is_safe_news(t)]
     trends_truncated = trends_clean[:MAX_TRENDS_INPUT]
@@ -475,24 +595,42 @@ def curate_trends(user_name, scope_label, trends, learned_profile="",
     if learned_profile.strip():
         profile_section = f"\n**PERFIL DO USUÁRIO**: {learned_profile}\nUse pra priorizar trends que casem com interesses dele.\n"
 
+    # Define totais conforme modo (daily vs weekly)
+    if weekly:
+        total_target = 10
+        gen_count = 5
+        rel_count = 5
+        context_intro = "Estas são as principais manchetes e trends dos **últimos 7 dias**. Esta é a edição **semanal** do Recorte (recebido aos sábados)."
+        instruction_verb = "Selecione os eventos mais marcantes DA SEMANA"
+    else:
+        total_target = 5
+        gen_count = 3
+        rel_count = 2
+        context_intro = "Estas são as manchetes em alta de hoje."
+        instruction_verb = "Selecione os eventos mais relevantes do dia"
+
     # Modo híbrido se temos os temas do user
     has_topics = bool(user_topics_labels)
     if has_topics:
         topics_str = ", ".join(user_topics_labels[:15])
         mix_instruction = f"""
 
-🎯 **SELEÇÃO HÍBRIDA — total de 5 itens**:
-- **3 eventos GERAIS**: top stories do dia, alta circulação, qualquer assunto relevante (sem filtro por interesse)
-- **2 eventos RELACIONADOS aos temas do usuário**: itens que se conectem aos temas dele, mesmo que não sejam os top virais gerais.
+🎯 **SELEÇÃO HÍBRIDA — total de {total_target} itens**:
+- **{gen_count} eventos GERAIS**: top stories {'da semana' if weekly else 'do dia'}, alta circulação, qualquer assunto relevante (sem filtro por interesse)
+- **{rel_count} eventos RELACIONADOS aos temas do usuário**: itens que se conectem aos temas dele, mesmo que não sejam os top virais gerais.
 
-**Temas do usuário pra cruzar nos 2 itens "RELACIONADOS"**: {topics_str}
+**Temas do usuário pra cruzar nos {rel_count} itens "RELACIONADOS"**: {topics_str}
 
-⚠️ Esses 5 itens NÃO podem ser repetidos depois nas notícias por tema. Os 2 "RELACIONADOS" são a versão "trending" desses interesses; as notícias por tema serão *outras* manchetes sobre os mesmos assuntos.
+⚠️ Esses {total_target} itens NÃO podem ser repetidos depois nas notícias por tema. Os {rel_count} "RELACIONADOS" são a versão "trending" desses interesses; as notícias por tema serão *outras* manchetes sobre os mesmos assuntos.
 """
-        total_out = 5
+        total_out = total_target
     else:
         mix_instruction = ""
-        total_out = MAX_TRENDING_OUT
+        total_out = total_target if weekly else MAX_TRENDING_OUT
+
+    # Sobrescreve com max_out se fornecido (quando múltiplos scopes)
+    if max_out is not None and max_out > 0:
+        total_out = min(total_out, max_out)
 
     # Instrução de filtros (lista negra)
     filter_instruction = ""
@@ -514,20 +652,22 @@ Não tente reinterpretar — se em dúvida, descarte.
 {mix_instruction}
 {SAFETY_INSTRUCTIONS}
 
-Selecione os **{total_out} eventos mais relevantes** que estão em alta hoje (top stories + redes sociais + viralizações). Priorize: eventos significativos, lançamentos, esporte/cultura de impacto. Evite fofoca rasa, conteúdo regional sem contexto, ou jargão obscuro.
+{context_intro}
 
-🚫 **REGRA CRÍTICA DE DEDUPLICAÇÃO**: NUNCA inclua duas manchetes sobre o MESMO evento, mesmo que venham de fontes diferentes ou com palavras ligeiramente diferentes. Se ver vários trends brutos sobre o mesmo acontecimento (ex: "Lula faz pronunciamento" e "Pronunciamento de Lula" e "Discurso presidencial"), escolha APENAS UM (o de fonte mais relevante) e descarte os outros. Cada item do output deve representar UM evento ÚNICO. Em caso de dúvida sobre se 2 trends são o mesmo evento, considere que SÃO e una.
+{instruction_verb} ({total_out} itens): top stories + redes sociais + viralizações. Priorize: eventos significativos, lançamentos, esporte/cultura de impacto. Evite fofoca rasa, conteúdo regional sem contexto, ou jargão obscuro.
+
+🚫 **REGRA CRÍTICA DE DEDUPLICAÇÃO**: NUNCA inclua duas manchetes sobre o MESMO evento, mesmo que venham de fontes diferentes ou com palavras ligeiramente diferentes. Se ver vários trends brutos sobre o mesmo acontecimento, escolha APENAS UM (o de fonte mais relevante) e descarte os outros. Em caso de dúvida sobre se 2 trends são o mesmo evento, considere que SÃO e una.
 
 🇧🇷 **REGRA CRÍTICA DE IDIOMA**: TODO conteúdo (manchete, resumo, fatos) DEVE estar em **português brasileiro fluente**, MESMO QUE original esteja em inglês ou outro idioma. Mantenha nomes próprios e marcas no original.
 
 ⚠️ **REGRA CRÍTICA DE FORMATO**: APENAS JSON VÁLIDO, sem markdown, sem ```. Escape aspas duplas com \\". Sem quebras de linha dentro de strings.
 
-📰 **OBJETIVO**: o usuário entende cada evento sem precisar abrir o link. Seja rico em fatos e contexto.
+📰 **OBJETIVO**: o usuário entende cada evento sem precisar abrir o link. {'Como é semanal, dê contexto e mencione a evolução ao longo dos dias quando relevante.' if weekly else 'Seja rico em fatos e contexto.'}
 
 Pra cada item:
 - **manchete**: título PT-BR direto, máx 90 chars, sem clickbait
-- **resumo**: 3-4 frases (100-160 palavras) explicando o que rolou, números/contexto, e POR QUE está em alta hoje
-- **fatos_chave**: array de 3-5 bullets curtos (6-15 palavras cada) com números, datas, players, valores
+- **resumo**: {('4-5 frases (140-200 palavras) com contexto semanal: o que aconteceu, como evoluiu, e por que importa' if weekly else '3-4 frases (100-160 palavras) explicando o que rolou, números/contexto, e POR QUE está em alta hoje')}
+- **fatos_chave**: array de {('4-6' if weekly else '3-5')} bullets curtos (6-15 palavras cada) com números, datas, players, valores
 - **buscas** (opcional): se vier do input, copie
 - **link**: URL relacionada
 - **fonte**: veículo
@@ -781,9 +921,11 @@ def process_user(user, now_brt, weekly=False):
     if filtered_items:
         log(f"  filtros do user: {len(filtered_items)} itens")
 
-    # Pré-busca os labels dos temas do user (pra Em Alta híbrido)
+    # Pré-busca os labels dos temas do user (pra Em Alta híbrido + escadinha)
     _topics_pre = supabase.table("topics").select("label").eq("user_id", uid).execute()
     user_topic_labels = [t["label"] for t in (_topics_pre.data or [])]
+    # Conta temas únicos pra alimentar a escadinha (Em Alta elástico + news_per_topic)
+    topic_count_for_scaling = len({lbl for lbl in user_topic_labels}) if user_topic_labels else 0
 
     # 1) TRENDING — suporta CSV multi-scope ex: "br,global,country:IL"
     trending = []
@@ -795,6 +937,13 @@ def process_user(user, now_brt, weekly=False):
             scopes = ["br"]
 
         labels = []
+        # Budget ELÁSTICO: usa qtd de temas únicos pra calcular
+        # quantos itens em Em Alta cabem (cap 28 daily / 35 weekly).
+        if weekly:
+            TOTAL_TRENDING_BUDGET = weekly_trending_budget(topic_count_for_scaling)
+        else:
+            TOTAL_TRENDING_BUDGET = daily_trending_budget(topic_count_for_scaling)
+        budget_per_scope = max(2, TOTAL_TRENDING_BUDGET // len(scopes) + 1)
         for scope in scopes:
             if scope == "global":
                 tcountry, tlabel = "GLOBAL", "🌍 Mundo"
@@ -809,13 +958,15 @@ def process_user(user, now_brt, weekly=False):
                 tlabel = COUNTRY_NAMES.get(tcountry, tcountry)
 
             labels.append(tlabel)
-            raw_trends = fetch_trending(tcountry)
-            log(f"  trends brutos", count=len(raw_trends), scope=tcountry)
+            raw_trends = fetch_trending(tcountry, weekly=weekly)
+            log(f"  trends brutos", count=len(raw_trends), scope=tcountry, weekly=weekly)
             if raw_trends:
                 curated = curate_trends(
                     user["name"], tlabel, raw_trends, learned,
                     user_topics_labels=user_topic_labels,
                     filtered_items=filtered_items,
+                    max_out=budget_per_scope,
+                    weekly=weekly,
                 )
                 # marca o escopo de origem em cada item pra debug/futuro uso
                 for item in curated:
@@ -824,11 +975,33 @@ def process_user(user, now_brt, weekly=False):
 
         trending_label = " + ".join(labels) if labels else ""
 
+        # Cap global final: 5 itens no Em Alta (independente de quantos scopes)
+        if len(trending) > TOTAL_TRENDING_BUDGET:
+            # Round-robin entre scopes pra manter balanço
+            by_scope_origin = {}
+            for item in trending:
+                origin = item.get("scope_origin", "")
+                by_scope_origin.setdefault(origin, []).append(item)
+            balanced = []
+            scope_lists = list(by_scope_origin.values())
+            while len(balanced) < TOTAL_TRENDING_BUDGET and any(scope_lists):
+                for lst in scope_lists:
+                    if lst and len(balanced) < TOTAL_TRENDING_BUDGET:
+                        balanced.append(lst.pop(0))
+            trending = balanced
+
     # 2) NOTÍCIAS POR TEMA
     topics_res = supabase.table("topics").select("*").eq("user_id", uid).execute()
     topics = topics_res.data or []
     # Fallback geográfico: se "Onde você está" = INTL, usa GLOBAL como default
     fallback_country = "GLOBAL" if default_country == "INTL" else default_country
+
+    # news_per_topic dinâmico baseado em qtd de temas (escadinha)
+    # topic_count_for_scaling foi calculado no início do process_user (linha ~927)
+    if weekly:
+        news_per_topic = weekly_news_per_topic(topic_count_for_scaling)
+    else:
+        news_per_topic = daily_news_per_topic(topic_count_for_scaling)
 
     # Cada tema pode aparecer múltiplas vezes (1 por escopo escolhido). Fetch por registro,
     # depois agrupa pelo label pra virar 1 seção no email.
@@ -843,7 +1016,8 @@ def process_user(user, now_brt, weekly=False):
             t["query"], country,
             category=category,
             label=t["label"],
-            source_type=t.get("source", "curated")
+            source_type=t.get("source", "curated"),
+            weekly=weekly,
         )
         log(f"  {t['label']} ({country}): {len(news)} brutas")
         if not news:
@@ -883,7 +1057,12 @@ def process_user(user, now_brt, weekly=False):
 
     sections = []
     if topics_with_news:
-        raw_sections = curate_news(user["name"], topics_with_news, learned, filtered_items=filtered_items)
+        raw_sections = curate_news(
+            user["name"], topics_with_news, learned,
+            filtered_items=filtered_items,
+            weekly=weekly,
+            news_per_topic=news_per_topic,
+        )
         # casa metadados de volta pelo label (topic_id + scopes reais)
         label_meta = {t["label"]: {"topic_id": t["topic_id"], "scopes": t["scopes"]} for t in topics_with_news}
         # mapa link → lang pra reanexar idioma na resposta do Claude
