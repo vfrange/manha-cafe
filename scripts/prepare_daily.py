@@ -90,6 +90,23 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
     email = user["email"]
     kind = "weekly" if weekly else "daily"
 
+    # SKIP do weekly: user que recebeu welcome HOJE não deve receber weekly no mesmo dia.
+    # Justificativa: welcome já entregou a 1a edição; weekly retrospectivo dos últimos 7 dias
+    # não faz sentido pra quem acabou de cadastrar. Próximo weekly: sábado seguinte.
+    if weekly:
+        welcome_at = user.get("welcome_sent_at")
+        if welcome_at:
+            try:
+                # Aceita formato ISO com ou sem Z
+                w_dt = datetime.fromisoformat(welcome_at.replace("Z", "+00:00"))
+                # Converte pra BRT pra comparar com scheduled_for (que é data BRT)
+                w_brt_date = w_dt.astimezone(now_brt.tzinfo).date().isoformat()
+                if w_brt_date == scheduled_for:
+                    log(f"  ⏭ {email}: welcome foi hoje ({w_brt_date}), pulando weekly")
+                    return "skipped"
+            except Exception as e:
+                log(f"  ⚠ {email}: erro ao parsear welcome_sent_at='{welcome_at}': {e}")
+
     # Checa idempotência
     existing = already_queued(uid, scheduled_for, kind)
     if existing:
