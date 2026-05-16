@@ -1172,10 +1172,15 @@ def process_user(user, now_brt, weekly=False):
     )
     result = send_email(user["email"], user["name"], html, now_brt, weekly=weekly, user_id=uid)
     log(f"  ✓ enviado", id=result.get("id"))
-    supabase.table("users").update({
+    user_updates = {
         "last_sent_at": now_brt.isoformat(),
         "welcome_sent": True,
-    }).eq("id", uid).execute()
+    }
+    # Se é a primeira vez que envia (welcome), grava timestamp pra
+    # o prepare_weekly poder pular o weekly do mesmo dia.
+    if is_welcome:
+        user_updates["welcome_sent_at"] = now_brt.isoformat()
+    supabase.table("users").update(user_updates).eq("id", uid).execute()
     return True
 
 
