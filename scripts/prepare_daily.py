@@ -112,6 +112,9 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
     _topics_pre = supabase.table("topics").select("label").eq("user_id", uid).execute()
     user_topic_labels = [t["label"] for t in (_topics_pre.data or [])]
 
+    # Conta temas únicos pra calcular budget elástico (Em Alta + por_tema)
+    unique_topic_count = len({lbl for lbl in user_topic_labels}) if user_topic_labels else 0
+
     # Trending
     trending = []
     trending_label = ""
@@ -119,6 +122,13 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
         raw_scope = user.get("trending_scope") or "br"
         scopes = [s.strip() for s in raw_scope.split(",") if s.strip()] or ["br"]
         labels = []
+        # Budget ELÁSTICO: preenche até atingir cap total (28 daily / 35 weekly).
+        # Calcula baseado em quantos temas o user tem (mais temas → menos Em Alta).
+        if weekly:
+            TOTAL_TRENDING_BUDGET = dd.weekly_trending_budget(unique_topic_count)
+        else:
+            TOTAL_TRENDING_BUDGET = dd.daily_trending_budget(unique_topic_count)
+        budget_per_scope = max(2, TOTAL_TRENDING_BUDGET // len(scopes) + 1)
         for scope in scopes:
             if scope == "global":
                 tcountry, tlabel = "GLOBAL", "🌍 Mundo"
@@ -131,23 +141,49 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
                 tcountry = user.get("trending_country") or "BR"
                 tlabel = dd.COUNTRY_NAMES.get(tcountry, tcountry)
             labels.append(tlabel)
-            raw_trends = dd.fetch_trending(tcountry)
-            log(f"  trends brutos", count=len(raw_trends), scope=tcountry)
+            raw_trends = dd.fetch_trending(tcountry, weekly=weekly)
+            log(f"  trends brutos", count=len(raw_trends), scope=tcountry, weekly=weekly)
             if raw_trends:
                 curated = dd.curate_trends(
                     user["name"], tlabel, raw_trends, learned,
                     user_topics_labels=user_topic_labels,
                     filtered_items=filtered_items,
+                    max_out=budget_per_scope,
+                    weekly=weekly,
                 )
                 for item in curated:
                     item.setdefault("scope_origin", tlabel)
                 trending.extend(curated)
         trending_label = " + ".join(labels) if labels else ""
 
+        # Cap global final: TOTAL_TRENDING_BUDGET itens no Em Alta (independente de quantos scopes)
+        if len(trending) > TOTAL_TRENDING_BUDGET:
+            # Round-robin entre scopes pra manter balanço
+            by_scope_origin = {}
+            for item in trending:
+                origin = item.get("scope_origin", "")
+                by_scope_origin.setdefault(origin, []).append(item)
+            balanced = []
+            scope_lists = list(by_scope_origin.values())
+            while len(balanced) < TOTAL_TRENDING_BUDGET and any(scope_lists):
+                for lst in scope_lists:
+                    if lst and len(balanced) < TOTAL_TRENDING_BUDGET:
+                        balanced.append(lst.pop(0))
+            trending = balanced
+
     # Notícias por tema
     topics_res = supabase.table("topics").select("*").eq("user_id", uid).execute()
     topics = topics_res.data or []
     fallback_country = "GLOBAL" if default_country == "INTL" else default_country
+
+    # No weekly, mais notícias por tema. Adaptativo: até 7 temas únicos → 4 por tema; acima → 3.
+    # news_per_topic dinâmico baseado em qtd de temas (escadinha)
+    unique_labels = {t["label"] for t in topics}
+    topic_count_for_scaling = len(unique_labels)
+    if weekly:
+        news_per_topic = dd.weekly_news_per_topic(topic_count_for_scaling)
+    else:
+        news_per_topic = dd.daily_news_per_topic(topic_count_for_scaling)
 
     by_label = {}
     for t in topics:
@@ -157,7 +193,8 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
         category = t.get("category")
         news = dd.fetch_all_sources(
             t["query"], country, category=category,
-            label=t["label"], source_type=t.get("source", "curated")
+            label=t["label"], source_type=t.get("source", "curated"),
+            weekly=weekly,
         )
         if not news:
             continue
@@ -192,7 +229,12 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
 
     sections = []
     if topics_with_news:
-        raw_sections = dd.curate_news(user["name"], topics_with_news, learned, filtered_items=filtered_items)
+        raw_sections = dd.curate_news(
+            user["name"], topics_with_news, learned,
+            filtered_items=filtered_items,
+            weekly=weekly,
+            news_per_topic=news_per_topic,
+        )
         label_meta = {t["label"]: {"topic_id": t["topic_id"], "scopes": t["scopes"]} for t in topics_with_news}
         link_to_lang = {}
         for t in topics_with_news:
