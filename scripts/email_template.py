@@ -630,7 +630,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
         else:  # 0-4
             saudacao = "Olá"
 
-    total_noticias = sum(len(s["noticias"]) for s in sections)
+    total_noticias = sum(len(s["noticias"]) for s in sections) + len(trending)
     # intro_count: usado SÓ no H1 do hero — mostra apenas notícias (mais limpo)
     if total_noticias:
         intro_count = f"{total_noticias} notícia{'s' if total_noticias != 1 else ''}"
@@ -641,8 +641,9 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     stat_trending = len(trending)
     stat_temas = len(sections)
     # Minutos: ~10s/manchete espresso (resumida), ~20s/manchete coado (análise completa)
+    # total_noticias já inclui trending — NÃO somar de novo
     secs_each = 10 if email_mode == "espresso" else 20
-    stat_minutos = max(2, round((stat_noticias + stat_trending) * secs_each / 60))
+    stat_minutos = max(2, round(stat_noticias * secs_each / 60))
 
     # Textos do hero — variam entre daily e weekly
     if weekly_mode:
@@ -819,7 +820,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
           &nbsp;·&nbsp;
           <a href="mailto:contato@recorte.news" style="color:{COLORS['ink_muted']};text-decoration:underline;font-size:10px;opacity:0.7;">Contato</a>
           <div style="margin-top:14px;font-size:10px;color:{COLORS['ink_muted']};opacity:0.65;line-height:1.6;">
-            Recorte ✂ · Operado por Victor Frange · São Paulo/SP · Brasil
+            Recorte ✂ · Operado pela Equipe Recorte ✂ · São Paulo/SP · Brasil
           </div>
           <div style="margin-top:6px;font-family:{MONO_FONT};font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:{COLORS['ink_muted']};opacity:0.55;">Última coleta · {date_obj.strftime('%d/%m %H:%M')} BRT</div>
         </div>
