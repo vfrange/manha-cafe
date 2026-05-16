@@ -128,10 +128,16 @@ def dispatch_one(queue_row):
         mark_sent(qid, resend_id)
 
         # 5. Atualiza last_sent_at do user (pra o dedup do prepare funcionar)
-        supabase.table("users").update({
-            "last_sent_at": datetime.now(timezone.utc).isoformat(),
+        now_iso = datetime.now(timezone.utc).isoformat()
+        user_updates = {
+            "last_sent_at": now_iso,
             "welcome_sent": True,
-        }).eq("id", user_id).execute()
+        }
+        # Se era o primeiro envio (welcome_sent ainda false), grava timestamp.
+        # Necessário pra prepare_weekly pular o weekly do mesmo dia.
+        if not user.get("welcome_sent"):
+            user_updates["welcome_sent_at"] = now_iso
+        supabase.table("users").update(user_updates).eq("id", user_id).execute()
 
         return ("sent", qid, user["email"])
 
