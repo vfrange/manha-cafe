@@ -1,510 +1,1260 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Recorte ✂ · Suas preferências</title>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700;800;900&family=Mulish:wght@400;600;700;800&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suas preferências · Recorte ✂</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800;9..144,900&family=Mulish:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{
-  --mint:#6EE7B7; --mint-deep:#10B981; --mint-dark:#047857; --mint-bg:#DCFCE7;
-  --ink:#0A2540; --ink-soft:#334155; --ink-muted:#64748B;
-  --bg:#FFFAF0; --bg2:#F4F1EA; --line:#E2DFD7; --red:#C8102E; --yellow:#FFD60A;
-}
-*{box-sizing:border-box}
-body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:'Mulish',sans-serif;font-size:15px;line-height:1.5}
-.container{max-width:680px;margin:0 auto;padding:32px 24px 80px}
-.hero{padding:24px 0 32px;border-bottom:2px solid var(--ink)}
-.hero-tag{display:inline-block;background:var(--mint);border:1.5px solid var(--ink);padding:5px 12px;font-size:11px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:14px}
-h1{font-family:'Fraunces',serif;font-weight:900;font-size:36px;line-height:1.1;letter-spacing:-0.025em;margin:0 0 8px}
-.subtitle{color:var(--ink-muted);font-size:15px;margin:0}
-.section{margin-top:32px;padding-bottom:24px;border-bottom:1px solid var(--line)}
-.section:last-of-type{border-bottom:none}
-.label{font-size:11px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:var(--mint-dark);margin-bottom:10px}
-.field{width:100%;padding:12px 14px;border:2px solid var(--ink);background:#fff;font-family:inherit;font-size:15px}
-.field:focus{outline:none;background:#FFF9DB}
-.row{display:flex;gap:12px;align-items:center}
-.row > *{flex:1}
-.row > button{flex:0 0 auto}
-.btn{display:inline-block;padding:12px 20px;font-family:inherit;font-size:13px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;border:2px solid var(--ink);transition:all .12s}
-.btn-primary{background:var(--mint-deep);color:#fff;border-color:var(--mint-deep)}
-.btn-primary:hover{background:var(--mint-dark)}
-.btn-secondary{background:#fff;color:var(--ink)}
-.btn-secondary:hover{background:var(--bg2)}
-.btn-danger{background:#fff;color:var(--red);border-color:var(--red)}
-.btn-danger:hover{background:var(--red);color:#fff}
-.btn-add{background:var(--ink);color:#fff;border-color:var(--ink);padding:12px 18px}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-.tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
-.tag{display:inline-flex;align-items:center;background:var(--mint-deep);color:#fff;padding:4px 8px 4px 4px;font-size:13px;font-weight:700;gap:4px}
-.tag-flag{background:rgba(255,255,255,0.18);border:none;color:#fff;cursor:pointer;padding:3px 6px;font-size:12px;line-height:1;opacity:.4}
-.tag-flag.active{opacity:1;background:rgba(255,255,255,0.35)}
-.tag-label{padding:0 4px}
-.tag-remove{background:none;border:none;color:#fff;cursor:pointer;font-size:16px;padding:0 0 0 4px;line-height:1;opacity:.7}
-.tag-remove:hover{opacity:1}
-.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--bg2);border:2px solid var(--ink)}
-.toggle{position:relative;display:inline-block;width:46px;height:24px;cursor:pointer}
-.toggle input{opacity:0;width:0;height:0}
-.toggle-slider{position:absolute;inset:0;background:#ccc;transition:.18s;border:2px solid var(--ink)}
-.toggle-slider::before{content:"";position:absolute;height:14px;width:14px;left:2px;top:2px;background:#fff;transition:.18s;border:1.5px solid var(--ink)}
-.toggle input:checked+.toggle-slider{background:var(--mint)}
-.toggle input:checked+.toggle-slider::before{transform:translateX(22px)}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:14px 22px;font-weight:700;font-size:14px;display:none;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.18)}
-.toast.success{background:var(--mint-deep)}
-.toast.error{background:var(--red)}
-.toast.show{display:block}
-.mode-options{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
-@media (max-width:520px){.mode-options{grid-template-columns:1fr}}
-.mode-card{position:relative;cursor:pointer;display:block}
-.mode-card input{position:absolute;opacity:0;width:0;height:0}
-.mode-card-inner{display:flex;align-items:center;gap:14px;padding:16px;border:2px solid var(--ink);background:#fff;transition:all .12s}
-.mode-card:hover .mode-card-inner{background:var(--bg2)}
-.mode-card input:checked + .mode-card-inner{background:var(--mint);border-color:var(--mint-dark)}
-.mode-emoji{font-size:28px;line-height:1}
-.mode-info strong{font-family:'Fraunces',serif;font-size:16px;display:block;color:var(--ink)}
-.mode-desc{font-size:12px;color:var(--ink-muted);margin-top:3px;line-height:1.4}
-.muted-note{font-size:13px;color:var(--ink-muted);margin-top:6px;line-height:1.5}
-.loading{text-align:center;padding:60px 0;color:var(--ink-muted);font-family:'Fraunces',serif;font-style:italic}
-.danger-zone{margin-top:48px;padding:20px;border:2px dashed var(--red);background:#fff}
-.danger-zone h3{margin:0 0 6px;color:var(--red);font-family:'Fraunces',serif;font-size:18px}
-.danger-zone p{margin:0 0 14px;font-size:13px;color:var(--ink-soft)}
-.scope-hint{font-size:12px;color:var(--ink-muted);margin-top:6px;min-height:18px}
-.scope-hint strong{color:var(--mint-dark);font-weight:700}
-.error-card{padding:24px;background:#FFF;border:2px solid var(--red);text-align:center}
-.error-card h2{font-family:'Fraunces',serif;color:var(--red);margin:0 0 10px}
-.error-card p{margin:0;color:var(--ink-soft);font-size:14px;line-height:1.6}
-@media(max-width:520px){
-  h1{font-size:28px}
-  .container{padding:20px 16px 60px}
-  .row{flex-direction:column;align-items:stretch}
-  .row > button{width:100%}
-}
+  :root {
+    --mint:          #6EE7B7;
+    --mint-bg-light: #D1FAE5;
+    --mint-deep:     #10B981;
+    --mint-dark:     #047857;
+    --yellow:        #FFD60A;
+    --yellow-bg:     #FFF5BD;
+    --ink:           #0A2540;
+    --ink-soft:      #4A5568;
+    --ink-muted:     #8A95A8;
+    --bg:            #FFFAF0;
+    --bg-card:       #FFFFFF;
+    --bg-2:          #F4F1EA;
+    --line:          #E8E1D0;
+    --red:           #C8102E;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Fraunces', Georgia, serif;
+    background: var(--bg); color: var(--ink);
+    min-height: 100vh; line-height: 1.6;
+    font-size: 19px;
+    font-variation-settings: "opsz" 14;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3CfeColorMatrix values='0 0 0 0 0.04 0 0 0 0 0.15 0 0 0 0 0.27 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 1;
+  }
+
+  /* MASTHEAD */
+  .masthead {
+    background: var(--mint); padding: 22px 0;
+    border-bottom: 2px solid var(--ink);
+    position: relative; z-index: 2;
+  }
+  .masthead-inner {
+    max-width: 720px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 900; font-size: 28px; letter-spacing: -0.04em;
+    display: flex; align-items: center; gap: 12px;
+    color: var(--ink);
+    font-variation-settings: "SOFT" 50, "WONK" 1;
+  }
+  .logo-cup {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: var(--ink); color: var(--mint);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700; position: relative;
+  }
+  .date-pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em;
+    font-weight: 500; color: var(--mint-dark);
+  }
+  .tricolor { display: flex; height: 4px; }
+  .tricolor span { flex: 1; }
+  .tricolor span:nth-child(1) { background: var(--mint-deep); }
+  .tricolor span:nth-child(2) { background: var(--yellow); }
+  .tricolor span:nth-child(3) { background: var(--ink); }
+
+  .container { max-width: 720px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 2; }
+
+  /* ===== HEADER NAV (igual ao index) ===== */
+  .header-nav {
+    border-bottom: 1.5px solid var(--ink);
+    background: var(--bg);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-nav-inner {
+    max-width: 1080px; margin: 0 auto;
+    padding: 18px 28px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .brand {
+    font-family: 'Fraunces', serif;
+    font-weight: 700; font-size: 24px;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+    display: flex; align-items: center; gap: 12px;
+    text-decoration: none;
+  }
+  .brand-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--bg); border: 2.5px solid var(--ink);
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic; font-weight: 700;
+    font-size: 24px; color: var(--ink);
+    letter-spacing: -0.05em; line-height: 1;
+    padding-bottom: 2px;
+  }
+  .brand-dot { color: var(--mint-deep); }
+  .nav { display: flex; align-items: center; gap: 28px; }
+  .nav a {
+    font-family: 'Mulish', sans-serif;
+    font-size: 15px; font-weight: 700;
+    color: var(--ink-soft);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .nav a:hover { color: var(--ink); }
+  .nav-cta {
+    background: var(--ink);
+    color: var(--bg) !important;
+    padding: 11px 20px;
+    border-radius: 4px;
+    font-family: 'Fraunces', serif !important;
+    font-style: italic;
+    font-weight: 700 !important;
+    transition: all 0.15s;
+  }
+  .nav-cta:hover { background: var(--mint-deep); color: var(--bg) !important; }
+  .nav-cta.active { background: var(--mint-deep); color: var(--bg) !important; }
+  @media (max-width: 640px) {
+    .header-nav-inner { padding: 14px 20px; }
+    .nav { gap: 16px; }
+    .nav a:not(.nav-cta) { display: none; }
+  }
+  /* Tricolor stripe abaixo do header */
+  .tricolor-stripe { display: flex; height: 5px; position: relative; z-index: 99; }
+  .tricolor-stripe span:nth-child(1) { flex: 1; background: var(--mint); }
+  .tricolor-stripe span:nth-child(2) { flex: 0.4; background: var(--yellow); }
+  .tricolor-stripe span:nth-child(3) { flex: 0.6; background: var(--ink); }
+
+  /* ===== HERO ===== */
+  .hero {
+    padding: 72px 0 48px;
+    position: relative;
+  }
+  @media (max-width: 640px) { .hero { padding: 48px 0 32px; } }
+  .hero-eyebrow {
+    font-family: 'Mulish', sans-serif;
+    font-size: 13px; font-weight: 800;
+    letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--mint-dark);
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  .hero-eyebrow .star { color: var(--mint-deep); }
+  .hero-eyebrow .free-badge {
+    display: inline-flex; align-items: center;
+    background: var(--yellow); color: var(--ink);
+    font-family: 'Mulish', sans-serif;
+    font-weight: 800; font-size: 11px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    padding: 5px 12px 6px; border-radius: 3px;
+    border: 1.5px solid var(--ink);
+  }
+  .hero-eyebrow-line {
+    border-top: 2px dashed var(--ink); opacity: 0.4;
+    margin-bottom: 28px; max-width: 320px;
+  }
+  .hero h1 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 700;
+    font-size: clamp(38px, 6vw, 68px);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+    margin-bottom: 22px;
+    font-variation-settings: "opsz" 144;
+  }
+  .hero h1 em {
+    font-style: italic;
+    font-weight: 500;
+    color: var(--mint-dark);
+  }
+  .hero h1 .hl {
+    background: var(--mint); font-style: italic; font-weight: 700;
+    padding: 0 10px;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+  .hero-subtitle {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 22px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    max-width: 640px;
+    font-weight: 400;
+  }
+  @media (max-width: 640px) { .hero-subtitle { font-size: 19px; } }
+
+  /* "Como funciona" banner */
+  .how-banner {
+    background: var(--yellow-bg);
+    border: 2px solid var(--ink);
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    display: flex; align-items: center; gap: 14px;
+    font-family: 'Mulish', sans-serif;
+    font-size: 14.5px; line-height: 1.55; color: var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+  .how-banner .how-icon { font-size: 24px; flex-shrink: 0; }
+  .how-banner strong { font-weight: 800; }
+
+  /* FORM */
+  .form-card {
+    background: var(--bg-card); border: 2px solid var(--ink);
+    box-shadow: 8px 8px 0 var(--mint-deep);
+    padding: 40px; margin-bottom: 60px;
+  }
+  @media (max-width: 560px) { .form-card { padding: 28px 20px; box-shadow: 6px 6px 0 var(--mint-deep); } }
+
+  .step { border-bottom: 1px solid var(--line); padding: 32px 0; }
+  .step:first-child { padding-top: 0; }
+  .step:last-child { border-bottom: none; padding-bottom: 0; }
+  .step-header { display: flex; align-items: baseline; gap: 18px; margin-bottom: 18px; }
+  .step-num {
+    font-family: 'Fraunces', serif;
+    font-weight: 600; font-size: 44px; line-height: 1;
+    color: var(--mint-deep); font-style: italic;
+    flex-shrink: 0; position: relative;
+  }
+  .step-num::after {
+    content: ""; display: block;
+    width: 32px; height: 3px;
+    background: var(--yellow); margin-top: 6px;
+  }
+  .step-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 700; font-size: 26px; letter-spacing: -0.02em;
+    color: var(--ink);
+    font-variation-settings: "SOFT" 50, "opsz" 30;
+  }
+  .step-hint { font-size: 14.5px; color: var(--ink-muted); margin-top: 4px; line-height: 1.6; }
+  .step-hint strong { color: var(--ink); font-weight: 700; }
+  .step-hint em { font-style: italic; color: var(--mint-dark); }
+
+  /* === CARDS DE MODO DE LEITURA === */
+  .mode-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 4px;
+  }
+  @media (max-width: 560px) { .mode-row { grid-template-columns: 1fr; } }
+
+  .mode-card {
+    display: block;
+    position: relative;
+    cursor: pointer;
+    padding: 22px 24px;
+    background: #fff;
+    border: 2px solid var(--line);
+    box-shadow: 4px 4px 0 var(--ink-muted);
+    transition: transform .12s, box-shadow .12s, background .12s, border-color .12s;
+  }
+  .mode-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--ink-muted);
+    border-color: var(--ink);
+  }
+  .mode-card input { position: absolute; opacity: 0; width: 0; height: 0; }
+
+  /* SELECIONADO: bem destacado */
+  .mode-card.selected {
+    background: var(--mint);              /* verde menta vibrante */
+    border-color: var(--ink);              /* borda preta forte */
+    box-shadow: 6px 6px 0 var(--ink);     /* sombra preta cartoon */
+    transform: translate(-2px, -2px);
+  }
+  .mode-card.selected:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: 8px 8px 0 var(--ink);
+  }
+  .mode-card.selected .mode-name { color: var(--ink); }
+  .mode-card.selected .mode-desc { color: var(--ink); }
+
+  /* Checkmark no canto quando selecionado */
+  .mode-card::before {
+    content: "";
+    position: absolute;
+    top: 12px; left: 12px;
+    width: 18px; height: 18px;
+    border: 2px solid var(--line);
+    background: #fff;
+    border-radius: 50%;
+    transition: all .12s;
+  }
+  .mode-card.selected::before {
+    border-color: var(--ink);
+    background: var(--ink);
+    box-shadow: inset 0 0 0 3px var(--mint);
+  }
+
+  .mode-emoji { font-size: 32px; line-height: 1; display: block; margin: 12px 0 12px; }
+  .mode-name {
+    font-family: 'Fraunces', serif;
+    font-weight: 700; font-size: 20px;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .mode-name em { font-style: italic; color: var(--mint-dark); }
+  .mode-card.selected .mode-name em { color: var(--ink); }
+  .mode-desc { font-size: 14px; color: var(--ink-soft); line-height: 1.5; }
+
+  .mode-badge {
+    position: absolute; top: 12px; right: 12px;
+    background: var(--ink); color: var(--mint);
+    font-family: 'Mulish', sans-serif;
+    font-size: 9px; font-weight: 800;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    padding: 4px 9px;
+    border: 1.5px solid var(--ink);
+  }
+  .mode-card:not(.selected) .mode-badge { opacity: 0.35; }
+  .mode-card.selected .mode-badge {
+    background: #fff;
+    color: var(--ink);
+    border-color: var(--ink);
+  }
+
+  .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 560px) { .input-row { grid-template-columns: 1fr; } }
+
+  /* PHONE ROW: país + DDD + número */
+  .phone-row {
+    display: grid;
+    grid-template-columns: 130px 80px 1fr;
+    gap: 10px;
+    margin-top: 14px;
+  }
+  @media (max-width: 560px) {
+    .phone-row {
+      grid-template-columns: 1fr 1fr;
+      grid-template-areas: "country area" "number number";
+    }
+    .phone-row .field-country { grid-area: country; }
+    .phone-row .field-area    { grid-area: area; }
+    .phone-row .field-number  { grid-area: number; }
+  }
+  .country-select {
+    -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%230A2540' stroke-width='2' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+    padding-right: 32px; cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px; font-weight: 600;
+  }
+
+  .field {
+    width: 100%; padding: 14px 16px;
+    border: 2px solid var(--ink); background: var(--bg);
+    font-family: 'Mulish', sans-serif; font-size: 16px; color: var(--ink);
+    transition: background 0.15s, box-shadow 0.15s, transform 0.15s;
+  }
+  .field:focus {
+    outline: none; background: #FFF;
+    box-shadow: 4px 4px 0 var(--mint-deep);
+    transform: translate(-2px, -2px);
+  }
+
+  /* TRENDING TOGGLE */
+  .toggle-row { display: flex; align-items: center; gap: 14px; padding: 14px 0; }
+  .toggle {
+    position: relative; width: 56px; height: 30px;
+    background: var(--bg); border: 2px solid var(--ink);
+    cursor: pointer; transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .toggle::after {
+    content: ''; position: absolute;
+    width: 20px; height: 20px;
+    background: var(--ink); top: 3px; left: 3px;
+    transition: left 0.15s, background 0.15s;
+  }
+  .toggle.on { background: var(--mint); }
+  .toggle.on::after { left: 29px; background: var(--ink); }
+  .toggle-label { font-size: 16px; font-weight: 600; color: var(--ink); }
+  .toggle-sub { font-size: 14px; color: var(--ink-muted); line-height: 1.5; margin-top: 2px; }
+
+  /* TOPIC CHIPS */
+  .topics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+  .topic-chip { position: relative; cursor: pointer; user-select: none; }
+  .topic-chip input { position: absolute; opacity: 0; pointer-events: none; }
+  .topic-chip-label {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px;
+    border: 2px solid var(--ink); background: var(--bg-card);
+    font-family: 'Mulish', sans-serif;
+    font-size: 14px; font-weight: 600; color: var(--ink);
+    transition: all 0.15s;
+  }
+  .topic-chip:hover .topic-chip-label {
+    background: var(--mint-bg-light);
+    transform: translate(-1px, -1px);
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+  .topic-chip input:checked + .topic-chip-label {
+    background: var(--mint);
+    box-shadow: 3px 3px 0 var(--ink);
+    transform: translate(-1px, -1px);
+  }
+  .topic-emoji { font-size: 18px; }
+
+  /* CUSTOM TOPIC */
+  .custom-input-row {
+    display: grid; grid-template-columns: 1fr auto;
+    gap: 8px; margin-bottom: 12px; align-items: stretch;
+  }
+  @media (max-width: 560px) { .custom-input-row { grid-template-columns: 1fr; } }
+  .custom-input-row input { padding: 12px 14px; }
+  .btn-add {
+    padding: 0 18px;
+    background: var(--bg); border: 2px solid var(--ink);
+    font-family: 'Mulish', sans-serif;
+    font-size: 13px; font-weight: 700; color: var(--ink);
+    cursor: pointer; transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-add:hover {
+    background: var(--mint);
+    transform: translate(-1px, -1px);
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+  .tags-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--mint-deep); color: #FFF;
+    padding: 4px 8px 4px 4px;
+    font-family: 'Mulish', sans-serif;
+    font-size: 13px; font-weight: 700;
+  }
+  .tag-flag {
+    background: rgba(255,255,255,0.18); border: none;
+    color: #FFF; cursor: pointer;
+    padding: 3px 6px; font-size: 12px; line-height: 1;
+    transition: all 0.12s;
+    opacity: 0.4;
+  }
+  .tag-flag.active { opacity: 1; background: rgba(255,255,255,0.35); }
+  .tag-flag:hover { opacity: 1; }
+  .tag-label { padding: 0 4px; }
+  .tag button.tag-remove {
+    background: none; border: none; color: #FFF;
+    cursor: pointer; font-size: 16px; padding: 0 0 0 4px; line-height: 1;
+    opacity: 0.7;
+  }
+  .tag button.tag-remove:hover { opacity: 1; }
+
+  /* Feedback do detector */
+  .scope-hint {
+    margin-top: -6px; margin-bottom: 12px;
+    font-family: 'Mulish', sans-serif;
+    font-size: 12px; color: var(--ink-muted);
+    padding-left: 2px;
+    min-height: 18px;
+    transition: color 0.15s;
+  }
+  .scope-hint strong { color: var(--mint-dark); font-weight: 700; }
+
+  /* TIME PILLS */
+  .time-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+  .time-pill { position: relative; cursor: pointer; }
+  .time-pill input { position: absolute; opacity: 0; }
+  .time-pill-label {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 12px 18px;
+    border: 2px solid var(--ink); background: var(--bg-card);
+    min-width: 80px;
+    transition: all 0.15s;
+  }
+  .time-pill-label strong {
+    font-family: 'Fraunces', serif;
+    font-size: 22px; font-weight: 800; color: var(--ink);
+    font-variation-settings: "SOFT" 30, "opsz" 24;
+  }
+  .time-pill-label span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.12em; color: var(--ink-muted);
+    margin-top: 2px;
+  }
+  .time-pill:hover .time-pill-label {
+    transform: translate(-1px, -1px);
+    box-shadow: 2px 2px 0 var(--ink);
+    background: var(--yellow-bg);
+  }
+  .time-pill input:checked + .time-pill-label {
+    background: var(--yellow);
+    box-shadow: 3px 3px 0 var(--ink);
+    transform: translate(-1px, -1px);
+  }
+  .time-pill input:checked + .time-pill-label strong { color: var(--ink); }
+  .time-pill input:checked + .time-pill-label span { color: var(--ink); opacity: 0.7; }
+
+  /* SUBMIT */
+  .submit-row {
+    margin-top: 40px; padding-top: 28px;
+    border-top: 2px solid var(--ink);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+  }
+  .submit-info { font-size: 14px; color: var(--ink-muted); max-width: 320px; line-height: 1.55; }
+  .btn-submit {
+    background: var(--mint); color: var(--ink); border: 2px solid var(--ink);
+    padding: 18px 32px;
+    font-family: 'Fraunces', serif;
+    font-weight: 800; font-size: 18px; letter-spacing: -0.01em;
+    cursor: pointer; transition: all 0.15s;
+    box-shadow: 4px 4px 0 var(--ink);
+    font-variation-settings: "SOFT" 40;
+  }
+  .btn-submit:hover {
+    background: var(--mint-deep); color: #FFF;
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--ink);
+  }
+  .btn-submit:active { transform: translate(0,0); box-shadow: 2px 2px 0 var(--ink); }
+  .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* SUCCESS */
+  .success { display: none; text-align: center; padding: 60px 20px; }
+  .success.active { display: block; }
+  .success-icon {
+    width: 80px; height: 80px; margin: 0 auto 24px;
+    background: var(--mint); border: 2px solid var(--ink); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px; box-shadow: 6px 6px 0 var(--ink);
+  }
+  .success h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 900; font-size: 42px; letter-spacing: -0.04em;
+    margin-bottom: 12px; color: var(--ink);
+    font-variation-settings: "SOFT" 60, "WONK" 1, "opsz" 60;
+  }
+  .success p {
+    font-size: 17px; color: var(--ink-soft);
+    max-width: 460px; margin: 0 auto 28px;
+  }
+
+  /* FOOTER */
+  .footer {
+    text-align: center; padding: 40px 0 60px;
+    font-family: 'Mulish', sans-serif;
+    font-size: 13px; color: var(--ink-muted);
+    border-top: 1px solid var(--line);
+  }
+  .footer strong { color: var(--ink); font-weight: 700; }
 </style>
 </head>
 <body>
 
-<div class="container">
-
-  <div class="hero">
-    <div class="hero-tag">✂ Recorte · Preferências</div>
-    <h1>Ajuste o que você recebe.</h1>
-    <p class="subtitle">Mude seus temas, pause por uns dias ou cancele a qualquer momento.</p>
+<header class="header-nav">
+  <div class="header-nav-inner">
+    <a href="/" class="brand">
+      <span class="brand-icon">r<span class="brand-dot">.</span></span>
+      <span>Recorte</span>
+    </a>
+    <nav class="nav">
+      <a href="/sobre.html">Sobre</a>
+      <a href="/faq.html">FAQ</a>
+      <a href="/cadastro.html" class="nav-cta">Cadastro</a>
+    </nav>
   </div>
+</header>
+<div class="tricolor-stripe"><span></span><span></span><span></span></div>
 
-  <!-- Loading -->
-  <div id="loadingScreen" class="loading">Validando seu link…</div>
+<!-- Loading state -->
+<div id="loadingScreen" style="text-align: center; padding: 100px 20px;">
+  <div style="font-family: 'Fraunces', serif; font-size: 22px; color: var(--ink-soft);">Carregando suas preferências...</div>
+</div>
 
-  <!-- Erro de acesso (sem token ou expirado) -->
-  <div id="errorScreen" class="section" style="display:none">
-    <div class="error-card">
-      <h2 id="errorTitle">Link inválido ou expirado</h2>
-      <p id="errorMessage">Pra acessar suas preferências, abra seu <strong>email mais recente do Recorte ✂</strong> e clique em "Ajustar minhas preferências" no rodapé. Links têm validade de 30 dias.</p>
+<!-- Error state -->
+<div id="errorScreen" style="display: none; max-width: 540px; margin: 80px auto; padding: 40px; text-align: center;">
+  <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+  <h2 id="errorTitle" style="font-family: 'Fraunces', serif; font-size: 28px; margin-bottom: 12px; color: var(--ink);"></h2>
+  <p id="errorMsg" style="font-family: 'Mulish', sans-serif; font-size: 15px; color: var(--ink-soft); line-height: 1.6;"></p>
+</div>
+
+<div class="container" id="editor" style="display: none;">
+
+  <section class="hero">
+    <div class="hero-eyebrow">
+      <span><span class="star">★</span> Suas preferências</span>
+      <span class="free-badge" id="modeBadge">Espresso</span>
     </div>
-  </div>
+    <div class="hero-eyebrow-line"></div>
+    <h1>Ajuste seu <em>Recorte ✂</em><br><span class="hl">do jeito que você quiser.</span></h1>
+    <p class="hero-subtitle" id="welcomeSub">Mude temas, modo de leitura, filtros — tudo se atualiza a partir do próximo Recorte.</p>
+  </section>
 
-  <!-- Editor: aparece após autenticar -->
-  <div id="editor" style="display:none">
+  <form id="signupForm" class="form-card">
 
-    <div class="section">
-      <div class="label">Você está logado como</div>
-      <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:700" id="userName"></div>
-      <div style="font-size:14px;color:var(--ink-muted);margin-top:4px" id="userEmail"></div>
+    <div class="how-banner">
+      <span class="how-icon">💡</span>
+      <div>
+        <strong>Como funciona:</strong> tudo que você ajustar aqui passa a valer a partir do <strong>próximo Recorte</strong> que sair (daily ou weekly).
+      </div>
     </div>
 
-    <div class="section">
-      <div class="label">Status da newsletter</div>
-      <div class="toggle-row">
+    <!-- 01 IDENTIDADE — REMOVIDA NO MANAGE (user já tem cadastro) -->
+    <!-- 02 MODO DE LEITURA -->
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">02</span>
         <div>
-          <strong style="font-family:'Fraunces',serif;font-size:18px" id="activeLabel">Ativa</strong>
-          <div style="font-size:13px;color:var(--ink-muted);margin-top:2px">Email diário às 6h da manhã</div>
+          <div class="step-title">Como você quer ler?</div>
+          <div class="step-hint">Dois ritmos. O <strong>Espresso</strong> é o que recomendamos pra começar — chega rápido, em 5 a 6 minutos. O <strong>Coado</strong> é pra quem curte uma leitura mais densa, com mais contexto. <em>Você pode trocar a qualquer momento.</em></div>
         </div>
-        <label class="toggle">
-          <input type="checkbox" id="activeToggle">
-          <span class="toggle-slider"></span>
+      </div>
+      <div class="mode-row">
+        <label class="mode-card selected" id="modeEspressoCard">
+          <input type="radio" name="readingMode" value="espresso" checked>
+          <span class="mode-badge">Recomendado</span>
+          <span class="mode-emoji">⚡</span>
+          <div class="mode-name"><em>Espresso</em></div>
+          <div class="mode-desc">Manchete + 1 frase do que importa. Leitura em ~5 a 6 min.</div>
+        </label>
+        <label class="mode-card" id="modeCoadoCard">
+          <input type="radio" name="readingMode" value="coado">
+          <span class="mode-emoji">☕</span>
+          <div class="mode-name"><em>Coado</em></div>
+          <div class="mode-desc">Análise completa com contexto e dados. Leitura em ~10 a 12 min.</div>
         </label>
       </div>
     </div>
 
-    <div class="section">
-      <div class="label">Modo de leitura</div>
-      <p class="muted-note" style="margin:0 0 12px">Escolha quanto contexto quer ler em cada notícia.</p>
-      <div class="mode-options">
-        <label class="mode-card" id="modeCoadoLabel">
-          <input type="radio" name="emailMode" value="coado" id="modeCoado">
-          <div class="mode-card-inner">
-            <div class="mode-emoji">☕</div>
-            <div class="mode-info">
-              <strong>Café Coado</strong>
-              <div class="mode-desc">Análise completa: manchete + resumo + fatos-chave · ~8-10 min</div>
-            </div>
-          </div>
-        </label>
-        <label class="mode-card" id="modeEspressoLabel">
-          <input type="radio" name="emailMode" value="espresso" id="modeEspresso">
-          <div class="mode-card-inner">
-            <div class="mode-emoji">⚡</div>
-            <div class="mode-info">
-              <strong>Espresso</strong>
-              <div class="mode-desc">Só o essencial: manchete + 1 frase + link · ~4-5 min</div>
-            </div>
-          </div>
-        </label>
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="label">🔥 Em alta (trending topics)</div>
-      <div class="toggle-row">
+    <!-- 03 TRENDING TOPICS -->
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">03</span>
         <div>
-          <strong style="font-family:'Fraunces',serif;font-size:16px">Receber Em Alta no topo</strong>
-          <div style="font-size:13px;color:var(--ink-muted);margin-top:2px">Os termos e eventos mais comentados do dia, curados pra você</div>
+          <div class="step-title">Trending Topics 🔥</div>
+          <div class="step-hint">Os termos mais buscados do dia no <strong>Brasil e no mundo</strong> — aparecem no topo do e-mail, antes das suas notícias.</div>
         </div>
-        <label class="toggle">
-          <input type="checkbox" id="trendingToggle">
-          <span class="toggle-slider"></span>
-        </label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle on" id="trendingToggle" onclick="toggleTrending()"></div>
+        <div>
+          <div class="toggle-label" id="trendingLabel">Incluir Trending Topics</div>
+          <div class="toggle-sub">Mistura entre virais do dia e do que conversa com os seus temas</div>
+        </div>
       </div>
     </div>
 
-    <div class="section">
-      <div class="label">Seus temas</div>
-      <p class="muted-note" style="margin:0 0 10px">Empresas, marcas, segmentos, eventos que você quer acompanhar (máximo 15). Detecto automaticamente se é BR ou Global; clique nas bandeirinhas pra ajustar.</p>
-      <div class="row">
-        <input type="text" id="newTopicInput" class="field" placeholder="ex: Futebol, FIIs, OpenAI, Apple…">
-        <button class="btn btn-add" onclick="addTopic()">+ Adicionar</button>
+    <!-- 04 PERSONALIZADO -->
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">04</span>
+        <div>
+          <div class="step-title">Seus temas (do jeito que você quiser)</div>
+          <div class="step-hint">Escreva qualquer coisa: empresas, marcas, eventos, concorrentes, segmentos. <strong>É aqui que o Recorte fica único</strong> — porque ninguém mais escreve as mesmas coisas que você. Detecto se é tema brasileiro ou global automaticamente; clique nas bandeirinhas pra ajustar se eu errar. <em>Ou escolha temas curados abaixo, se preferir.</em></div>
+        </div>
+      </div>
+      <div class="custom-input-row">
+        <input type="text" id="customTopicInput" class="field" placeholder="ex: Futebol, FIIs, OpenAI, Apple…">
+        <button type="button" class="btn-add" onclick="addCustomTopic()">+ Adicionar</button>
       </div>
       <div class="scope-hint" id="scopeHint">↳ digite acima e eu detecto o escopo</div>
-      <div class="tags" id="tagsList"></div>
+      <div class="tags-list" id="tagsList"></div>
     </div>
 
-    <div class="section">
-      <div class="label">Filtros (até 20)</div>
-      <p class="muted-note" style="margin:0 0 10px">Veículos ou temas que você <strong>NÃO</strong> quer receber. Tem prioridade: nada da sua lista chega no email.</p>
-      <div class="row">
-        <input type="text" id="newFilterInput" class="field" maxlength="100">
-        <button class="btn btn-add" onclick="addFilter()">+ Adicionar</button>
+    <!-- 05 CURADOS -->
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">05</span>
+        <div>
+          <div class="step-title">Ou marque temas de seu interesse abaixo</div>
+          <div class="step-hint">Pra cada um marcado, eu trago notícias do <strong>Brasil e do mundo</strong> automaticamente, traduzidas em PT-BR. Os temas escritos por você no item acima aparecem <strong>primeiro</strong> no e-mail.</div>
+        </div>
       </div>
-      <div class="scope-hint" id="filterCounter">0/20</div>
-      <div class="tags" id="filtersList"></div>
+      <div class="topics-grid" id="topicsGrid"></div>
     </div>
 
-    <div style="margin-top:32px;display:flex;gap:12px;flex-wrap:wrap">
-      <button class="btn btn-primary" onclick="saveChanges()" id="saveBtn">Salvar mudanças</button>
-      <button class="btn btn-secondary" onclick="window.location.reload()">Descartar</button>
+    <!-- 06 FILTROS — opcional -->
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">06</span>
+        <div>
+          <div class="step-title">Filtros (opcional)</div>
+          <div class="step-hint">
+            Você no controle do que <strong>NÃO</strong> entra. Liste temas ou veículos que você não quer receber — pode ser um veículo específico (<em>"Carta Capital", "UOL"</em>) ou um assunto (<em>"celebridades", "política polarizada"</em>). Adicione um por vez, <strong>até 20 itens no total</strong>.
+          </div>
+        </div>
+      </div>
+      <div class="topics-add-row">
+        <input type="text" id="filterInput" placeholder="" maxlength="100">
+        <button type="button" class="btn-add" id="addFilterBtn">+ Adicionar</button>
+      </div>
+      <div class="topics-list" id="filtersList"></div>
+      <div class="step-hint" id="filtersCounter" style="margin-top:8px;font-size:13px;color:var(--ink-muted);">0/20</div>
     </div>
 
-    <div class="danger-zone">
-      <h3>Cancelar definitivamente</h3>
-      <p>Apaga seu cadastro completo. Pra voltar, é só refazer o cadastro.</p>
-      <button class="btn btn-danger" onclick="deleteAccount()">Cancelar minha inscrição</button>
+    <div class="submit-row">
+      <div class="submit-info">Salvou? Show. Tudo passa a valer a partir do <strong>próximo Recorte</strong>. Pode voltar aqui quando quiser ajustar.</div>
+      <button type="submit" class="btn-submit" id="submitBtn">Salvar alterações →</button>
     </div>
 
+    <!-- ZONA DE RISCO -->
+    <div class="step" style="background: #FFF5BD; border-color: #E2E8F0; margin-top: 32px;">
+      <div class="step-header">
+        <span class="step-num" style="background: #FFD60A; color: var(--ink);">⚠</span>
+        <div>
+          <div class="step-title">Quer parar de receber?</div>
+          <div class="step-hint">Sem ressentimento. Volta quando quiser — basta se cadastrar de novo em <a href="/cadastro.html" style="color: var(--mint-deep); text-decoration: underline; font-weight: 700;">recorte.news/cadastro</a>.</div>
+        </div>
+      </div>
+      <button type="button" id="btnCancel" style="background: #fff; border: 2px solid #ef4444; color: #ef4444; padding: 14px 24px; font-family: 'Mulish', sans-serif; font-weight: 800; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; box-shadow: 4px 4px 0 #ef4444;">✕ Cancelar minha inscrição</button>
+    </div>
+
+  </form>
+
+  <div class="success" id="successScreen">
+    <div class="success-icon">✓</div>
+    <h2>Salvo!</h2>
+    <p>Suas preferências foram atualizadas. O próximo Recorte já chega com essas configurações.</p>
+    <div class="submit-info" style="margin: 0 auto; text-align: center;">
+      <a href="https://recorte.news" style="color: var(--mint-deep); text-decoration: underline; font-weight: 700;">Voltar pro site</a>
+    </div>
   </div>
+
+  <footer class="footer">
+    <strong>Recorte ✂</strong> · pra ler antes do café ☕<br>
+    Newsletter diária personalizada · sem rastreio, sem ads.
+  </footer>
 
 </div>
 
-<div class="toast" id="toast"></div>
-
 <script>
-// URL da Edge Function manage no Supabase — ⚠️ COLA AQUI A URL DO SEU PROJETO:
-const MANAGE_FN_URL = 'https://jegvgviwbkbrmuhcivle.supabase.co/functions/v1/manage';
+  // ===== CONFIG =====
+  const SUPABASE_URL = 'https://jegvgviwbkbrmuhcivle.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_Q9FiImNakeN-DdGIbWIDjQ_v50JUNSS';
+  const MANAGE_FN_URL = 'https://jegvgviwbkbrmuhcivle.supabase.co/functions/v1/manage';
+  const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-let token = null; // { u, exp, t } da URL
-let currentUser = null;
-let currentTopics = []; // [{label, query, scopes:Set<'BR'|'GLOBAL'>}]
-let currentFilters = []; // ["Carta Capital", "celebridades", ...]
+  // ===== TOKEN PARSING =====
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = {
+    u: urlParams.get('u') || '',
+    exp: parseInt(urlParams.get('exp') || '0'),
+    t: urlParams.get('t') || ''
+  };
 
-// Detector de escopo (espelha cadastro.html)
-const BR_PATTERNS = [
-  /[ãõçáéíóúâêôà]/i,
-  /\bbrasil(?:eir[oa]s?)?\b/i,
-  /\b(sus|anvisa|cvm|copom|stf|tcu|cgu|anatel|anac|anp|aneel)\b/i,
-  /\b(selic|ibovespa|bovespa|fiis?|cdb|lci|lca|lft|tesouro\s*direto)\b/i,
-  /\b(lula|bolsonaro|planalto|brasília|brasilia)\b/i,
-  /\b(petrobras|magalu|magazine\s*luiza|nubank|btg\s*pactual|bradesco|ita[uú]|americanas|ambev|natura|botic[aá]rio|havaianas)\b/i,
-  /\b(flamengo|palmeiras|corinthians|s[ãa]o\s*paulo\s*(fc|futebol)|grêmio|gremio|fluminense|vasco|botafogo|cruzeiro|atl[ée]tico\s*mineiro|santos\s*fc|internacional|libertadores|brasileir[aã]o|copa\s*do\s*brasil)\b/i,
-  /\b(s[ãa]o\s*paulo|rio\s*de\s*janeiro|belo\s*horizonte|brasília|brasilia|curitiba|salvador|recife|fortaleza|porto\s*alegre|manaus|bel[ée]m|goi[âa]nia)\b/i,
-];
-function detectScope(query) {
-  if (BR_PATTERNS.some(p => p.test(query))) {
-    return { scopes: new Set(['BR']), reason: '🇧🇷 detectei termo brasileiro' };
-  }
-  return { scopes: new Set(['BR', 'GLOBAL']), reason: '🇧🇷🌍 vai buscar no Brasil e no mundo' };
-}
-
-// Chamada genérica pra Edge Function
-async function callManage(action, extra = {}) {
-  const body = { action, u: token.u, exp: token.exp, t: token.t, ...extra };
-  const resp = await fetch(MANAGE_FN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!resp.ok) {
-    let err;
-    try { err = (await resp.json()).error || resp.statusText; } catch { err = resp.statusText; }
-    throw new Error(err);
-  }
-  return await resp.json();
-}
-
-// ===== INIT =====
-async function init() {
-  const params = new URLSearchParams(window.location.search);
-  const u = params.get('u');
-  const exp = params.get('exp');
-  const t = params.get('t');
-
-  if (!u || !exp || !t) {
-    showError('Link sem token de acesso', 'Pra acessar suas preferências, abra seu <strong>email mais recente do Recorte ✂</strong> e clique em "Ajustar minhas preferências" no rodapé.');
-    return;
-  }
-
-  token = { u, exp, t };
-
-  try {
-    const data = await callManage('get');
-    currentUser = data.user;
-    // Agrupa topics por label (cada label pode ter 1-2 records BR/GLOBAL)
-    const byLabel = {};
-    (data.topics || []).forEach(tp => {
-      if (!byLabel[tp.label]) {
-        byLabel[tp.label] = { label: tp.label, query: tp.query, scopes: new Set(), source: tp.source };
-      }
-      byLabel[tp.label].scopes.add(tp.country);
-    });
-    currentTopics = Object.values(byLabel);
-    currentFilters = Array.isArray(data.filtered_items) ? data.filtered_items.slice(0, 20) : [];
-    renderEditor();
+  if (!token.u || !token.t) {
     document.getElementById('loadingScreen').style.display = 'none';
-    document.getElementById('editor').style.display = 'block';
-  } catch (e) {
-    if (e.message === 'expired') {
-      showError('Link expirado', 'Este link de preferências passou de 30 dias. Vá ao <strong>email mais recente</strong> e use o link de lá.');
-    } else if (e.message === 'invalid_token') {
-      showError('Link inválido', 'O link parece corrompido. Vá ao <strong>email mais recente</strong> e use o link de lá.');
-    } else if (e.message === 'not_found') {
-      showError('Usuário não encontrado', 'Não achamos esse cadastro no sistema. Pode ter sido cancelado.');
+    document.getElementById('errorScreen').style.display = 'block';
+    document.getElementById('errorTitle').textContent = 'Link inválido';
+    document.getElementById('errorMsg').innerHTML = 'Esse link parece incompleto. Use o link <strong>"⚙ Ajustar preferências"</strong> que está no rodapé de qualquer Recorte que você recebeu.';
+  } else if (token.exp && token.exp * 1000 < Date.now()) {
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('errorScreen').style.display = 'block';
+    document.getElementById('errorTitle').textContent = 'Link expirado';
+    document.getElementById('errorMsg').innerHTML = 'Esse link de preferências passou de 30 dias. Use o link <strong>"⚙ Ajustar preferências"</strong> no rodapé de um Recorte mais recente.';
+  }
+
+  // ===== CALL MANAGE API =====
+  async function callManage(action, extra = {}) {
+    const body = { action, u: token.u, exp: token.exp, t: token.t, ...extra };
+    const resp = await fetch(MANAGE_FN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) {
+      let err;
+      try { err = (await resp.json()).error || resp.statusText; } catch { err = resp.statusText; }
+      throw new Error(err);
+    }
+    return await resp.json();
+  }
+
+  // ===== TEMAS CURADOS =====
+  // Cada tema tem 2 queries (PT pro fetch no Brasil, EN pro fetch global).
+  const CURATED_TOPICS = [
+    { emoji: '💰', label: 'Economia',                 query_pt: 'economia inflação juros',           query_en: 'economy inflation markets' },
+    { emoji: '📈', label: 'Mercados financeiros',     query_pt: 'bolsa mercado financeiro ações',    query_en: 'stock market wall street trading' },
+    { emoji: '🚀', label: 'Tech & IA',                query_pt: 'tecnologia inteligência artificial',query_en: 'artificial intelligence tech' },
+    { emoji: '🌍', label: 'Geopolítica',              query_pt: 'geopolítica relações internacionais',query_en: 'geopolitics world affairs' },
+    { emoji: '🏛️', label: 'Política',                 query_pt: 'política congresso governo',       query_en: 'politics congress government' },
+    { emoji: '🍔', label: 'Food service & varejo',    query_pt: 'food service varejo restaurantes', query_en: 'food service retail restaurants' },
+    { emoji: '🏢', label: 'Negócios & M&A',           query_pt: 'fusões aquisições negócios',       query_en: 'mergers acquisitions M&A business' },
+    { emoji: '🏘️', label: 'Imobiliário',              query_pt: 'mercado imobiliário FII',          query_en: 'real estate REIT housing' },
+    { emoji: '⚽', label: 'Esportes',                 query_pt: 'esportes futebol',                  query_en: 'sports football basketball' },
+    { emoji: '🎬', label: 'Cultura & entretenimento', query_pt: 'cultura cinema entretenimento',    query_en: 'culture entertainment movies' },
+    { emoji: '🧠', label: 'Ciência & saúde',          query_pt: 'ciência saúde pesquisa',           query_en: 'science health research' },
+    { emoji: '🧘', label: 'Wellness (Bem-estar)',     query_pt: 'bem-estar saúde mental mindfulness meditação longevidade', query_en: 'wellness mental health mindfulness longevity self-care' },
+    { emoji: '🌱', label: 'Sustentabilidade & ESG',   query_pt: 'sustentabilidade ESG clima',       query_en: 'sustainability ESG climate' },
+    { emoji: '🚗', label: 'Auto & mobilidade',        query_pt: 'automóveis carros elétricos',      query_en: 'automotive EV mobility' },
+    { emoji: '🎓', label: 'Educação',                 query_pt: 'educação universidade ensino',     query_en: 'education university schools' },
+    { emoji: '💼', label: 'Trabalho & carreira',      query_pt: 'mercado de trabalho carreira RH',  query_en: 'labor market career work' },
+    { emoji: '🛒', label: 'Consumo & marcas',         query_pt: 'consumo marcas marketing',         query_en: 'consumer brands marketing retail' },
+    { emoji: '💡', label: 'Curiosidades',              query_pt: 'curiosidades fatos descobertas insólito',    query_en: 'today I learned interesting facts trivia discoveries' },
+  ];
+
+  // ===== STATE =====
+  let trendingEnabled = true;
+  let customTopics = []; // [{ label, query }]
+
+  // ===== PAÍSES (código de discagem) =====
+  // BR sempre primeiro (default). Demais em ordem crescente de DDI.
+  // Em caso de DDI igual (+1: Canadá e EUA), ordem alfabética por nome.
+  const PHONE_COUNTRIES = [
+    { code: 'BR', flag: '🇧🇷', dial: '+55',  name: 'Brasil' },
+
+    { code: 'CA', flag: '🇨🇦', dial: '+1',   name: 'Canadá' },
+    { code: 'US', flag: '🇺🇸', dial: '+1',   name: 'Estados Unidos' },
+    { code: 'ZA', flag: '🇿🇦', dial: '+27',  name: 'África do Sul' },
+    { code: 'NL', flag: '🇳🇱', dial: '+31',  name: 'Holanda' },
+    { code: 'FR', flag: '🇫🇷', dial: '+33',  name: 'França' },
+    { code: 'ES', flag: '🇪🇸', dial: '+34',  name: 'Espanha' },
+    { code: 'IT', flag: '🇮🇹', dial: '+39',  name: 'Itália' },
+    { code: 'CH', flag: '🇨🇭', dial: '+41',  name: 'Suíça' },
+    { code: 'GB', flag: '🇬🇧', dial: '+44',  name: 'Reino Unido' },
+    { code: 'DK', flag: '🇩🇰', dial: '+45',  name: 'Dinamarca' },
+    { code: 'SE', flag: '🇸🇪', dial: '+46',  name: 'Suécia' },
+    { code: 'NO', flag: '🇳🇴', dial: '+47',  name: 'Noruega' },
+    { code: 'DE', flag: '🇩🇪', dial: '+49',  name: 'Alemanha' },
+    { code: 'PE', flag: '🇵🇪', dial: '+51',  name: 'Peru' },
+    { code: 'MX', flag: '🇲🇽', dial: '+52',  name: 'México' },
+    { code: 'AR', flag: '🇦🇷', dial: '+54',  name: 'Argentina' },
+    { code: 'CL', flag: '🇨🇱', dial: '+56',  name: 'Chile' },
+    { code: 'CO', flag: '🇨🇴', dial: '+57',  name: 'Colômbia' },
+    { code: 'AU', flag: '🇦🇺', dial: '+61',  name: 'Austrália' },
+    { code: 'NZ', flag: '🇳🇿', dial: '+64',  name: 'Nova Zelândia' },
+    { code: 'SG', flag: '🇸🇬', dial: '+65',  name: 'Cingapura' },
+    { code: 'JP', flag: '🇯🇵', dial: '+81',  name: 'Japão' },
+    { code: 'KR', flag: '🇰🇷', dial: '+82',  name: 'Coreia do Sul' },
+    { code: 'CN', flag: '🇨🇳', dial: '+86',  name: 'China' },
+    { code: 'IN', flag: '🇮🇳', dial: '+91',  name: 'Índia' },
+    { code: 'PT', flag: '🇵🇹', dial: '+351', name: 'Portugal' },
+    { code: 'IE', flag: '🇮🇪', dial: '+353', name: 'Irlanda' },
+    { code: 'UY', flag: '🇺🇾', dial: '+598', name: 'Uruguai' },
+    { code: 'SA', flag: '🇸🇦', dial: '+966', name: 'Arábia Saudita' },
+    { code: 'AE', flag: '🇦🇪', dial: '+971', name: 'Emirados Árabes' },
+    { code: 'IL', flag: '🇮🇱', dial: '+972', name: 'Israel' },
+  ];
+
+  function fillPhoneCountries() {
+    const sel = document.getElementById('phoneCountry');
+    sel.innerHTML = '';
+    PHONE_COUNTRIES.forEach(c => {
+      const opt = document.createElement('option');
+      // value armazena o dial code; texto curto pra caber no select fechado
+      opt.value = `${c.code}|${c.dial}`;
+      opt.textContent = `${c.flag} ${c.dial}`;
+      opt.dataset.fullname = c.name;
+      sel.appendChild(opt);
+    });
+    sel.value = 'BR|+55';
+  }
+
+  // ===== RENDER =====
+  function renderDate() {
+    const el = document.getElementById('todayDate');
+    if (!el) return;  // elemento foi removido no novo header — só ignora silenciosamente
+    const meses = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+    const dias = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+    const d = new Date();
+    el.textContent = `${dias[d.getDay()]} · ${String(d.getDate()).padStart(2,'0')} ${meses[d.getMonth()]} ${d.getFullYear()}`;
+  }
+
+  function renderTopics() {
+    const grid = document.getElementById('topicsGrid');
+    grid.innerHTML = CURATED_TOPICS.map((t, i) => `
+      <label class="topic-chip">
+        <input type="checkbox" value="${i}">
+        <div class="topic-chip-label">
+          <span class="topic-emoji">${t.emoji}</span>
+          <span>${t.label}</span>
+        </div>
+      </label>
+    `).join('');
+    // Limite de 15 temas no total — intercepta marcação
+    grid.querySelectorAll('.topic-chip input').forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        if (e.target.checked && getTotalTopicsCount() > 15) {
+          e.target.checked = false;
+          alert('Máximo de 15 temas no total (curados + personalizados) 🙂');
+        }
+      });
+    });
+  }
+
+  // ===== DETECTOR DE ESCOPO PRA TEMAS PRÓPRIOS =====
+  // Retorna BR-only se: tem acento PT-BR OU termo claramente brasileiro.
+  // Caso contrário, BR + GLOBAL (default seguro).
+  const BR_PATTERNS = [
+    /[ãõçáéíóúâêôà]/i,                                  // acentos PT-BR
+    /\bbrasil(?:eir[oa]s?)?\b/i,                         // "brasil", "brasileiro", "brasileira"
+    /\b(sus|anvisa|cvm|copom|stf|tcu|cgu|anatel|anac|anp|aneel)\b/i,  // siglas BR
+    /\b(selic|ibovespa|bovespa|fiis?|cdb|lci|lca|lft|tesouro\s*direto)\b/i,  // financeiro BR
+    /\b(lula|bolsonaro|planalto|brasília|brasilia)\b/i,  // política BR
+    /\b(petrobras|magalu|magazine\s*luiza|nubank|btg\s*pactual|bradesco|ita[uú]|americanas|ambev|natura|botic[aá]rio|havaianas)\b/i,  // marcas BR
+    /\b(flamengo|palmeiras|corinthians|s[ãa]o\s*paulo\s*(fc|futebol)|grêmio|gremio|fluminense|vasco|botafogo|cruzeiro|atl[ée]tico\s*mineiro|santos\s*fc|internacional|libertadores|brasileir[aã]o|copa\s*do\s*brasil)\b/i, // esportes BR
+    /\b(s[ãa]o\s*paulo|rio\s*de\s*janeiro|belo\s*horizonte|brasília|brasilia|curitiba|salvador|recife|fortaleza|porto\s*alegre|manaus|bel[ée]m|goi[âa]nia)\b/i, // cidades BR
+  ];
+
+  function detectScope(query) {
+    if (BR_PATTERNS.some(p => p.test(query))) {
+      return { scopes: new Set(['BR']), reason: '🇧🇷 detectei termo brasileiro' };
+    }
+    return { scopes: new Set(['BR', 'GLOBAL']), reason: '🇧🇷🌍 vou buscar no Brasil e no mundo' };
+  }
+
+  function updateScopeHint() {
+    const val = document.getElementById('customTopicInput').value.trim();
+    const hint = document.getElementById('scopeHint');
+    if (!val) {
+      hint.innerHTML = '↳ digite acima e eu detecto o escopo';
+      return;
+    }
+    const { reason } = detectScope(val);
+    hint.innerHTML = `↳ <strong>${reason}</strong> · clique nas bandeirinhas do tag pra ajustar depois`;
+  }
+
+  function renderTags() {
+    const list = document.getElementById('tagsList');
+    list.innerHTML = customTopics.map((t, idx) => `
+      <span class="tag">
+        <button type="button" class="tag-flag ${t.scopes.has('BR') ? 'active' : ''}" onclick="toggleTagScope(${idx}, 'BR')" title="Brasil">🇧🇷</button>
+        <button type="button" class="tag-flag ${t.scopes.has('GLOBAL') ? 'active' : ''}" onclick="toggleTagScope(${idx}, 'GLOBAL')" title="Mundo">🌍</button>
+        <span class="tag-label">${t.label}</span>
+        <button type="button" class="tag-remove" onclick="removeTag(${idx})">×</button>
+      </span>
+    `).join('');
+  }
+
+  function toggleTagScope(idx, scope) {
+    const t = customTopics[idx];
+    if (t.scopes.has(scope)) {
+      // não permite desmarcar se for o último
+      if (t.scopes.size > 1) t.scopes.delete(scope);
     } else {
-      showError('Algo deu errado', e.message);
+      t.scopes.add(scope);
     }
+    renderTags();
   }
-}
 
-function showError(title, msg) {
-  document.getElementById('loadingScreen').style.display = 'none';
-  document.getElementById('editor').style.display = 'none';
-  document.getElementById('errorTitle').textContent = title;
-  document.getElementById('errorMessage').innerHTML = msg;
-  document.getElementById('errorScreen').style.display = 'block';
-}
+  function removeTag(idx) { customTopics.splice(idx, 1); renderTags(); }
 
-function renderEditor() {
-  document.getElementById('userName').textContent = currentUser.name;
-  document.getElementById('userEmail').textContent = currentUser.email;
-  document.getElementById('activeToggle').checked = currentUser.active !== false;
-  document.getElementById('activeLabel').textContent = currentUser.active !== false ? 'Ativa' : 'Pausada';
-  document.getElementById('trendingToggle').checked = currentUser.trending_enabled !== false;
-  // Modo de leitura
-  const mode = (currentUser.email_mode || 'coado').toLowerCase();
-  if (mode === 'espresso') {
-    document.getElementById('modeEspresso').checked = true;
-  } else {
-    document.getElementById('modeCoado').checked = true;
+  function getSelectedCuratedCount() {
+    return document.querySelectorAll('.topic-chip input:checked').length;
   }
-  renderTags();
-  renderFilters();
-}
 
-function renderFilters() {
-  const list = document.getElementById('filtersList');
-  const counter = document.getElementById('filterCounter');
-  if (!list) return;
-  list.innerHTML = '';
-  currentFilters.forEach((item, idx) => {
-    const tag = document.createElement('div');
-    tag.className = 'tag';
-    tag.style.background = 'var(--ink)';
-    tag.innerHTML = `
-      <span class="tag-label">${item.replace(/</g, '&lt;')}</span>
-      <button type="button" class="tag-remove filter-rm" data-idx="${idx}" aria-label="Remover">×</button>
-    `;
-    list.appendChild(tag);
-  });
-  if (counter) counter.textContent = `${currentFilters.length}/20`;
-}
-
-function addFilter() {
-  const input = document.getElementById('newFilterInput');
-  const value = (input.value || '').trim().slice(0, 100);
-  if (!value) return;
-  if (currentFilters.length >= 20) {
-    toast('Máximo de 20 filtros. Remova algum antes.', 'error');
-    return;
+  function getTotalTopicsCount() {
+    return getSelectedCuratedCount() + customTopics.length;
   }
-  // dedup case-insensitive
-  if (currentFilters.some(f => f.toLowerCase() === value.toLowerCase())) {
+
+  function addCustomTopic() {
+    const input = document.getElementById('customTopicInput');
+    const val = input.value.trim();
+    if (!val) return;
+    if (getTotalTopicsCount() >= 15) { alert('Máximo de 15 temas no total (curados + personalizados) 🙂'); return; }
+    if (customTopics.some(t => t.label.toLowerCase() === val.toLowerCase())) { alert('Esse tema já está na lista'); return; }
+    const { scopes } = detectScope(val);
+    customTopics.push({ label: val, query: val, scopes });
     input.value = '';
-    return;
+    updateScopeHint();
+    renderTags();
   }
-  currentFilters.push(value);
-  input.value = '';
-  renderFilters();
-}
 
-document.addEventListener('change', (e) => {
-  if (e.target.id === 'activeToggle') {
-    document.getElementById('activeLabel').textContent = e.target.checked ? 'Ativa' : 'Pausada';
-  }
-});
-
-// ===== TEMAS =====
-function renderTags() {
-  const list = document.getElementById('tagsList');
-  list.innerHTML = currentTopics.map((tp, idx) => `
-    <span class="tag">
-      <button type="button" class="tag-flag ${tp.scopes.has('BR') ? 'active' : ''}" onclick="toggleScope(${idx}, 'BR')">🇧🇷</button>
-      <button type="button" class="tag-flag ${tp.scopes.has('GLOBAL') ? 'active' : ''}" onclick="toggleScope(${idx}, 'GLOBAL')">🌍</button>
-      <span class="tag-label">${escapeHtml(tp.label)}</span>
-      <button type="button" class="tag-remove" onclick="removeTag(${idx})">×</button>
-    </span>
-  `).join('');
-}
-
-function escapeHtml(s) {
-  const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
-}
-
-function toggleScope(idx, scope) {
-  const tp = currentTopics[idx];
-  if (tp.scopes.has(scope)) {
-    if (tp.scopes.size > 1) tp.scopes.delete(scope);
-  } else {
-    tp.scopes.add(scope);
-  }
-  renderTags();
-}
-
-function removeTag(idx) { currentTopics.splice(idx, 1); renderTags(); }
-
-const BLOCKED_PATTERNS = [
-  /\bcomo\s+(?:fazer|construir|montar|fabricar)\s+(?:arma|fuzil|bomba|explosivo|granada)/i,
-  /\b(arma|fuzil|pistola|munição)\s+(?:caseir[ao]|artesanal|3d)/i,
-  /\bcomo\s+(?:fazer|sintetizar|produzir|cozinhar)\s+(?:cocaína|crack|meta|fentanil|lsd|metanfetamin|heroína|mdma)/i,
-  /\bcomo\s+(?:hackear|invadir)\s+(?:conta|whatsapp|instagram|facebook|email|wifi|senha)/i,
-  /\bcomo\s+(?:falsificar|forjar|fraudar|burlar)\s+(?:cpf|rg|nota|cnh|passaporte|documento)/i,
-  /\bcomo\s+(?:acessar|usar|comprar\s+em)\s+(?:dark\s*web|deep\s*web|silk\s*road)/i,
-  /\b(?:método|forma|como|jeito)\s+(?:de\s+|para\s+|pra\s+)?(?:suicídio|me\s+matar|se\s+matar)/i,
-  /\b(?:pedofilia|pornografia\s+infantil|child\s+porn|csam)/i,
-  /\b(?:supremacia|supremacist[ao]s?)\s+(?:branc[ao]|aria|racial)/i,
-  /\b(?:neonaz|nazismo|hitler\s+tinha\s+razão)/i,
-  /\b(?:expurgar|exterminar|aniquilar)\s+(?:negros|judeus|gays|lgbt|árabes)/i,
-  /\b(?:porno|pornô|pornografia|xvideos|onlyfans\s+vaza|nudes\s+vaza)/i,
-];
-function isBlockedTopic(query) {
-  if (!query) return false;
-  return BLOCKED_PATTERNS.some(p => p.test(query));
-}
-
-function addTopic() {
-  const input = document.getElementById('newTopicInput');
-  const val = input.value.trim();
-  if (!val) return;
-  if (currentTopics.length >= 15) return toast('Máximo de 15 temas', 'error');
-  if (currentTopics.some(tp => tp.label.toLowerCase() === val.toLowerCase())) return toast('Esse tema já está', 'error');
-  if (isBlockedTopic(val)) return toast('Tema rejeitado por política de uso (sem how-to perigoso)', 'error');
-  const { scopes } = detectScope(val);
-  currentTopics.push({ label: val, query: val, scopes, source: 'custom' });
-  input.value = '';
-  updateScopeHint();
-  renderTags();
-}
-
-function updateScopeHint() {
-  const val = document.getElementById('newTopicInput').value.trim();
-  const hint = document.getElementById('scopeHint');
-  if (!val) { hint.innerHTML = '↳ digite acima e eu detecto o escopo'; return; }
-  const { reason } = detectScope(val);
-  hint.innerHTML = `↳ <strong>${reason}</strong>`;
-}
-
-document.addEventListener('input', (e) => {
-  if (e.target.id === 'newTopicInput') updateScopeHint();
-});
-document.addEventListener('keydown', (e) => {
-  if (e.target.id === 'newTopicInput' && e.key === 'Enter') { e.preventDefault(); addTopic(); }
-  if (e.target.id === 'newFilterInput' && e.key === 'Enter') { e.preventDefault(); addFilter(); }
-});
-
-document.addEventListener('click', (e) => {
-  if (e.target.classList && e.target.classList.contains('filter-rm')) {
-    const idx = parseInt(e.target.dataset.idx);
-    if (!isNaN(idx)) {
-      currentFilters.splice(idx, 1);
-      renderFilters();
+  document.addEventListener('input', (e) => {
+    if (e.target.id === 'customTopicInput') updateScopeHint();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.target.id === 'customTopicInput' && e.key === 'Enter') {
+      e.preventDefault();
+      addCustomTopic();
     }
+  });
+
+  function toggleTrending() {
+    trendingEnabled = !trendingEnabled;
+    const t = document.getElementById('trendingToggle');
+    const lbl = document.getElementById('trendingLabel');
+    t.classList.toggle('on', trendingEnabled);
+    lbl.textContent = trendingEnabled ? 'Incluir Trending Topics' : 'Pular Trending Topics';
   }
-});
 
-// ===== SAVE =====
-async function saveChanges() {
-  const btn = document.getElementById('saveBtn');
-  btn.disabled = true; btn.textContent = 'Salvando...';
-  try {
-    const newActive = document.getElementById('activeToggle').checked;
-    const newTrending = document.getElementById('trendingToggle').checked;
-    const newMode = document.querySelector('input[name="emailMode"]:checked')?.value || 'coado';
+  // ===== MODO DE LEITURA (radio cards) =====
+  document.addEventListener('change', (e) => {
+    if (e.target.name === 'readingMode') {
+      document.getElementById('modeEspressoCard').classList.toggle('selected', e.target.value === 'espresso');
+      document.getElementById('modeCoadoCard').classList.toggle('selected', e.target.value === 'coado');
+    }
+  });
+  // Click no card todo seleciona o radio (label nativo já faz, mas garantia visual)
+  ['modeEspressoCard', 'modeCoadoCard'].forEach((id) => {
+    const card = document.getElementById(id);
+    if (card) {
+      card.addEventListener('click', () => {
+        const radio = card.querySelector('input[type="radio"]');
+        if (radio) {
+          radio.checked = true;
+          radio.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      });
+    }
+  });
 
-    // Monta topics_replacement: 1 record por (label × scope)
-    const topicsReplacement = [];
-    currentTopics.forEach(tp => {
-      [...tp.scopes].forEach(scope => {
-        topicsReplacement.push({
-          label: tp.label,
-          query: tp.query,
-          source: tp.source || 'custom',
-          country: scope,
-        });
+  // ===== FILTROS (lista de "não receber") =====
+  let filteredItems = [];
+
+  function renderFiltersList() {
+    const list = document.getElementById('filtersList');
+    list.innerHTML = '';
+    filteredItems.forEach((item, idx) => {
+      const tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.innerHTML = `
+        <span>${item.replace(/</g, '&lt;')}</span>
+        <button type="button" data-idx="${idx}" class="tag-remove" aria-label="Remover">×</button>
+      `;
+      list.appendChild(tag);
+    });
+    document.getElementById('filtersCounter').textContent = `${filteredItems.length}/20`;
+  }
+
+  function addFilter() {
+    const input = document.getElementById('filterInput');
+    const value = (input.value || '').trim().slice(0, 100);
+    if (!value) return;
+    if (filteredItems.length >= 20) {
+      alert('Máximo de 20 filtros. Remova algum antes de adicionar mais.');
+      return;
+    }
+    // dedup case-insensitive
+    const exists = filteredItems.some(f => f.toLowerCase() === value.toLowerCase());
+    if (exists) {
+      input.value = '';
+      return;
+    }
+    filteredItems.push(value);
+    input.value = '';
+    renderFiltersList();
+  }
+
+  document.addEventListener('click', (e) => {
+    if (e.target.id === 'addFilterBtn') addFilter();
+    if (e.target.classList && e.target.classList.contains('tag-remove')) {
+      const idx = parseInt(e.target.dataset.idx);
+      // verifica se é tag do filtersList ou de outro lugar (custom topics)
+      if (e.target.closest('#filtersList')) {
+        filteredItems.splice(idx, 1);
+        renderFiltersList();
+      }
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.target.id === 'filterInput' && e.key === 'Enter') {
+      e.preventDefault();
+      addFilter();
+    }
+  });
+
+  // ===== SUBMIT =====
+  document.getElementById('signupForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true; btn.textContent = 'Salvando…';
+
+    // Cada tema curado vira 2 records: BR + GLOBAL
+    const selectedIdx = [...document.querySelectorAll('.topic-chip input:checked')].map(c => parseInt(c.value));
+    const curatedRecords = [];
+    selectedIdx.forEach(i => {
+      const t = CURATED_TOPICS[i];
+      curatedRecords.push({ label: t.label, query: t.query_pt, source: 'curated', country: 'BR' });
+      curatedRecords.push({ label: t.label, query: t.query_en, source: 'curated', country: 'GLOBAL' });
+    });
+
+    // Cada tema customizado vira 1 record por escopo detectado/ajustado
+    const customRecords = [];
+    customTopics.forEach(t => {
+      [...t.scopes].forEach(scope => {
+        customRecords.push({ label: t.label, query: t.query, source: 'custom', country: scope });
       });
     });
 
-    await callManage('update', {
-      user_updates: { active: newActive, trending_enabled: newTrending, email_mode: newMode },
-      topics_replacement: topicsReplacement,
-      filtered_items: currentFilters,
+    const topics = [...curatedRecords, ...customRecords];
+
+    if (topics.length === 0 && !trendingEnabled) {
+      alert('Escolha pelo menos um tema OU ative Trending Topics 🙂');
+      btn.disabled = false; btn.textContent = 'Salvar alterações →';
+      return;
+    }
+
+    // Limite de 15 temas únicos
+    const uniqueLabels = new Set(topics.map(t => t.label.toLowerCase()));
+    if (uniqueLabels.size > 15) {
+      alert('Máximo de 15 temas no total. Você selecionou ' + uniqueLabels.size + '. Remova alguns antes de salvar.');
+      btn.disabled = false; btn.textContent = 'Salvar alterações →';
+      return;
+    }
+
+    // SAFETY: bloqueia temas explicitamente perigosos antes de salvar
+    const blockedTopic = topics.find(t => isBlockedTopic(t.query || t.label || ''));
+    if (blockedTopic) {
+      alert('Tema rejeitado: "' + (blockedTopic.label || blockedTopic.query) + '" contém conteúdo que não podemos curar.');
+      btn.disabled = false; btn.textContent = 'Salvar alterações →';
+      return;
+    }
+
+    // Captura modo de leitura escolhido
+    const selectedMode = document.querySelector('input[name="readingMode"]:checked');
+    const emailMode = (selectedMode && selectedMode.value === 'coado') ? 'coado' : 'espresso';
+
+    try {
+      await callManage('update', {
+        user_updates: {
+          trending_enabled: trendingEnabled,
+          trending_scope: 'br,global',
+          email_mode: emailMode,
+        },
+        topics_replacement: topics,
+        filtered_items: filteredItems,
+      });
+
+      // Sucesso
+      document.getElementById('signupForm').style.display = 'none';
+      document.querySelector('.hero').style.display = 'none';
+      document.getElementById('successScreen').classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao salvar: ' + err.message);
+      btn.disabled = false; btn.textContent = 'Salvar alterações →';
+    }
+  });
+
+  // ===== CANCELAR INSCRIÇÃO =====
+  document.getElementById('btnCancel').addEventListener('click', async () => {
+    if (!confirm('Tem certeza que quer cancelar sua inscrição no Recorte?\n\nVocê vai parar de receber os emails. Pode se cadastrar de novo quando quiser.')) return;
+    try {
+      await callManage('delete');
+      window.location.href = '/unsubscribed.html?ok=1';
+    } catch (err) {
+      alert('Erro ao cancelar: ' + err.message + '\n\nVocê também pode clicar em "Cancelar inscrição" no rodapé de qualquer email do Recorte.');
+    }
+  });
+
+  // ===== SAFETY: padrões bloqueados (espelha scripts/safety.py) =====
+  const BLOCKED_PATTERNS = [
+    /\bcomo\s+(?:fazer|construir|montar|fabricar)\s+(?:arma|fuzil|bomba|explosivo|granada)/i,
+    /\b(arma|fuzil|pistola|munição)\s+(?:caseir[ao]|artesanal|3d)/i,
+    /\bcomo\s+(?:fazer|sintetizar|produzir|cozinhar)\s+(?:cocaína|crack|meta|fentanil|lsd|metanfetamin|heroína|mdma)/i,
+    /\bcomo\s+(?:hackear|invadir)\s+(?:conta|whatsapp|instagram|facebook|email|wifi|senha)/i,
+    /\bcomo\s+(?:falsificar|forjar|fraudar|burlar)\s+(?:cpf|rg|nota|cnh|passaporte|documento)/i,
+    /\bcomo\s+(?:acessar|usar|comprar\s+em)\s+(?:dark\s*web|deep\s*web|silk\s*road)/i,
+    /\b(?:método|forma|como|jeito)\s+(?:de\s+|para\s+|pra\s+)?(?:suicídio|me\s+matar|se\s+matar)/i,
+    /\b(?:pedofilia|pornografia\s+infantil|child\s+porn|csam)/i,
+    /\b(?:supremacia|supremacist[ao]s?)\s+(?:branc[ao]|aria|racial)/i,
+    /\b(?:neonaz|nazismo|hitler\s+tinha\s+razão)/i,
+    /\b(?:expurgar|exterminar|aniquilar)\s+(?:negros|judeus|gays|lgbt|árabes)/i,
+    /\b(?:porno|pornô|pornografia|xvideos|onlyfans\s+vaza|nudes\s+vaza)/i,
+  ];
+  function isBlockedTopic(query) {
+    if (!query) return false;
+    return BLOCKED_PATTERNS.some(p => p.test(query));
+  }
+
+  // ===== PRE-FILL: aplica dados do user nas etapas =====
+  function applyUserData(user, topics, filtered) {
+    // Modo de leitura
+    const mode = (user.email_mode === 'coado') ? 'coado' : 'espresso';
+    const modeInput = document.querySelector(`input[name="readingMode"][value="${mode}"]`);
+    if (modeInput) modeInput.checked = true;
+    // Badge do hero
+    const badge = document.getElementById('modeBadge');
+    if (badge) badge.textContent = mode === 'coado' ? 'Coado' : 'Espresso';
+
+    // Trending toggle
+    trendingEnabled = user.trending_enabled !== false;
+    const trendCheck = document.getElementById('trendingToggle');
+    if (trendCheck) {
+      if (trendingEnabled) trendCheck.classList.add('on');
+      else trendCheck.classList.remove('on');
+    }
+
+    // Cards curados — marca os que o user tem
+    const userLabels = new Set((topics || []).map(t => (t.label || '').toLowerCase()));
+    document.querySelectorAll('.topic-chip').forEach(chip => {
+      const input = chip.querySelector('input');
+      const idx = parseInt(input.value);
+      const topic = CURATED_TOPICS[idx];
+      if (topic && userLabels.has(topic.label.toLowerCase())) {
+        input.checked = true;
+        chip.classList.add('selected');
+      }
     });
 
-    toast('Salvo! Próxima edição já vem com as mudanças.', 'success');
-    currentUser.active = newActive;
-    currentUser.trending_enabled = newTrending;
-    currentUser.email_mode = newMode;
-  } catch (e) {
-    toast('Erro: ' + e.message, 'error');
-  } finally {
-    btn.disabled = false; btn.textContent = 'Salvar mudanças';
+    // Temas customizados — agrupados por label
+    const customByLabel = {};
+    (topics || []).forEach(t => {
+      if (t.source !== 'custom') return;
+      if (!customByLabel[t.label]) {
+        customByLabel[t.label] = { label: t.label, query: t.query, scopes: new Set() };
+      }
+      customByLabel[t.label].scopes.add(t.country);
+    });
+    customTopics = Object.values(customByLabel);
+    renderTags();
+
+    // Filtros
+    filteredItems = Array.isArray(filtered) ? filtered.slice(0, 20) : [];
+    renderFiltersList();
+
+    // Welcome subtitle com nome
+    const sub = document.getElementById('welcomeSub');
+    if (sub && user.name) {
+      const first = user.name.split(' ')[0];
+      sub.innerHTML = `<strong>${first}</strong>, mude temas, modo de leitura, filtros — tudo se atualiza a partir do próximo Recorte.`;
+    }
   }
-}
 
-async function deleteAccount() {
-  if (!confirm('Tem certeza? Esta ação não pode ser desfeita.\n\nVocê para de receber emails imediatamente.')) return;
-  try {
-    await callManage('delete');
-    toast('Inscrição cancelada. Sentiremos sua falta ☕', 'success');
-    setTimeout(() => { document.getElementById('editor').style.display = 'none'; }, 1500);
-  } catch (e) {
-    toast('Erro: ' + e.message, 'error');
+  // ===== INIT =====
+  async function init() {
+    if (!token.u || !token.t) return;  // erro já tratado acima
+
+    renderDate();
+    renderTopics();
+
+    try {
+      const data = await callManage('get');
+      applyUserData(data.user || {}, data.topics || [], data.filtered_items || []);
+      document.getElementById('loadingScreen').style.display = 'none';
+      document.getElementById('editor').style.display = 'block';
+    } catch (err) {
+      console.error(err);
+      document.getElementById('loadingScreen').style.display = 'none';
+      document.getElementById('errorScreen').style.display = 'block';
+      if (err.message === 'expired') {
+        document.getElementById('errorTitle').textContent = 'Link expirado';
+        document.getElementById('errorMsg').innerHTML = 'Esse link de preferências passou de 30 dias. Use o link <strong>"⚙ Ajustar preferências"</strong> no rodapé de um Recorte mais recente.';
+      } else if (err.message === 'invalid_token') {
+        document.getElementById('errorTitle').textContent = 'Link inválido';
+        document.getElementById('errorMsg').innerHTML = 'Esse link parece corrompido. Use um link de um email mais recente.';
+      } else if (err.message === 'not_found') {
+        document.getElementById('errorTitle').textContent = 'Não encontramos seu cadastro';
+        document.getElementById('errorMsg').innerHTML = 'Pode ser que você tenha cancelado a inscrição. Pra voltar, é só se cadastrar de novo em <a href="/cadastro.html" style="color: var(--mint-deep); font-weight: 700;">recorte.news/cadastro</a>.';
+      } else {
+        document.getElementById('errorTitle').textContent = 'Algo deu errado';
+        document.getElementById('errorMsg').textContent = err.message;
+      }
+    }
   }
-}
 
-// ===== TOAST =====
-function toast(msg, type) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast ' + (type || '') + ' show';
-  setTimeout(() => t.classList.remove('show'), 4000);
-}
-
-init();
+  init();
 </script>
 
 </body>
