@@ -8,7 +8,7 @@ USAGE:
     from voice_prompt import VOICE_PROMPT
 
     response = client.messages.create(
-        model="claude-sonnet-4-5",
+        model="claude-sonnet-4-6",
         system=[
             {"type": "text", "text": VOICE_PROMPT, "cache_control": {"type": "ephemeral"}},
             # ... outros blocos de system, com cache_control nos estáveis
