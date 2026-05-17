@@ -3,11 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Recorte ✂ — Sua newsletter, única, todo dia</title>
-<meta name="description" content="A primeira newsletter de notícias do mundo personalizada pra cada leitor. Receba seu Recorte todo dia antes do café.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Mulish:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<title>Recorte ✂ — Sua edição, todo dia, antes do café</title>
+<meta name="description" content="Tudo que acontece no mundo. Só o que importa pra você. Em 5 minutos, antes do café.">
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,700,800,900,400i,700i&f[]=general-sans@400,500,600,700&f[]=gambarino@400i,400&display=swap">
 <style>
 :root {
   --mint: #6EE7B7;
@@ -25,7 +24,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { -webkit-text-size-adjust: 100%; }
 body {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: 'Switzer', sans-serif;
   background: var(--bg); color: var(--ink);
   font-size: 19px; line-height: 1.6;
   font-variation-settings: "opsz" 14;
@@ -36,12 +35,12 @@ a { color: inherit; text-decoration: none; }
 /* HEADER */
 .header { background: var(--bg); position: sticky; top: 0; z-index: 100; border-bottom: 1.5px solid var(--ink); }
 .header-inner { max-width: 1080px; margin: 0 auto; padding: 18px 28px; display: flex; align-items: center; justify-content: space-between; }
-.brand { font-family: 'Fraunces', serif; font-weight: 700; font-size: 24px; letter-spacing: -0.025em; color: var(--ink); display: flex; align-items: center; gap: 12px; }
+.brand { font-family: 'Switzer', sans-serif; font-weight: 700; font-size: 24px; letter-spacing: -0.025em; color: var(--ink); display: flex; align-items: center; gap: 12px; }
 .brand-icon {
   display: inline-flex; align-items: center; justify-content: center;
   width: 40px; height: 40px; border-radius: 50%;
   background: var(--bg); border: 2.5px solid var(--ink);
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: 'Switzer', sans-serif;
   font-style: italic; font-weight: 700;
   font-size: 24px; color: var(--ink);
   letter-spacing: -0.05em; line-height: 1;
@@ -50,12 +49,12 @@ a { color: inherit; text-decoration: none; }
 .brand-dot { color: var(--mint-deep); }
 
 .nav { display: flex; align-items: center; gap: 28px; }
-.nav a { font-family: 'Mulish', sans-serif; font-size: 15px; font-weight: 700; color: var(--ink-soft); transition: color .15s; }
+.nav a { font-family: 'General Sans', sans-serif; font-size: 15px; font-weight: 700; color: var(--ink-soft); transition: color .15s; }
 .nav a:hover { color: var(--ink); }
 .nav-cta {
   background: var(--ink); color: var(--bg) !important;
   padding: 11px 20px; border-radius: 4px;
-  font-family: 'Fraunces', serif !important;
+  font-family: 'Switzer', sans-serif !important;
   font-style: italic; font-weight: 700 !important;
   transition: all .15s;
 }
@@ -78,7 +77,7 @@ a { color: inherit; text-decoration: none; }
 
 /* KICKER */
 .kicker {
-  font-family: 'Mulish', sans-serif;
+  font-family: 'General Sans', sans-serif;
   font-weight: 800; font-size: 13px;
   letter-spacing: 0.22em; color: var(--mint-dark);
   text-transform: uppercase;
@@ -92,7 +91,7 @@ a { color: inherit; text-decoration: none; }
 .free-badge {
   display: inline-flex; align-items: center;
   background: var(--yellow); color: var(--ink);
-  font-family: 'Mulish', sans-serif;
+  font-family: 'General Sans', sans-serif;
   font-weight: 800; font-size: 11px;
   letter-spacing: 0.18em; text-transform: uppercase;
   padding: 5px 12px 6px; border-radius: 3px;
@@ -103,8 +102,7 @@ a { color: inherit; text-decoration: none; }
 .hero { padding: 72px 0 56px; }
 @media (max-width: 640px) { .hero { padding: 48px 0 40px; } }
 .hero h1 {
-  font-family: 'Fraunces', Georgia, serif;
-  font-weight: 700;
+  font-family: 'Switzer', sans-serif; font-weight: 900; letter-spacing: -0.045em;
   font-size: clamp(42px, 7vw, 84px);
   line-height: 0.98; letter-spacing: -0.035em;
   color: var(--ink); margin-bottom: 26px; max-width: 820px;
@@ -118,7 +116,7 @@ a { color: inherit; text-decoration: none; }
   -webkit-box-decoration-break: clone;
 }
 .hero-subtitle {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: 'Switzer', sans-serif;
   font-size: 22px; line-height: 1.5;
   color: var(--ink-soft); margin-bottom: 40px; max-width: 580px;
   font-weight: 400;
@@ -129,8 +127,7 @@ a { color: inherit; text-decoration: none; }
 .cta-primary {
   display: inline-flex; align-items: center; gap: 12px;
   background: var(--ink); color: var(--mint);
-  font-family: 'Fraunces', serif; font-style: italic;
-  font-weight: 700; font-size: 20px;
+  font-family: 'Gambarino', Georgia, serif; font-style: italic; font-weight: 400; font-size: 20px;
   padding: 18px 32px; border-radius: 4px;
   transition: all .15s; border: none; cursor: pointer;
 }
@@ -138,7 +135,7 @@ a { color: inherit; text-decoration: none; }
 .cta-primary .arrow { font-style: normal; font-weight: 700; transition: transform .15s; }
 .cta-primary:hover .arrow { transform: translateX(4px); }
 .cta-note {
-  font-family: 'Mulish', sans-serif;
+  font-family: 'General Sans', sans-serif;
   font-weight: 700; font-size: 12px;
   letter-spacing: 0.15em; color: var(--ink);
   background: var(--yellow); padding: 5px 11px;
@@ -168,7 +165,7 @@ a { color: inherit; text-decoration: none; }
   pointer-events: none;
 }
 .cut-line-labels span {
-  font-family: 'Mulish', sans-serif;
+  font-family: 'General Sans', sans-serif;
   font-size: 11px; letter-spacing: 0.3em;
   color: var(--mint-dark); text-transform: uppercase;
   font-weight: 700;
@@ -182,8 +179,7 @@ a { color: inherit; text-decoration: none; }
 /* DIFF */
 .diff { padding: 72px 0 0; border-top: 1.5px solid var(--ink); }
 .diff h2 {
-  font-family: 'Fraunces', Georgia, serif;
-  font-weight: 700;
+  font-family: 'Switzer', sans-serif; font-weight: 900; letter-spacing: -0.045em;
   font-size: clamp(32px, 5vw, 52px);
   line-height: 1.08; letter-spacing: -0.03em;
   margin-bottom: 48px; max-width: 760px;
@@ -200,8 +196,7 @@ a { color: inherit; text-decoration: none; }
   .diff-point { grid-template-columns: 1fr; gap: 8px; }
 }
 .diff-num {
-  font-family: 'Fraunces', serif;
-  font-style: italic; font-weight: 600;
+  font-family: 'Gambarino', Georgia, serif; font-style: italic; font-weight: 600;
   font-size: 52px; color: var(--mint-deep);
   line-height: 1;
 }
@@ -211,12 +206,12 @@ a { color: inherit; text-decoration: none; }
   background: var(--yellow); margin-top: 6px;
 }
 .diff-point h3 {
-  font-family: 'Fraunces', serif; font-weight: 700;
+  font-family: 'Switzer', sans-serif; font-weight: 700;
   font-size: 26px; line-height: 1.2;
   letter-spacing: -0.02em; margin-bottom: 10px;
 }
 .diff-point p {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: 'Switzer', sans-serif;
   font-size: 19px; line-height: 1.55;
   color: var(--ink-soft); max-width: 640px;
   font-weight: 400;
@@ -236,11 +231,11 @@ a { color: inherit; text-decoration: none; }
   text-align: center;
 }
 .note-strip p {
-  font-family: 'Fraunces', serif; font-style: italic;
+  font-family: 'Gambarino', Georgia, serif; font-style: italic;
   font-size: 20px; color: var(--ink); font-weight: 500;
 }
 .note-strip p strong {
-  font-family: 'Mulish', sans-serif;
+  font-family: 'General Sans', sans-serif;
   font-style: normal; font-weight: 800;
   font-size: 11px; letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -265,11 +260,11 @@ a { color: inherit; text-decoration: none; }
 }
 .stat-item {
   display: flex; align-items: baseline; gap: 10px;
-  font-family: 'Mulish', sans-serif; font-size: 14px; font-weight: 600;
+  font-family: 'General Sans', sans-serif; font-size: 14px; font-weight: 600;
   color: var(--mint); letter-spacing: 0.04em;
 }
 .stat-item strong {
-  font-family: 'Fraunces', serif; font-style: italic;
+  font-family: 'Gambarino', Georgia, serif; font-style: italic;
   font-weight: 600; font-size: 22px; color: var(--yellow);
 }
 @media (max-width: 640px) {
@@ -279,7 +274,7 @@ a { color: inherit; text-decoration: none; }
 /* CTA FINAL */
 .cta-final { padding: 80px 0; text-align: center; }
 .cta-final h2 {
-  font-family: 'Fraunces', serif; font-weight: 700;
+  font-family: 'Switzer', sans-serif; font-weight: 700;
   font-size: clamp(28px, 4.5vw, 44px);
   line-height: 1.12; letter-spacing: -0.025em;
   color: var(--ink); margin-bottom: 28px; max-width: 640px;
@@ -291,13 +286,12 @@ a { color: inherit; text-decoration: none; }
 /* FOOTER */
 .footer {
   padding: 40px 28px; text-align: center;
-  font-family: 'Mulish', sans-serif;
+  font-family: 'General Sans', sans-serif;
   font-size: 13px; color: var(--ink-muted);
   border-top: 1px solid var(--line);
 }
 .footer-brand {
-  font-family: 'Fraunces', serif; font-style: italic;
-  font-weight: 700; font-size: 18px; color: var(--ink); margin-bottom: 8px;
+  font-family: 'Gambarino', Georgia, serif; font-style: italic; font-weight: 400; font-size: 18px; color: var(--ink); margin-bottom: 8px;
 }
 .footer-links { margin-top: 12px; }
 .footer-links a { margin: 0 12px; color: var(--ink-soft); font-weight: 700; }
@@ -324,12 +318,12 @@ a { color: inherit; text-decoration: none; }
 <section class="hero">
   <div class="container">
     <div class="kicker">
-      <span><span class="star">★</span> Newsletter diária por e-mail</span>
+      <span><span class="star">★</span> Sua edição diária, no e-mail</span>
       <span class="free-badge">Grátis</span>
     </div>
     <div class="kicker-line"></div>
     <h1>Não é mais <span class="italic">uma newsletter.</span> É a <span class="hl">sua.</span></h1>
-    <p class="hero-subtitle">Personalizada todo dia de acordo com os seus interesses — pronta antes do café.</p>
+    <p class="hero-subtitle">Cada manhã, recortamos pra você só o que você quer ler. Antes do café.</p>
     <div class="cta-row">
       <a href="/cadastro.html" class="cta-primary">
         Receber meu primeiro Recorte
@@ -351,7 +345,7 @@ a { color: inherit; text-decoration: none; }
   <div class="container">
     <div class="kicker"><span class="star">★</span> Por que é diferente</div>
     <div class="kicker-line"></div>
-    <h2>Newsletter geralmente é <span class="italic">igual</span> pra todo mundo.<br>A sua, não.</h2>
+    <h2>Jornal geralmente é <span class="italic">igual</span> pra todo mundo.<br>O seu Recorte, não.</h2>
 
     <div class="diff-point">
       <div class="diff-num">01</div>
@@ -363,8 +357,8 @@ a { color: inherit; text-decoration: none; }
     <div class="diff-point">
       <div class="diff-num">02</div>
       <div class="diff-text">
-        <h3>Curado por agentes de IA, supervisionado por gente</h3>
-        <p>Super agentes de IA treinados e monitorados por humanos leem o mundo todo dia, filtram o que importa pra você, traduzem o que vem de fora e montam sua edição.</p>
+        <h3>A gente lê o mundo todo dia, pra você</h3>
+        <p>A gente lê o mundo todo dia, filtra o que importa pra você, traduz o que vem de fora e monta sua edição. Cada Recorte é único — ninguém recebe o seu.</p>
       </div>
     </div>
     <div class="diff-point">
@@ -407,7 +401,7 @@ a { color: inherit; text-decoration: none; }
 
 <footer class="footer">
   <div class="footer-brand">Recorte ✂</div>
-  <div>Newsletter diária personalizada · sem rastreio, sem ads.</div>
+  <div>Edição diária pra você · sem rastreio, sem ads.</div>
   <div class="footer-links">
     <a href="/sobre.html">Sobre</a>
     <a href="/faq.html">FAQ</a>

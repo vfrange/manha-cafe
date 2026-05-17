@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recorte ✂ — Instagram Kit</title>
+<link rel="stylesheet"
+  href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,700,800,900,400i,700i&f[]=general-sans@400,500,600,700&f[]=gambarino@400i,400&display=swap">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --cream: #F2F0E6;
+    --cream-2: #E8E5D8;
+    --ink: #1A1A1A;
+    --ink-soft: #4A4A4A;
+    --ink-muted: #7A7A7A;
+    --line: #C0BFB0;
+    --mint: #9FE5C8;
+    --mint-deep: #0A6E50;
+    --mint-dark: #064033;
+    --yellow: #FFD60A;
+    --yellow-bg: #FFF5BD;
+    --coral: #FF7A6E;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #0a0a0a;
+    color: #f0f0f0;
+    font-family: 'General Sans', -apple-system, sans-serif;
+    line-height: 1.55;
+    padding: 32px 16px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+
+  /* HEADER */
+  .page-header {
+    text-align: center;
+    padding: 24px 0 36px;
+    border-bottom: 1px solid #2a2a2a;
+    margin-bottom: 40px;
+  }
+  .page-header h1 {
+    font-family: 'Switzer', sans-serif;
+    font-size: 36px;
+    font-weight: 900;
+    letter-spacing: -0.035em;
+    margin: 0 0 12px;
+    color: white;
+  }
+  .page-header .it {
+    font-family: 'Gambarino', serif;
+    font-style: italic;
+    font-weight: 400;
+    color: var(--mint);
+  }
+  .page-header p {
+    color: #b0b0b0;
+    font-size: 15px;
+    max-width: 680px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* SECTION */
+  section {
+    margin-bottom: 48px;
+  }
+  section .label {
+    display: inline-block;
+    background: var(--mint);
+    color: var(--mint-dark);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 3px;
+    margin-bottom: 14px;
+  }
+  section h2 {
+    font-family: 'Switzer', sans-serif;
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: -0.025em;
+    margin: 0 0 14px;
+    color: white;
+  }
+  section .desc {
+    color: #a0a0a0;
+    font-size: 14px;
+    margin-bottom: 24px;
+    max-width: 700px;
+    line-height: 1.6;
+  }
+  section .desc strong { color: white; }
+
+  /* LOGO/AVATAR DISPLAY */
+  .avatar-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 720px) {
+    .avatar-grid { grid-template-columns: 1fr; }
+  }
+  .avatar-card {
+    background: var(--cream);
+    border-radius: 14px;
+    padding: 32px;
+    text-align: center;
+  }
+  .avatar-card .label-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-muted);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  /* Avatar v1: wordmark "R✂" centralizado */
+  .avatar-1 {
+    width: 200px; height: 200px;
+    margin: 0 auto 18px;
+    border-radius: 50%;
+    background: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .avatar-1 .symbol {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 900;
+    font-size: 110px;
+    letter-spacing: -0.06em;
+    color: var(--cream);
+    line-height: 1;
+    display: flex;
+    align-items: center;
+  }
+  .avatar-1 .symbol .scissor {
+    color: var(--mint);
+    font-size: 70px;
+    margin-left: -8px;
+    transform: translateY(-4px);
+  }
+  /* Avatar v2: wordmark "Recorte" completo em mint sobre ink */
+  .avatar-2 {
+    width: 200px; height: 200px;
+    margin: 0 auto 18px;
+    border-radius: 50%;
+    background: var(--mint);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .avatar-2 .word {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 900;
+    font-size: 38px;
+    letter-spacing: -0.04em;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .avatar-2 .word .scissor {
+    color: var(--ink);
+    margin-left: 1px;
+  }
+  .avatar-2 .tag {
+    font-family: 'General Sans', sans-serif;
+    font-weight: 700;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mint-dark);
+  }
+  .avatar-card .meta {
+    font-family: 'General Sans', sans-serif;
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+  .avatar-card .meta strong { color: var(--ink); font-weight: 700; }
+
+  /* BIO BOX */
+  .bio-box {
+    background: white;
+    border-radius: 12px;
+    padding: 28px;
+    max-width: 360px;
+    margin: 0 auto;
+  }
+  .bio-name {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 900;
+    font-size: 24px;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+    margin: 0 0 4px;
+  }
+  .bio-name .scissor { color: var(--mint-deep); margin-left: 2px; }
+  .bio-handle {
+    font-family: 'General Sans', sans-serif;
+    font-size: 14px;
+    color: var(--ink-muted);
+    margin: 0 0 16px;
+  }
+  .bio-stat-row {
+    display: flex;
+    gap: 28px;
+    margin: 0 0 18px;
+    font-family: 'General Sans', sans-serif;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .bio-stat-row strong {
+    color: var(--ink);
+    font-weight: 700;
+    display: block;
+    font-size: 15px;
+  }
+  .bio-text {
+    font-family: 'General Sans', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.5;
+    margin: 0;
+  }
+  .bio-text .it {
+    font-family: 'Gambarino', serif;
+    font-style: italic;
+    font-weight: 400;
+    color: var(--mint-deep);
+  }
+  .bio-link {
+    color: var(--mint-deep);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 14px;
+    display: block;
+    margin-top: 8px;
+  }
+  .char-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-muted);
+    margin-top: 14px;
+    text-align: right;
+  }
+
+  /* GRID 3x3 */
+  .ig-grid {
+    background: white;
+    padding: 4px;
+    border-radius: 12px;
+    max-width: 540px;
+    margin: 0 auto;
+  }
+  .ig-grid-inner {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    aspect-ratio: 1 / 1;
+  }
+  .ig-cell {
+    aspect-ratio: 1 / 1;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 14px;
+    text-align: center;
+    font-family: 'Switzer', sans-serif;
+  }
+  /* Cell 1 - cream bg + tagline part 1 */
+  .c1 {
+    background: var(--cream);
+    color: var(--ink);
+  }
+  .c1 .big {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 900;
+    font-size: 22px;
+    line-height: 1.05;
+    letter-spacing: -0.035em;
+  }
+  /* Cell 2 - logo */
+  .c2 {
+    background: var(--ink);
+    color: var(--cream);
+  }
+  .c2 .word {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 900;
+    font-size: 36px;
+    letter-spacing: -0.045em;
+    line-height: 1;
+  }
+  .c2 .word .scissor { color: var(--mint); margin-left: 1px; }
+  .c2 .tag {
+    font-family: 'General Sans', sans-serif;
+    font-weight: 600;
+    font-size: 8px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--mint);
+    margin-top: 8px;
+  }
+  /* Cell 3 - yellow + italic */
+  .c3 {
+    background: var(--yellow-bg);
+    color: var(--ink);
+  }
+  .c3 .big {
+    font-family: 'Gambarino', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 22px;
+    line-height: 1.1;
+  }
+  /* Cell 4 - mint + tagline part 2 */
+  .c4 {
+    background: var(--mint);
+    color: var(--mint-dark);
+  }
+  .c4 .big {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 900;
+    font-size: 18px;
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+  }
+  /* Cell 5 - center hero */
+  .c5 {
+    background: var(--cream-2);
+    color: var(--ink);
+  }
+  .c5 .quote {
+    font-family: 'Gambarino', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 18px;
+    line-height: 1.15;
+    color: var(--ink);
+  }
+  .c5 .quote .strong-it {
+    background: var(--yellow);
+    padding: 0 4px;
+  }
+  /* Cell 6 - mint-dark + example manchete */
+  .c6 {
+    background: var(--mint-dark);
+    color: var(--cream);
+  }
+  .c6 .kicker {
+    font-family: 'General Sans', sans-serif;
+    font-weight: 700;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mint);
+    margin-bottom: 6px;
+  }
+  .c6 .head {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 900;
+    font-size: 16px;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+  }
+  /* Cell 7 - coral + tagline part 3 */
+  .c7 {
+    background: var(--cream);
+    color: var(--ink);
+  }
+  .c7 .big {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 900;
+    font-size: 20px;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+  }
+  /* Cell 8 - tipos de tema (emojis) */
+  .c8 {
+    background: var(--yellow);
+    color: var(--ink);
+  }
+  .c8 .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    font-size: 22px;
+    width: 100%;
+  }
+  .c8 .grid > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .c8 .grid > div small {
+    font-family: 'General Sans', sans-serif;
+    font-weight: 700;
+    font-size: 8px;
+    margin-top: 2px;
+    letter-spacing: 0.05em;
+  }
+  /* Cell 9 - CTA */
+  .c9 {
+    background: var(--ink);
+    color: var(--cream);
+  }
+  .c9 .cta {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 900;
+    font-size: 16px;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+  }
+  .c9 .url {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    font-size: 10px;
+    color: var(--mint);
+    margin-top: 12px;
+    letter-spacing: 0.04em;
+  }
+
+  /* IG mockup phone */
+  .ig-phone {
+    background: white;
+    border-radius: 24px;
+    max-width: 380px;
+    margin: 0 auto;
+    overflow: hidden;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+  }
+  .ig-header {
+    padding: 16px;
+    border-bottom: 1px solid #efefef;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .ig-header .ava {
+    width: 78px; height: 78px;
+    border-radius: 50%;
+    background: var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .ig-header .ava-content {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 900;
+    font-size: 44px;
+    letter-spacing: -0.06em;
+    color: var(--cream);
+    line-height: 1;
+    display: flex;
+    align-items: center;
+  }
+  .ig-header .ava-content .scissor {
+    color: var(--mint);
+    font-size: 28px;
+    margin-left: -3px;
+    transform: translateY(-2px);
+  }
+  .ig-header .stats {
+    display: flex;
+    gap: 16px;
+    flex: 1;
+    justify-content: space-around;
+  }
+  .ig-header .stat {
+    text-align: center;
+    font-family: 'General Sans', sans-serif;
+    font-size: 12px;
+    color: #262626;
+  }
+  .ig-header .stat strong { display: block; font-size: 14px; }
+  .ig-bio {
+    padding: 12px 16px;
+    color: #262626;
+    font-family: 'General Sans', sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .ig-bio .name {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 900;
+    font-size: 15px;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin-bottom: 2px;
+  }
+  .ig-bio .name .scissor { color: var(--mint-deep); margin-left: 1px; }
+  .ig-bio .cat {
+    font-size: 12px;
+    color: #8e8e8e;
+    margin-bottom: 6px;
+  }
+  .ig-bio .link {
+    color: #00376b;
+    font-weight: 600;
+    font-size: 12px;
+    margin-top: 4px;
+    display: block;
+  }
+  .ig-buttons {
+    display: flex;
+    gap: 6px;
+    padding: 8px 16px 16px;
+  }
+  .ig-buttons button {
+    flex: 1;
+    padding: 7px;
+    font-family: 'General Sans', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .ig-buttons button.primary { background: #0095f6; color: white; }
+  .ig-buttons button.sec { background: #efefef; color: #262626; }
+  .ig-grid-tab {
+    border-top: 1px solid #efefef;
+    padding-top: 0;
+  }
+  .ig-grid-tab .tab {
+    display: flex;
+    justify-content: center;
+    border-bottom: 1px solid #efefef;
+    padding: 10px;
+    color: #262626;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .ig-grid-tab .tab span { padding: 0 16px; border-bottom: 2px solid #262626; padding-bottom: 8px; }
+  .ig-grid-mini {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+  }
+  .ig-grid-mini .cell { aspect-ratio: 1; }
+
+  /* DETAIL viewers */
+  .specs {
+    background: rgba(159,229,200,0.08);
+    border-left: 3px solid var(--mint);
+    padding: 18px 22px;
+    border-radius: 4px;
+    margin-top: 24px;
+    color: #d0d0d0;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .specs strong { color: white; }
+  .specs code {
+    background: rgba(0,0,0,0.4);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--mint);
+  }
+
+  /* DOWNLOAD reminder */
+  .footer-note {
+    background: var(--ink);
+    color: var(--cream);
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-top: 56px;
+    text-align: center;
+  }
+  .footer-note h3 {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 900;
+    font-size: 18px;
+    letter-spacing: -0.02em;
+    color: var(--mint);
+    margin: 0 0 8px;
+  }
+  .footer-note p {
+    margin: 0;
+    color: #b0b0b0;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="page-header">
+    <h1>Recorte ✂ <span class="it">no Instagram</span></h1>
+    <p>Avatar, bio e grid 3x3 inicial. Voice guide aplicado. Pronto pra screenshot e upload.</p>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- 1. AVATAR (LOGO) -->
+  <!-- ============================================ -->
+  <section>
+    <span class="label">01 · AVATAR</span>
+    <h2>Logo do perfil — 2 versões</h2>
+    <p class="desc">Avatar do Instagram aparece em 110px dentro de círculo. <strong>Texto não pode ser pequeno demais</strong> (perde legibilidade) nem encostar nas bordas. Duas versões abaixo. <strong>Recomendação: usar V1</strong> (símbolo "R✂") — mais reconhecível em escala pequena.</p>
+
+    <div class="avatar-grid">
+
+      <div class="avatar-card">
+        <p class="label-sub">⭐ V1 · Símbolo "R✂" (recomendado)</p>
+        <div class="avatar-1">
+          <span class="symbol">R<span class="scissor">✂</span></span>
+        </div>
+        <p class="meta">
+          <strong>Bg:</strong> Ink #1A1A1A · <strong>Letra:</strong> Cream + Switzer 900<br>
+          <strong>Funciona em:</strong> avatar 110px, favicon 32px, notificação 22px<br>
+          <strong>Reconhecível</strong> mesmo no tamanho de notificação iOS.
+        </p>
+      </div>
+
+      <div class="avatar-card">
+        <p class="label-sub">V2 · Wordmark completo</p>
+        <div class="avatar-2">
+          <span class="word">Recorte<span class="scissor">✂</span></span>
+          <span class="tag">o seu jornal</span>
+        </div>
+        <p class="meta">
+          <strong>Bg:</strong> Mint #9FE5C8 · <strong>Letra:</strong> Ink + Switzer 900<br>
+          <strong>Funciona em:</strong> avatar 110px+ (em escala menor fica ilegível)<br>
+          <strong>Alternativa</strong> pra ações de marca, capa de destaque.
+        </p>
+      </div>
+
+    </div>
+
+    <div class="specs">
+      <strong>📐 Specs pra exportar (Figma, Canva, Illustrator):</strong><br>
+      • Dimensões: <code>1080×1080px</code> (Instagram converte pra círculo automaticamente)<br>
+      • Formato: <code>PNG</code> com fundo sólido (não use transparência — Instagram aplica fundo branco)<br>
+      • Color profile: <code>sRGB</code><br>
+      • Margem de segurança: 80px de cada lado (Instagram pode crop em alguns dispositivos)<br>
+      • Tamanho final upload: ~150-300 KB
+    </div>
+  </section>
+
+
+  <!-- ============================================ -->
+  <!-- 2. BIO -->
+  <!-- ============================================ -->
+  <section>
+    <span class="label">02 · BIO</span>
+    <h2>Bio do perfil</h2>
+    <p class="desc">Instagram permite até <strong>150 caracteres</strong> na bio. Voice guide aplicado: direto, brasileiro, próximo. Sem menção a IA/algoritmo/200 fontes.</p>
+
+    <div class="bio-box">
+      <p class="bio-name">Recorte<span class="scissor">✂</span></p>
+      <p class="bio-handle">@recorte.news · jornal digital</p>
+      <div class="bio-stat-row">
+        <div><strong>—</strong> posts</div>
+        <div><strong>0</strong> seguidores</div>
+        <div><strong>0</strong> seguindo</div>
+      </div>
+      <p class="bio-text">
+        Cada manhã, <span class="it">um jornal feito pra você.</span><br>
+        A gente lê o mundo todo dia, recorta só o que importa, e manda antes do café. ✂
+      </p>
+      <a class="bio-link" href="https://recorte.news">🔗 recorte.news</a>
+      <p class="char-count">142/150 caracteres</p>
+    </div>
+
+    <div class="specs">
+      <strong>📋 Texto pra copiar e colar:</strong><br>
+      <code style="white-space:pre-wrap;display:block;margin-top:8px;padding:10px;">Cada manhã, um jornal feito pra você.
+A gente lê o mundo todo dia, recorta só o que importa, e manda antes do café. ✂
+🔗 recorte.news</code><br>
+      <br>
+      <strong>📝 Variações de bio (testar A/B):</strong><br>
+      • <em>"Notícia de gente pra gente. Cada manhã, um jornal feito pra você."</em> (curto)<br>
+      • <em>"O jornal de cada manhã, recortado pra você. ✂ 5 min antes do café."</em> (com ritual)<br>
+      • <em>"Tudo que acontece no mundo. Só o que importa pra você. Antes do café. ✂"</em> (manifesto)
+    </div>
+  </section>
+
+
+  <!-- ============================================ -->
+  <!-- 3. GRID 3x3 -->
+  <!-- ============================================ -->
+  <section>
+    <span class="label">03 · GRID 3×3</span>
+    <h2>9 primeiros posts do feed</h2>
+    <p class="desc">Quando alguém abre o perfil pela primeira vez, vê o grid 3×3 como apresentação. <strong>Esse grid conta a história inteira da marca</strong> sem precisar clicar em nenhum post. Voice guide aplicado, tipografia híbrida do brandbook, cores da paleta.</p>
+
+    <div class="ig-grid">
+      <div class="ig-grid-inner">
+
+        <!-- Linha 1 -->
+        <div class="ig-cell c1">
+          <p class="big">Tudo<br>que acontece<br>no mundo.</p>
+        </div>
+        <div class="ig-cell c2">
+          <span class="word">Recorte<span class="scissor">✂</span></span>
+          <span class="tag">o seu jornal</span>
+        </div>
+        <div class="ig-cell c3">
+          <p class="big">Só o que<br>importa<br>pra você.</p>
+        </div>
+
+        <!-- Linha 2 -->
+        <div class="ig-cell c4">
+          <p class="big">Em 5 minutos,<br>antes do café.</p>
+        </div>
+        <div class="ig-cell c5">
+          <p class="quote">Não é mais<br>uma newsletter.<br><span class="strong-it">É a sua.</span></p>
+        </div>
+        <div class="ig-cell c6">
+          <p class="kicker">EXEMPLO ✂</p>
+          <p class="head">A nova IA leu sua tese (em segundos)</p>
+        </div>
+
+        <!-- Linha 3 -->
+        <div class="ig-cell c7">
+          <p class="big">Cada Recorte<br>é único.<br>O seu, mais ainda.</p>
+        </div>
+        <div class="ig-cell c8">
+          <div class="grid">
+            <div>📰<small>Brasil</small></div>
+            <div>🌎<small>Mundo</small></div>
+            <div>💰<small>Mercado</small></div>
+            <div>🚀<small>Tech</small></div>
+          </div>
+        </div>
+        <div class="ig-cell c9">
+          <p class="cta">Comece seu<br>Recorte</p>
+          <p class="url">recorte.news</p>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="specs">
+      <strong>📐 Specs pra exportar cada post:</strong><br>
+      • Dimensões: <code>1080×1080px</code> (formato quadrado padrão Instagram)<br>
+      • Formato: <code>PNG</code> ou <code>JPG</code> (PNG preferível por causa do texto)<br>
+      • Color profile: <code>sRGB</code><br>
+      • Ordem de upload: <strong>de baixo pra cima</strong> (Instagram exibe mais recente primeiro — então o post 9 vai no canto inferior direito do grid)<br>
+      • Tamanho de cada: 200-500 KB<br>
+      <br>
+      <strong>📋 Lógica do grid (lendo de cima pra baixo, esq pra dir):</strong><br>
+      <strong>Linha 1:</strong> Tagline parte 1 → Logo → Tagline parte 2 (manifesto em 3 atos)<br>
+      <strong>Linha 2:</strong> Tagline parte 3 → Mantra "É a sua" → Exemplo de manchete<br>
+      <strong>Linha 3:</strong> Personalização → Temas cobertos → CTA<br>
+      <br>
+      <strong>📤 Ordem de upload (manter o grid):</strong><br>
+      1. CTA "Comece seu Recorte" (post 9)<br>
+      2. Temas cobertos (post 8)<br>
+      3. "Cada Recorte é único" (post 7)<br>
+      4. Manchete exemplo (post 6)<br>
+      5. "É a sua" — mantra (post 5)<br>
+      6. "Em 5 minutos antes do café" (post 4)<br>
+      7. "Só o que importa pra você" (post 3)<br>
+      8. Logo "Recorte ✂" (post 2)<br>
+      9. "Tudo que acontece no mundo" (post 1, vai ficar no topo esquerdo)
+    </div>
+  </section>
+
+
+  <!-- ============================================ -->
+  <!-- 4. PREVIEW DO PERFIL COMPLETO -->
+  <!-- ============================================ -->
+  <section>
+    <span class="label">04 · PREVIEW</span>
+    <h2>Como vai aparecer no Instagram</h2>
+    <p class="desc">Simulação do perfil completo — avatar + bio + grid 3×3 + botões Seguir/Mensagem.</p>
+
+    <div class="ig-phone">
+      <div class="ig-header">
+        <div class="ava">
+          <span class="ava-content">R<span class="scissor">✂</span></span>
+        </div>
+        <div class="stats">
+          <div class="stat"><strong>9</strong>posts</div>
+          <div class="stat"><strong>—</strong>seguidores</div>
+          <div class="stat"><strong>—</strong>seguindo</div>
+        </div>
+      </div>
+      <div class="ig-bio">
+        <p class="name">Recorte<span class="scissor">✂</span></p>
+        <p class="cat">Jornal digital</p>
+        Cada manhã, <em style="font-family:'Gambarino';color:var(--mint-deep);">um jornal feito pra você.</em><br>
+        A gente lê o mundo todo dia, recorta só o que importa, e manda antes do café. ✂
+        <a class="link" href="#">recorte.news</a>
+      </div>
+      <div class="ig-buttons">
+        <button class="primary">Seguir</button>
+        <button class="sec">Mensagem</button>
+        <button class="sec">+</button>
+      </div>
+      <div class="ig-grid-tab">
+        <div class="tab"><span>▦ Posts</span></div>
+        <div class="ig-grid-mini">
+          <div class="cell ig-cell c1" style="padding:6px;"><p style="font-family:'Switzer';font-weight:900;font-size:11px;line-height:1.05;letter-spacing:-0.02em;color:var(--ink);">Tudo que<br>acontece<br>no mundo.</p></div>
+          <div class="cell ig-cell c2" style="padding:6px;"><span style="font-family:'Switzer';font-weight:900;font-size:14px;letter-spacing:-0.04em;color:var(--cream);">Recorte<span style="color:var(--mint);">✂</span></span></div>
+          <div class="cell ig-cell c3" style="padding:6px;"><p style="font-family:'Gambarino';font-style:italic;font-weight:400;font-size:11px;line-height:1.1;color:var(--ink);">Só o que<br>importa<br>pra você.</p></div>
+          <div class="cell ig-cell c4" style="padding:6px;"><p style="font-family:'Switzer';font-weight:900;font-size:10px;line-height:1.1;letter-spacing:-0.02em;color:var(--mint-dark);">Em 5 min,<br>antes do café.</p></div>
+          <div class="cell ig-cell c5" style="padding:6px;"><p style="font-family:'Gambarino';font-style:italic;font-weight:400;font-size:10px;line-height:1.15;color:var(--ink);">Não é mais<br>uma newsletter.<br><span style="background:var(--yellow);padding:0 3px;">É a sua.</span></p></div>
+          <div class="cell ig-cell c6" style="padding:6px;"><p style="font-family:'General Sans';font-weight:700;font-size:7px;letter-spacing:0.12em;text-transform:uppercase;color:var(--mint);margin-bottom:3px;">EXEMPLO ✂</p><p style="font-family:'Switzer';font-weight:900;font-size:10px;line-height:1.15;color:var(--cream);">A nova IA leu sua tese</p></div>
+          <div class="cell ig-cell c7" style="padding:6px;"><p style="font-family:'Switzer';font-weight:900;font-size:11px;line-height:1.1;letter-spacing:-0.025em;color:var(--ink);">Cada Recorte<br>é único.</p></div>
+          <div class="cell ig-cell c8" style="padding:6px;"><div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;font-size:12px;">📰🌎💰🚀</div></div>
+          <div class="cell ig-cell c9" style="padding:6px;"><p style="font-family:'Switzer';font-weight:900;font-size:10px;color:var(--cream);">Comece seu Recorte</p><p style="font-family:'JetBrains Mono';font-size:7px;color:var(--mint);margin-top:4px;">recorte.news</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ============================================ -->
+  <!-- DOWNLOAD INSTRUCTIONS -->
+  <!-- ============================================ -->
+  <div class="footer-note">
+    <h3>📸 Como exportar cada peça</h3>
+    <p>
+      Abre esse HTML, dá <strong>screenshot</strong> de cada peça (avatar, grid 3×3, perfil completo).<br>
+      Ou abre no Chrome: <strong>F12 → Toggle device → 1080×1080</strong> + screenshot.<br>
+      Pra produção final, recomendo importar no <strong>Figma/Canva</strong>, replicar o design vetorial e exportar PNG.
+    </p>
+  </div>
+
+</div>
+
+</body>
+</html>

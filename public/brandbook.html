@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brandbook — Recorte ✂</title>
+<link rel="stylesheet"
+  href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,700,800,900,400i,700i&f[]=general-sans@400,500,600,700&f[]=gambarino@400i,400&display=swap">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --cream: #F2F0E6;
+    --cream-2: #E8E5D8;
+    --ink: #1A1A1A;
+    --ink-soft: #4A4A4A;
+    --ink-muted: #7A7A7A;
+    --line: #C0BFB0;
+    --mint: #9FE5C8;
+    --mint-light: #C9F0DE;
+    --mint-deep: #0A6E50;
+    --mint-dark: #064033;
+    --yellow: #FFD60A;
+    --red: #BE1622;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; padding: 0;
+    background: var(--cream); color: var(--ink);
+    font-family: 'General Sans', -apple-system, sans-serif;
+    line-height: 1.55;
+  }
+
+  /* Navigation fixa */
+  .nav {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--ink); color: var(--cream);
+    padding: 14px 24px;
+    display: flex; align-items: center; gap: 24px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .nav .nav-logo {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 900; font-size: 18px;
+    letter-spacing: -0.035em;
+    color: var(--cream);
+  }
+  .nav .nav-logo .scissor { color: var(--mint); margin-left: 2px; }
+  .nav a {
+    color: rgba(242, 240, 230, 0.7);
+    text-decoration: none;
+    font-family: 'General Sans', sans-serif;
+    font-weight: 600; font-size: 12px;
+    letter-spacing: 0.06em;
+    padding: 4px 0;
+    transition: color 0.15s;
+  }
+  .nav a:hover { color: var(--mint); }
+
+  /* Container */
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+  /* HERO do brandbook */
+  .bb-hero {
+    padding: 80px 0 56px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 56px;
+  }
+  .bb-hero .kicker {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 800; font-size: 12px;
+    letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--mint-deep);
+    margin-bottom: 18px;
+  }
+  .bb-hero h1 {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 900;
+    font-size: clamp(46px, 7vw, 84px);
+    line-height: 0.95; letter-spacing: -0.045em;
+    margin: 0 0 18px;
+  }
+  .bb-hero h1 .it {
+    font-family: 'Gambarino', serif;
+    font-style: italic; font-weight: 400;
+    font-size: 1.05em;
+  }
+  .bb-hero p {
+    font-family: 'Gambarino', serif;
+    font-style: italic; font-size: 22px;
+    color: var(--ink-soft); max-width: 640px;
+    line-height: 1.45;
+  }
+
+  /* SECTION genérica */
+  section { margin-bottom: 72px; }
+  section h2 {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 900;
+    font-size: clamp(36px, 5vw, 56px);
+    line-height: 1.02; letter-spacing: -0.035em;
+    margin: 0 0 12px;
+  }
+  section h2 .it {
+    font-family: 'Gambarino', serif;
+    font-style: italic; font-weight: 400;
+    color: var(--mint-deep);
+  }
+  section .section-kicker {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 800; font-size: 11px;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--mint-deep);
+    margin-bottom: 14px;
+  }
+  section .section-intro {
+    font-family: 'General Sans', sans-serif;
+    font-weight: 500; font-size: 19px;
+    line-height: 1.55; color: var(--ink-soft);
+    max-width: 700px;
+    margin: 0 0 32px;
+  }
+
+  /* CARD bases */
+  .card {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 28px;
+    margin-bottom: 18px;
+  }
+  .card.featured {
+    border-color: var(--mint-deep);
+    border-width: 2px;
+  }
+  .card-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--ink-muted);
+    letter-spacing: 0.16em; text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  /* TYPE specimen — mostra fonte em tamanhos */
+  .specimen {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 32px;
+    margin-bottom: 18px;
+  }
+  .specimen-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--ink-muted);
+    letter-spacing: 0.15em; text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .specimen-meta {
+    font-family: 'General Sans', sans-serif;
+    font-size: 13px; color: var(--ink-soft);
+    margin-bottom: 22px;
+  }
+  .specimen-row {
+    display: flex; align-items: baseline; gap: 24px;
+    padding: 14px 0;
+    border-top: 1px solid var(--cream-2);
+  }
+  .specimen-row .size {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--ink-muted);
+    flex: 0 0 90px;
+  }
+  .specimen-row .sample {
+    flex: 1;
+  }
+
+  /* Switzer samples */
+  .swz-900 { font-family: 'Switzer', sans-serif; font-weight: 900; letter-spacing: -0.04em; }
+  .swz-800 { font-family: 'Switzer', sans-serif; font-weight: 800; letter-spacing: -0.03em; }
+  .swz-700 { font-family: 'Switzer', sans-serif; font-weight: 700; letter-spacing: -0.025em; }
+  .swz-500 { font-family: 'Switzer', sans-serif; font-weight: 500; letter-spacing: -0.015em; }
+  .swz-400 { font-family: 'Switzer', sans-serif; font-weight: 400; }
+
+  /* General Sans samples */
+  .gs-700 { font-family: 'General Sans', sans-serif; font-weight: 700; }
+  .gs-600 { font-family: 'General Sans', sans-serif; font-weight: 600; }
+  .gs-500 { font-family: 'General Sans', sans-serif; font-weight: 500; }
+  .gs-400 { font-family: 'General Sans', sans-serif; font-weight: 400; }
+
+  /* Gambarino samples */
+  .gb-it-400 { font-family: 'Gambarino', serif; font-style: italic; font-weight: 400; }
+  .gb-400 { font-family: 'Gambarino', serif; font-weight: 400; }
+
+  /* CHARSET tabela */
+  .charset {
+    display: grid;
+    grid-template-columns: repeat(13, 1fr);
+    gap: 4px;
+    background: var(--cream-2);
+    padding: 14px;
+    border-radius: 6px;
+  }
+  .charset span {
+    text-align: center;
+    background: white;
+    padding: 8px 4px;
+    border-radius: 3px;
+    font-size: 20px;
+  }
+  @media (max-width: 720px) {
+    .charset { grid-template-columns: repeat(8, 1fr); }
+  }
+
+  /* SCALE comparison */
+  .scale-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 720px) {
+    .scale-grid { grid-template-columns: 1fr; }
+  }
+
+  /* COLOR palette */
+  .palette {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+  }
+  .swatch {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .swatch .color {
+    height: 100px;
+    border-bottom: 1px solid var(--line);
+  }
+  .swatch .info { padding: 14px 16px; }
+  .swatch .name {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 800; font-size: 13px;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+  }
+  .swatch .hex {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--ink-muted);
+  }
+  .swatch .usage {
+    font-family: 'General Sans', sans-serif;
+    font-size: 11px; color: var(--ink-muted);
+    margin-top: 6px; line-height: 1.4;
+  }
+
+  /* TABELA de regras */
+  .rules-table {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .rules-row {
+    display: grid;
+    grid-template-columns: 220px 1fr 200px;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--cream-2);
+    gap: 18px;
+    align-items: center;
+  }
+  .rules-row:last-child { border-bottom: 0; }
+  .rules-row .label {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 800; font-size: 12px;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+  .rules-row .meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--mint-deep);
+    text-align: right;
+    line-height: 1.5;
+  }
+  @media (max-width: 900px) {
+    .rules-row {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .rules-row .meta { text-align: left; }
+  }
+
+  /* DO and DON'T */
+  .dodont {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+  @media (max-width: 720px) {
+    .dodont { grid-template-columns: 1fr; }
+  }
+  .do, .dont {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 24px;
+  }
+  .do { border-left: 4px solid var(--mint-deep); }
+  .dont { border-left: 4px solid var(--red); }
+  .do-header {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 800; font-size: 12px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .do .do-header { color: var(--mint-deep); }
+  .dont .do-header { color: var(--red); }
+
+  /* CODE block */
+  .code {
+    background: var(--ink); color: var(--cream);
+    padding: 18px 22px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; line-height: 1.7;
+    overflow-x: auto;
+    margin: 16px 0;
+  }
+  .code .comment { color: rgba(159, 229, 200, 0.6); }
+  .code .key { color: var(--mint); }
+  .code .val { color: var(--yellow); }
+  .code .num { color: var(--red); }
+
+  /* LOGO showcase */
+  .logo-showcase {
+    background: var(--cream);
+    border: 2px solid var(--line);
+    border-radius: 12px;
+    padding: 60px 32px;
+    text-align: center;
+    margin-bottom: 18px;
+  }
+  .logo-showcase .logo-main {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 900;
+    font-size: 72px;
+    letter-spacing: -0.04em;
+    color: var(--ink);
+    margin: 0;
+  }
+  .logo-showcase .logo-main .scissor {
+    color: var(--mint-deep);
+    margin-left: 4px;
+  }
+  .logo-showcase-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-muted);
+    margin-top: 18px;
+    letter-spacing: 0.12em;
+  }
+  .logo-sizes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .logo-size {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 28px 16px;
+    text-align: center;
+  }
+  .logo-size .name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--ink-muted);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+  .logo-size .l {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 900;
+    color: var(--ink);
+    letter-spacing: -0.04em;
+  }
+  .logo-size .l .scissor { color: var(--mint-deep); }
+
+  /* CLEARSPACE diagram */
+  .clearspace {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 40px;
+    position: relative;
+  }
+  .clearspace-box {
+    border: 2px dashed var(--mint);
+    padding: 40px;
+    display: inline-block;
+    position: relative;
+  }
+  .clearspace-box .l {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 900;
+    font-size: 40px;
+    letter-spacing: -0.04em;
+    color: var(--ink);
+  }
+  .clearspace-box .l .scissor { color: var(--mint-deep); }
+  .clearspace-note {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--mint-deep);
+    margin-top: 14px;
+    letter-spacing: 0.1em;
+  }
+
+  /* COMPOSIÇÃO simulada */
+  .demo-page {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 18px;
+  }
+  .demo-page .demo-label {
+    background: var(--ink); color: var(--cream);
+    padding: 12px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+  }
+  .demo-page .demo-content {
+    padding: 32px;
+  }
+
+  /* FONT loading info */
+  .fontinfo {
+    background: var(--cream-2);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  .fontinfo h4 {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink);
+    margin: 0 0 12px;
+  }
+  .fontinfo p {
+    font-family: 'General Sans', sans-serif;
+    font-size: 14px; line-height: 1.6;
+    color: var(--ink-soft);
+    margin: 0 0 8px;
+  }
+  .fontinfo .brand { font-weight: 700; color: var(--ink); }
+  .fontinfo a {
+    color: var(--mint-deep);
+    font-weight: 600;
+  }
+
+  footer {
+    background: var(--ink); color: var(--cream);
+    padding: 36px 24px;
+    text-align: center;
+    margin-top: 80px;
+  }
+  footer .logo {
+    font-family: 'Switzer', sans-serif;
+    font-weight: 900;
+    font-size: 24px;
+    letter-spacing: -0.035em;
+    margin-bottom: 10px;
+  }
+  footer .logo .scissor { color: var(--mint); margin-left: 2px; }
+  footer p {
+    font-family: 'General Sans', sans-serif;
+    font-size: 12px;
+    color: rgba(242, 240, 230, 0.6);
+    margin: 0;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">Recorte<span class="scissor">✂</span></div>
+  <a href="#fontes">Fontes</a>
+  <a href="#hierarquia">Hierarquia</a>
+  <a href="#logo">Logo</a>
+  <a href="#regras">Regras</a>
+  <a href="#cores">Cores</a>
+  <a href="#voice">Voice</a>
+  <a href="#do-dont">Faça/Não Faça</a>
+  <a href="#impl">Implementação</a>
+</nav>
+
+<div class="wrap">
+
+  <!-- HERO -->
+  <div class="bb-hero">
+    <p class="kicker">BRANDBOOK · V1 · MAIO 2026</p>
+    <h1>O sistema do <span class="it">Recorte ✂</span></h1>
+    <p>Tipografia, logo, cores e regras que fazem o Recorte ser o Recorte — em qualquer contexto, em qualquer tamanho.</p>
+  </div>
+
+  <!-- ================================== -->
+  <!-- FONTES                              -->
+  <!-- ================================== -->
+  <section id="fontes">
+    <p class="section-kicker">01 · TIPOGRAFIA</p>
+    <h2>Três fontes, três <span class="it">vozes</span></h2>
+    <p class="section-intro">O Recorte usa um sistema híbrido: uma sans-serif de display pra impactar, uma sans humanista pra ler confortável, uma serif italic pra acentuar com humanidade.</p>
+
+    <div class="fontinfo">
+      <h4>📡 Como carregar as fontes</h4>
+      <p>Todas as 3 fontes vêm do <span class="brand">Fontshare</span> (Indian Type Foundry), CDN gratuito. Adicione em todos os HTMLs:</p>
+      <div class="code"><span class="comment">&lt;!-- No &lt;head&gt; de cada HTML --&gt;</span>
+&lt;link rel=<span class="val">"preconnect"</span> href=<span class="val">"https://api.fontshare.com"</span>&gt;
+&lt;link rel=<span class="val">"stylesheet"</span>
+  href=<span class="val">"https://api.fontshare.com/v2/css?f[]=switzer@400,500,700,800,900,400i,700i&f[]=general-sans@400,500,600,700&f[]=gambarino@400i,400&display=swap"</span>&gt;</div>
+    </div>
+
+    <!-- SWITZER -->
+    <div class="specimen">
+      <p class="specimen-name">DISPLAY · IMPACTO</p>
+      <h3 class="swz-900" style="font-size:64px;line-height:1;margin:0 0 8px;">Switzer</h3>
+      <p class="specimen-meta">Indian Type Foundry · variable 400/500/700/800/900 + italic 400/700 · gratuita</p>
+
+      <div class="specimen-row">
+        <span class="size">900 · 84px</span>
+        <span class="sample swz-900" style="font-size:64px;line-height:1;">Recorte editorial</span>
+      </div>
+      <div class="specimen-row">
+        <span class="size">900 · 52px</span>
+        <span class="sample swz-900" style="font-size:48px;line-height:1.05;">Não é mais uma newsletter</span>
+      </div>
+      <div class="specimen-row">
+        <span class="size">800 · 32px</span>
+        <span class="sample swz-800" style="font-size:30px;">Seções e subtítulos</span>
+      </div>
+      <div class="specimen-row">
+        <span class="size">700 · 24px</span>
+        <span class="sample swz-700" style="font-size:22px;">Use pra display secundário</span>
+      </div>
+      <div class="specimen-row">
+        <span class="size">800 · 12px UPPER</span>
+        <span class="sample swz-800" style="font-size:12px;letter-spacing:0.18em;text-transform:uppercase;">MICROCOPY · KICKER · TAB LABELS</span>
+      </div>
+
+      <p class="card-label" style="margin-top:24px;">CHARSET</p>
+      <div class="charset swz-900" style="font-size:22px;">
+        <span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span><span>G</span><span>H</span><span>I</span><span>J</span><span>K</span><span>L</span><span>M</span>
+        <span>N</span><span>O</span><span>P</span><span>Q</span><span>R</span><span>S</span><span>T</span><span>U</span><span>V</span><span>W</span><span>X</span><span>Y</span><span>Z</span>
+        <span>a</span><span>b</span><span>c</span><span>d</span><span>e</span><span>f</span><span>g</span><span>h</span><span>i</span><span>j</span><span>k</span><span>l</span><span>m</span>
+        <span>n</span><span>o</span><span>p</span><span>q</span><span>r</span><span>s</span><span>t</span><span>u</span><span>v</span><span>w</span><span>x</span><span>y</span><span>z</span>
+        <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>.</span><span>,</span><span>!</span>
+        <span>?</span><span>—</span><span>’</span><span>“</span><span>”</span><span>%</span><span>&</span><span>+</span><span>=</span><span>#</span><span>$</span><span>R$</span><span>✂</span>
+      </div>
+    </div>
+
+    <!-- GENERAL SANS -->
+    <div class="specimen">
+      <p class="specimen-name">BODY · LEITURA</p>
+      <h3 class="gs-700" style="font-size:64px;line-height:1;margin:0 0 8px;">General Sans</h3>
+      <p class="specimen-meta">Indian Type Foundry · 400/500/600/700 · gratuita · projetada pra long-form reading</p>
+
+      <div class="specimen-row">
+        <span class="size">700 · 24px</span>
+        <span class="sample gs-700" style="font-size:24px;">Cabeçalhos de form e cards</span>
+      </div>
+      <div class="specimen-row">
+        <span class="size">600 · 16px</span>
+        <span class="sample gs-600" style="font-size:16px;">Labels, meta info, brand-mention destacada</span>
+      </div>
+      <div class="specimen-row">
+        <span class="size">500 · 19px</span>
+        <span class="sample gs-500" style="font-size:19px;line-height:1.5;">Lead paragraphs, descrições principais — texto que apresenta um bloco.</span>
+      </div>
+      <div class="specimen-row">
+        <span class="size">400 · 17px</span>
+        <span class="sample gs-400" style="font-size:17px;line-height:1.7;color:var(--ink-soft);">Body text pra leitura longa. Esse peso, nesse line-height (1.7), nesse max-width (640px), é o conforto máximo que o sistema oferece. Reduz fadiga ocular em leituras de 5 a 10 minutos.</span>
+      </div>
+
+      <p class="card-label" style="margin-top:24px;">CHARSET</p>
+      <div class="charset gs-700" style="font-size:20px;">
+        <span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span><span>G</span><span>H</span><span>I</span><span>J</span><span>K</span><span>L</span><span>M</span>
+        <span>N</span><span>O</span><span>P</span><span>Q</span><span>R</span><span>S</span><span>T</span><span>U</span><span>V</span><span>W</span><span>X</span><span>Y</span><span>Z</span>
+        <span>a</span><span>b</span><span>c</span><span>d</span><span>e</span><span>f</span><span>g</span><span>h</span><span>i</span><span>j</span><span>k</span><span>l</span><span>m</span>
+        <span>n</span><span>o</span><span>p</span><span>q</span><span>r</span><span>s</span><span>t</span><span>u</span><span>v</span><span>w</span><span>x</span><span>y</span><span>z</span>
+        <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>.</span><span>,</span><span>!</span>
+        <span>?</span><span>—</span><span>’</span><span>“</span><span>”</span><span>%</span><span>&</span><span>+</span><span>=</span><span>#</span><span>$</span><span>R$</span><span>✂</span>
+      </div>
+    </div>
+
+    <!-- GAMBARINO -->
+    <div class="specimen">
+      <p class="specimen-name">ACENTO · HUMANIDADE</p>
+      <h3 class="gb-it-400" style="font-size:64px;line-height:1;margin:0 0 8px;">Gambarino</h3>
+      <p class="specimen-meta">Indian Type Foundry · italic 400 · gratuita · serif moderna sem ornamento</p>
+
+      <div class="specimen-row">
+        <span class="size">italic · 56px</span>
+        <span class="sample gb-it-400" style="font-size:48px;line-height:1.1;">uma edição única</span>
+      </div>
+      <div class="specimen-row">
+        <span class="size">italic · 28px</span>
+        <span class="sample gb-it-400" style="font-size:26px;line-height:1.3;">"Pull-quotes e citações editoriais."</span>
+      </div>
+      <div class="specimen-row">
+        <span class="size">italic · 20px</span>
+        <span class="sample gb-it-400" style="font-size:19px;line-height:1.45;">Subtítulos do hero — texto explicativo logo abaixo do H1.</span>
+      </div>
+      <div class="specimen-row">
+        <span class="size">italic · 17px</span>
+        <span class="sample" style="font-family:'General Sans',sans-serif;font-size:17px;line-height:1.7;color:var(--ink-soft);">No corpo de texto, ênfase em <span class="gb-it-400" style="color:var(--ink);">palavras-chave</span> ou <span class="gb-it-400" style="color:var(--ink);">expressões editoriais</span>.</span>
+      </div>
+
+      <p class="card-label" style="margin-top:24px;">REGRA</p>
+      <p style="font-family:'General Sans',sans-serif;font-size:14px;line-height:1.7;color:var(--ink-soft);margin:0;">Gambarino é <span class="gb-it-400" style="color:var(--ink);">só italic</span>. Não use peso 400 regular — só italic. É a fonte da <span class="gb-it-400" style="color:var(--ink);">humanidade</span> no sistema.</p>
+    </div>
+  </section>
+
+  <!-- ================================== -->
+  <!-- HIERARQUIA                         -->
+  <!-- ================================== -->
+  <section id="hierarquia">
+    <p class="section-kicker">02 · HIERARQUIA TIPOGRÁFICA</p>
+    <h2>Escala que <span class="it">funciona</span></h2>
+    <p class="section-intro">A escala tipográfica do Recorte segue um múltiplo de 1.25 entre níveis. Cada nível tem fonte + peso + line-height definidos.</p>
+
+    <div class="rules-table">
+      <div class="rules-row">
+        <span class="label">H1 / HERO</span>
+        <span class="swz-900" style="font-size:48px;letter-spacing:-0.045em;line-height:0.95;color:var(--ink);">Não é mais uma newsletter</span>
+        <span class="meta">Switzer 900<br>clamp(46px, 7.6vw, 92px)<br>letter-spacing -0.045em<br>line-height 0.94</span>
+      </div>
+
+      <div class="rules-row">
+        <span class="label">H2 / SECTION</span>
+        <span class="swz-900" style="font-size:36px;letter-spacing:-0.03em;line-height:1.05;color:var(--ink);">Cada leitor é único</span>
+        <span class="meta">Switzer 900<br>clamp(32px, 5vw, 52px)<br>letter-spacing -0.03em<br>line-height 1.04</span>
+      </div>
+
+      <div class="rules-row">
+        <span class="label">H3 / CARD TITLE</span>
+        <span class="gs-700" style="font-size:24px;letter-spacing:-0.015em;line-height:1.25;color:var(--ink);">Cabeçalho de card ou form</span>
+        <span class="meta">General Sans 700<br>24px<br>letter-spacing -0.015em<br>line-height 1.28</span>
+      </div>
+
+      <div class="rules-row">
+        <span class="label">LEAD PARAGRAPH</span>
+        <span class="gs-500" style="font-size:19px;line-height:1.55;color:var(--ink-soft);">Texto que apresenta uma seção. Bigger than body, normal-weight prose.</span>
+        <span class="meta">General Sans 500<br>19px<br>line-height 1.55</span>
+      </div>
+
+      <div class="rules-row">
+        <span class="label">BODY</span>
+        <span class="gs-400" style="font-size:17px;line-height:1.7;color:var(--ink-soft);">Texto corrido pra leitura. Esse é o peso e tamanho que você quer pra parágrafos longos.</span>
+        <span class="meta">General Sans 400<br>17px<br>line-height 1.7<br>max-width 640px</span>
+      </div>
+
+      <div class="rules-row">
+        <span class="label">SUBTITLE (italic)</span>
+        <span class="gb-it-400" style="font-size:20px;line-height:1.45;color:var(--ink-soft);">Subtítulo logo abaixo de H1 — italic editorial.</span>
+        <span class="meta">Gambarino italic 400<br>20px<br>line-height 1.45</span>
+      </div>
+
+      <div class="rules-row">
+        <span class="label">QUOTE / PULL-QUOTE</span>
+        <span class="gb-it-400" style="font-size:24px;line-height:1.4;color:var(--ink);">"Citação editorial em italic, marcando humanidade."</span>
+        <span class="meta">Gambarino italic 400<br>28px desktop / 20px mobile<br>line-height 1.4</span>
+      </div>
+
+      <div class="rules-row">
+        <span class="label">MICROCOPY / KICKER</span>
+        <span class="swz-800" style="font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:var(--ink-muted);">PERSONALIZAÇÃO · BRASIL · TRENDING</span>
+        <span class="meta">Switzer 800<br>11px<br>letter-spacing 0.22em<br>uppercase</span>
+      </div>
+
+      <div class="rules-row">
+        <span class="label">FORM LABEL</span>
+        <span class="gs-600" style="font-size:13px;color:var(--ink);letter-spacing:0.02em;">Seu nome</span>
+        <span class="meta">General Sans 600<br>13px<br>letter-spacing 0.02em</span>
+      </div>
+
+      <div class="rules-row">
+        <span class="label">FORM INPUT</span>
+        <span class="gs-500" style="font-size:15px;color:var(--ink);">Wesley Frange</span>
+        <span class="meta">General Sans 500<br>15px</span>
+      </div>
+
+      <div class="rules-row">
+        <span class="label">FORM HELP</span>
+        <span class="gs-400" style="font-size:12px;color:var(--ink-muted);">Aparece na saudação dos emails</span>
+        <span class="meta">General Sans 400<br>12px</span>
+      </div>
+
+      <div class="rules-row">
+        <span class="label">CTA BUTTON</span>
+        <span style="background:var(--ink);color:var(--cream);padding:11px 22px;border-radius:4px;font-family:'Switzer',sans-serif;font-weight:800;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;display:inline-block;">Quero meu Recorte</span>
+        <span class="meta">Switzer 800<br>13px<br>letter-spacing 0.12em<br>uppercase</span>
+      </div>
+
+      <div class="rules-row">
+        <span class="label">STATS / NÚMEROS</span>
+        <span class="swz-900" style="font-size:48px;letter-spacing:-0.035em;line-height:1;color:var(--mint-deep);">200+</span>
+        <span class="meta">Switzer 900<br>56-60px<br>letter-spacing -0.035em<br>color: mint-deep</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================== -->
+  <!-- LOGO                                -->
+  <!-- ================================== -->
+  <section id="logo">
+    <p class="section-kicker">03 · LOGO</p>
+    <h2>O <span class="it">logo</span> do Recorte</h2>
+    <p class="section-intro">O logo é o <strong>wordmark "Recorte"</strong> em Switzer 900. É a marca primária — reconhecível por si só, sem precisar de ícone. O emoji ✂ é assinatura complementar opcional, usada onde houver espaço e fizer sentido.</p>
+
+    <div class="logo-showcase">
+      <p class="logo-main">Recorte</p>
+      <p class="logo-showcase-meta">PRIMARY · SWITZER 900 · LETTER-SPACING -0.04em · INK #1A1A1A</p>
+    </div>
+
+    <h3 class="gs-700" style="font-size:22px;margin:36px 0 14px;">Variação com assinatura ✂</h3>
+    <p class="gs-400" style="font-size:15px;color:var(--ink-soft);line-height:1.7;max-width:680px;">Em contextos com espaço suficiente (email masthead, hero, materiais editoriais), pode-se adicionar o emoji ✂ ao lado do wordmark. <strong>É decoração, não parte estrutural do logo.</strong></p>
+    <div class="logo-showcase" style="margin-top:16px;">
+      <p class="logo-main">Recorte<span class="scissor">✂</span></p>
+      <p class="logo-showcase-meta">EXTENDED · WORDMARK + EMOJI ✂ (UNICODE U+2702)</p>
+    </div>
+
+    <h3 class="gs-700" style="font-size:22px;margin:36px 0 14px;">Tamanhos mínimos</h3>
+    <div class="logo-sizes">
+      <div class="logo-size">
+        <p class="name">FAVICON</p>
+        <p class="l" style="font-size:24px;">R</p>
+        <p class="card-label" style="margin-top:14px;font-size:9px;">Letra "R" sólida</p>
+      </div>
+      <div class="logo-size">
+        <p class="name">12PX MIN</p>
+        <p class="l" style="font-size:12px;">Recorte</p>
+      </div>
+      <div class="logo-size">
+        <p class="name">FOOTER</p>
+        <p class="l" style="font-size:18px;">Recorte</p>
+      </div>
+      <div class="logo-size">
+        <p class="name">HEADER</p>
+        <p class="l" style="font-size:24px;">Recorte</p>
+      </div>
+      <div class="logo-size">
+        <p class="name">EMAIL +✂</p>
+        <p class="l" style="font-size:22px;">Recorte<span class="scissor">✂</span></p>
+      </div>
+    </div>
+
+    <h3 class="gs-700" style="font-size:22px;margin:36px 0 14px;">Clearspace</h3>
+    <div class="clearspace">
+      <div class="clearspace-box">
+        <p class="l">Recorte</p>
+      </div>
+      <p class="clearspace-note">MARGEM MÍNIMA = ALTURA DO "R" EM TODAS AS DIREÇÕES</p>
+    </div>
+
+    <h3 class="gs-700" style="font-size:22px;margin:36px 0 14px;">Código CSS</h3>
+    <div class="code"><span class="comment">/* Logo primary (wordmark puro) */</span>
+.logo {
+  <span class="key">font-family</span>: <span class="val">'Switzer'</span>, sans-serif;
+  <span class="key">font-weight</span>: <span class="num">900</span>;
+  <span class="key">font-size</span>: <span class="num">26px</span>;
+  <span class="key">letter-spacing</span>: -<span class="num">0.035em</span>;
+  <span class="key">color</span>: <span class="val">#1A1A1A</span>;
+  <span class="key">line-height</span>: <span class="num">1</span>;
+}
+
+<span class="comment">/* Logo extended (com emoji ✂) — opcional */</span>
+.logo .scissor {
+  <span class="key">color</span>: <span class="val">#0A6E50</span>;
+  <span class="key">margin-left</span>: <span class="num">2px</span>;
+}</div>
+  </section>
+
+  <!-- ================================== -->
+  <!-- REGRAS — "Recorte" -->
+  <!-- ================================== -->
+  <section id="regras">
+    <p class="section-kicker">04 · REGRAS DE USO DA PALAVRA "RECORTE"</p>
+    <h2>Onde usar <span class="it">qual</span> fonte</h2>
+    <p class="section-intro">A palavra "Recorte" aparece em vários contextos. A regra fundamental: <span class="gs-700" style="color:var(--ink);">logo/wordmark = Switzer 900</span> · <span class="gs-700" style="color:var(--ink);">corpo de texto = General Sans 700</span>. NUNCA troque de fonte mid-sentence.</p>
+
+    <div class="rules-table">
+      <div class="rules-row">
+        <span class="label">LOGO PRINCIPAL</span>
+        <span class="swz-900" style="font-size:32px;letter-spacing:-0.035em;color:var(--ink);">Recorte<span style="color:var(--mint-deep);margin-left:2px;">✂</span></span>
+        <span class="meta">Switzer 900<br>-0.035em<br>✂ em mint-deep</span>
+      </div>
+      <div class="rules-row">
+        <span class="label">LOGO PEQUENO</span>
+        <span class="swz-900" style="font-size:20px;letter-spacing:-0.03em;color:var(--ink);">Recorte<span style="color:var(--mint-deep);margin-left:2px;">✂</span></span>
+        <span class="meta">Switzer 900<br>-0.03em</span>
+      </div>
+      <div class="rules-row">
+        <span class="label">EM HERO H1</span>
+        <span class="swz-900" style="font-size:32px;letter-spacing:-0.045em;color:var(--ink);">Não é mais uma newsletter</span>
+        <span class="meta">Switzer 900<br>display</span>
+      </div>
+      <div class="rules-row">
+        <span class="label">EM BODY PARAGRAPH</span>
+        <span class="gs-400" style="font-size:16px;line-height:1.65;color:var(--ink-soft);">O <span class="gs-700" style="color:var(--ink);">Recorte</span> é uma newsletter brasileira de notícias curadas.</span>
+        <span class="meta">General Sans 400<br>brand mention: 700</span>
+      </div>
+      <div class="rules-row">
+        <span class="label">EM EMAIL SUBJECT</span>
+        <span class="gs-600" style="font-size:15px;color:var(--ink);">☕ Seu Recorte de hoje, Wesley</span>
+        <span class="meta">General Sans 600<br>(subject ≠ header)</span>
+      </div>
+      <div class="rules-row">
+        <span class="label">EM EMAIL HEADER</span>
+        <span class="swz-900" style="font-size:24px;letter-spacing:-0.035em;color:var(--ink);">Recorte<span style="color:var(--mint-deep);margin-left:2px;">✂</span></span>
+        <span class="meta">Switzer 900<br>(wordmark)</span>
+      </div>
+      <div class="rules-row">
+        <span class="label">EM EMAIL FOOTER</span>
+        <span class="gs-400" style="font-size:13px;color:var(--ink-soft);">Você está recebendo porque se cadastrou em <span class="gs-700" style="color:var(--ink);">Recorte ✂</span>.</span>
+        <span class="meta">General Sans 400<br>brand mention: 700</span>
+      </div>
+      <div class="rules-row">
+        <span class="label">EM PULL-QUOTE ITALIC</span>
+        <span class="gb-it-400" style="font-size:18px;color:var(--ink);">"O <span class="gs-700" style="font-style:normal;color:var(--ink);">Recorte</span> tenta resolver isso."</span>
+        <span class="meta">Gambarino italic + brand mention sai do italic (General Sans 700)</span>
+      </div>
+      <div class="rules-row">
+        <span class="label">CTA BUTTON</span>
+        <span style="background:var(--ink);color:var(--cream);padding:10px 18px;border-radius:4px;font-family:'Switzer',sans-serif;font-weight:800;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;display:inline-block;">Quero meu Recorte</span>
+        <span class="meta">Switzer 800<br>uppercase</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================== -->
+  <!-- CORES -->
+  <!-- ================================== -->
+  <section id="cores">
+    <p class="section-kicker">05 · PALETA</p>
+    <h2>As <span class="it">cores</span> do Recorte</h2>
+    <p class="section-intro">Cream + ink são a dupla principal. Mint é o accent que define a marca. Yellow e coral são raros — só feedback.</p>
+
+    <div class="palette">
+      <div class="swatch">
+        <div class="color" style="background:#F2F0E6;"></div>
+        <div class="info">
+          <p class="name">Cream</p>
+          <p class="hex">#F2F0E6</p>
+          <p class="usage">Background principal do site e email</p>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="color" style="background:#1A1A1A;"></div>
+        <div class="info">
+          <p class="name">Ink</p>
+          <p class="hex">#1A1A1A</p>
+          <p class="usage">Texto principal, headings, logo</p>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="color" style="background:#9FE5C8;"></div>
+        <div class="info">
+          <p class="name">Mint</p>
+          <p class="hex">#9FE5C8</p>
+          <p class="usage">Highlight, masthead email, accents</p>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="color" style="background:#0A6E50;"></div>
+        <div class="info">
+          <p class="name">Mint Deep</p>
+          <p class="hex">#0A6E50</p>
+          <p class="usage">Ícone ✂, números stats, links</p>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="color" style="background:#064033;"></div>
+        <div class="info">
+          <p class="name">Mint Dark</p>
+          <p class="hex">#064033</p>
+          <p class="usage">Chips trending, contraste sobre mint</p>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="color" style="background:#FFD60A;"></div>
+        <div class="info">
+          <p class="name">Yellow</p>
+          <p class="hex">#FFD60A</p>
+          <p class="usage">Warning, feedback positivo (raro)</p>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="color" style="background:#BE1622;"></div>
+        <div class="info">
+          <p class="name">Coral</p>
+          <p class="hex">#BE1622</p>
+          <p class="usage">Erro, feedback negativo (raro)</p>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="color" style="background:#C0BFB0;"></div>
+        <div class="info">
+          <p class="name">Line</p>
+          <p class="hex">#C0BFB0</p>
+          <p class="usage">Bordas, divisores</p>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="gs-700" style="font-size:22px;margin:36px 0 14px;">Texto sobre fundos</h3>
+    <div class="palette">
+      <div class="swatch">
+        <div class="color" style="background:#1A1A1A;"></div>
+        <div class="info">
+          <p class="name swz-900" style="color:var(--ink);">Ink #1A1A1A</p>
+          <p class="usage gs-400">Texto principal sobre cream</p>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="color" style="background:#4A4A4A;"></div>
+        <div class="info">
+          <p class="name gs-600" style="color:var(--ink-soft);">Ink Soft #4A4A4A</p>
+          <p class="usage gs-400">Body text e lead</p>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="color" style="background:#7A7A7A;"></div>
+        <div class="info">
+          <p class="name gs-600" style="color:var(--ink-muted);">Ink Muted #7A7A7A</p>
+          <p class="usage gs-400">Microcopy, meta, helpers</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================== -->
+  <!-- VOICE — como a gente fala           -->
+  <!-- ================================== -->
+  <section id="voice">
+    <p class="section-kicker">06 · VOICE</p>
+    <h2>Como a gente <span class="it">fala</span></h2>
+    <p class="section-intro">O Recorte é pra todo brasileiro — direto, próximo, sem encheção. Linguagem de conversa de café, não de relatório. Esses 7 princípios + a tabela "não use / use" guiam <strong>todo</strong> o conteúdo: edições, site, FAQ, microcopy, emails de transação. Quando estiver em dúvida sobre tom, volta aqui.</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:32px;">
+
+      <div style="background:white;border:1px solid var(--line);border-radius:8px;padding:20px;border-left:4px solid var(--mint-deep);">
+        <p style="font-family:'Switzer';font-weight:900;font-size:36px;color:var(--mint-deep);letter-spacing:-0.03em;line-height:1;margin:0 0 8px;">1</p>
+        <h3 class="gs-700" style="font-size:16px;margin:0 0 8px;color:var(--ink);">Direto, sem encheção</h3>
+        <p class="gs-400" style="font-size:13px;color:var(--ink-soft);line-height:1.55;margin:0;">Frase curta. Verbo na frente. Se a frase pode ser cortada e ainda fazer sentido, corte.</p>
+      </div>
+
+      <div style="background:white;border:1px solid var(--line);border-radius:8px;padding:20px;border-left:4px solid var(--mint-deep);">
+        <p style="font-family:'Switzer';font-weight:900;font-size:36px;color:var(--mint-deep);letter-spacing:-0.03em;line-height:1;margin:0 0 8px;">2</p>
+        <h3 class="gs-700" style="font-size:16px;margin:0 0 8px;color:var(--ink);">Em segunda pessoa</h3>
+        <p class="gs-400" style="font-size:13px;color:var(--ink-soft);line-height:1.55;margin:0;">Usa "você", "a gente". Não fala "o leitor", "o consumidor", "nós" formal.</p>
+      </div>
+
+      <div style="background:white;border:1px solid var(--line);border-radius:8px;padding:20px;border-left:4px solid var(--mint-deep);">
+        <p style="font-family:'Switzer';font-weight:900;font-size:36px;color:var(--mint-deep);letter-spacing:-0.03em;line-height:1;margin:0 0 8px;">3</p>
+        <h3 class="gs-700" style="font-size:16px;margin:0 0 8px;color:var(--ink);">Leve, não infantil</h3>
+        <p class="gs-400" style="font-size:13px;color:var(--ink-soft);line-height:1.55;margin:0;">Max 1-2 emojis temáticos por manchete. Sem "rs", "kkk", caps lock. Respeito ao leitor.</p>
+      </div>
+
+      <div style="background:white;border:1px solid var(--line);border-radius:8px;padding:20px;border-left:4px solid var(--mint-deep);">
+        <p style="font-family:'Switzer';font-weight:900;font-size:36px;color:var(--mint-deep);letter-spacing:-0.03em;line-height:1;margin:0 0 8px;">4</p>
+        <h3 class="gs-700" style="font-size:16px;margin:0 0 8px;color:var(--ink);">Brasileiro real</h3>
+        <p class="gs-400" style="font-size:13px;color:var(--ink-soft);line-height:1.55;margin:0;">Sem "bottom line", "spoiler", "heads up". Vira "resumindo", "adianta", "fica esperto".</p>
+      </div>
+
+      <div style="background:white;border:1px solid var(--line);border-radius:8px;padding:20px;border-left:4px solid var(--mint-deep);">
+        <p style="font-family:'Switzer';font-weight:900;font-size:36px;color:var(--mint-deep);letter-spacing:-0.03em;line-height:1;margin:0 0 8px;">5</p>
+        <h3 class="gs-700" style="font-size:16px;margin:0 0 8px;color:var(--ink);">Curioso, não cínico</h3>
+        <p class="gs-400" style="font-size:13px;color:var(--ink-soft);line-height:1.55;margin:0;">"Repare:", "olha só:", "tem um detalhe:". Sem ironia gratuita, sem desdém.</p>
+      </div>
+
+      <div style="background:white;border:1px solid var(--line);border-radius:8px;padding:20px;border-left:4px solid var(--mint-deep);">
+        <p style="font-family:'Switzer';font-weight:900;font-size:36px;color:var(--mint-deep);letter-spacing:-0.03em;line-height:1;margin:0 0 8px;">6</p>
+        <h3 class="gs-700" style="font-size:16px;margin:0 0 8px;color:var(--ink);">Curadoria humana</h3>
+        <p class="gs-400" style="font-size:13px;color:var(--ink-soft);line-height:1.55;margin:0;">"A gente recortou", "escolhemos pra você". <strong>Nunca</strong> "algoritmo", "IA", "filtro".</p>
+      </div>
+
+      <div style="background:white;border:1px solid var(--line);border-radius:8px;padding:20px;border-left:4px solid var(--mint-deep);">
+        <p style="font-family:'Switzer';font-weight:900;font-size:36px;color:var(--mint-deep);letter-spacing:-0.03em;line-height:1;margin:0 0 8px;">7</p>
+        <h3 class="gs-700" style="font-size:16px;margin:0 0 8px;color:var(--ink);">Encerra com gentileza</h3>
+        <p class="gs-400" style="font-size:13px;color:var(--ink-soft);line-height:1.55;margin:0;">"Amanhã tem mais. Bom dia." Nunca "Continue acompanhando".</p>
+      </div>
+
+    </div>
+
+    <h3 class="gs-700" style="font-size:22px;margin:36px 0 14px;">Tabela de substituição</h3>
+    <p class="gs-400" style="font-size:15px;color:var(--ink-soft);line-height:1.7;max-width:680px;margin-bottom:20px;">Sempre que ver à esquerda, substitua pela versão à direita. Vale pro Claude (no system prompt) e pra qualquer humano escrevendo.</p>
+
+    <div style="background:white;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:32px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;background:var(--ink);color:var(--cream);">
+        <div style="padding:14px 20px;font-family:'Switzer';font-weight:900;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;">NÃO USE</div>
+        <div style="padding:14px 20px;font-family:'Switzer';font-weight:900;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;border-left:1px solid rgba(255,255,255,0.1);">USE</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--cream-2);">
+        <div style="padding:14px 20px;color:var(--red);font-family:'General Sans';font-size:14px;text-decoration:line-through;">Por que isso importa</div>
+        <div style="padding:14px 20px;color:var(--mint-deep);font-family:'General Sans';font-weight:600;font-size:14px;border-left:1px solid var(--cream-2);">Pra você: / O que muda</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--cream-2);">
+        <div style="padding:14px 20px;color:var(--red);font-family:'General Sans';font-size:14px;text-decoration:line-through;">Bottom line</div>
+        <div style="padding:14px 20px;color:var(--mint-deep);font-family:'General Sans';font-weight:600;font-size:14px;border-left:1px solid var(--cream-2);">Resumindo: / No fim:</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--cream-2);">
+        <div style="padding:14px 20px;color:var(--red);font-family:'General Sans';font-size:14px;text-decoration:line-through;">Spoiler / Heads up</div>
+        <div style="padding:14px 20px;color:var(--mint-deep);font-family:'General Sans';font-weight:600;font-size:14px;border-left:1px solid var(--cream-2);">Adianta: / Fica esperto:</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--cream-2);">
+        <div style="padding:14px 20px;color:var(--red);font-family:'General Sans';font-size:14px;text-decoration:line-through;">Algoritmo / IA / Modelo / Filtro</div>
+        <div style="padding:14px 20px;color:var(--mint-deep);font-family:'General Sans';font-weight:600;font-size:14px;border-left:1px solid var(--cream-2);">A gente / Recortamos / Escolhemos</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--cream-2);">
+        <div style="padding:14px 20px;color:var(--red);font-family:'General Sans';font-size:14px;text-decoration:line-through;">Curadoria editorial</div>
+        <div style="padding:14px 20px;color:var(--mint-deep);font-family:'General Sans';font-weight:600;font-size:14px;border-left:1px solid var(--cream-2);">A gente recortou / Escolhemos</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--cream-2);">
+        <div style="padding:14px 20px;color:var(--red);font-family:'General Sans';font-size:14px;text-decoration:line-through;">200+ fontes</div>
+        <div style="padding:14px 20px;color:var(--mint-deep);font-family:'General Sans';font-weight:600;font-size:14px;border-left:1px solid var(--cream-2);">A gente lê o mundo todo</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--cream-2);">
+        <div style="padding:14px 20px;color:var(--red);font-family:'General Sans';font-size:14px;text-decoration:line-through;">Newsletter (produto)</div>
+        <div style="padding:14px 20px;color:var(--mint-deep);font-family:'General Sans';font-weight:600;font-size:14px;border-left:1px solid var(--cream-2);">Recorte / sua edição</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;">
+        <div style="padding:14px 20px;color:var(--red);font-family:'General Sans';font-size:14px;text-decoration:line-through;">Nós (formal)</div>
+        <div style="padding:14px 20px;color:var(--mint-deep);font-family:'General Sans';font-weight:600;font-size:14px;border-left:1px solid var(--cream-2);">A gente</div>
+      </div>
+    </div>
+
+    <h3 class="gs-700" style="font-size:22px;margin:36px 0 14px;">Exemplos antes / depois</h3>
+    <p class="gs-400" style="font-size:15px;color:var(--ink-soft);line-height:1.7;max-width:680px;margin-bottom:20px;">Como o tom muda na prática, em casos reais de manchete e copy.</p>
+
+    <div style="background:white;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:14px;">
+      <div style="background:var(--cream-2);padding:10px 20px;font-family:'Switzer';font-weight:800;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-soft);">📬 Subject email</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;">
+        <div style="padding:18px 20px;background:rgba(190,22,34,0.04);font-family:'General Sans';font-size:14px;color:var(--ink-soft);border-right:1px solid var(--cream-2);">
+          <span style="font-family:'JetBrains Mono';font-size:10px;color:var(--red);letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:6px;">ANTES</span>
+          "Sua newsletter diária está pronta — 17/05"
+        </div>
+        <div style="padding:18px 20px;background:rgba(159,229,200,0.08);font-family:'General Sans';font-weight:500;font-size:14px;color:var(--ink);">
+          <span style="font-family:'JetBrains Mono';font-size:10px;color:var(--mint-deep);letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:6px;">DEPOIS</span>
+          "Bom dia, Wesley. Hoje tem 6 coisas pra você ✂"
+        </div>
+      </div>
+    </div>
+
+    <div style="background:white;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:14px;">
+      <div style="background:var(--cream-2);padding:10px 20px;font-family:'Switzer';font-weight:800;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-soft);">🤖 Manchete tech</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;">
+        <div style="padding:18px 20px;background:rgba(190,22,34,0.04);font-family:'General Sans';font-size:14px;color:var(--ink-soft);border-right:1px solid var(--cream-2);">
+          <span style="font-family:'JetBrains Mono';font-size:10px;color:var(--red);letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:6px;">ANTES</span>
+          "Anthropic anuncia Claude 5 com janela de 5M tokens."
+        </div>
+        <div style="padding:18px 20px;background:rgba(159,229,200,0.08);font-family:'General Sans';font-weight:500;font-size:14px;color:var(--ink);">
+          <span style="font-family:'JetBrains Mono';font-size:10px;color:var(--mint-deep);letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:6px;">DEPOIS</span>
+          "A nova IA da Anthropic leu sua tese (em segundos)."
+        </div>
+      </div>
+    </div>
+
+    <div style="background:white;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:14px;">
+      <div style="background:var(--cream-2);padding:10px 20px;font-family:'Switzer';font-weight:800;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-soft);">💰 Manchete economia</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;">
+        <div style="padding:18px 20px;background:rgba(190,22,34,0.04);font-family:'General Sans';font-size:14px;color:var(--ink-soft);border-right:1px solid var(--cream-2);">
+          <span style="font-family:'JetBrains Mono';font-size:10px;color:var(--red);letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:6px;">ANTES</span>
+          "Bank of America destaca Brasil como oportunidade de investimento."
+        </div>
+        <div style="padding:18px 20px;background:rgba(159,229,200,0.08);font-family:'General Sans';font-weight:500;font-size:14px;color:var(--ink);">
+          <span style="font-family:'JetBrains Mono';font-size:10px;color:var(--mint-deep);letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:6px;">DEPOIS</span>
+          "Os gringos não querem largar o Brasil. De novo."
+        </div>
+      </div>
+    </div>
+
+    <div style="background:white;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:14px;">
+      <div style="background:var(--cream-2);padding:10px 20px;font-family:'Switzer';font-weight:800;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-soft);">👋 Despedida</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;">
+        <div style="padding:18px 20px;background:rgba(190,22,34,0.04);font-family:'General Sans';font-size:14px;color:var(--ink-soft);border-right:1px solid var(--cream-2);">
+          <span style="font-family:'JetBrains Mono';font-size:10px;color:var(--red);letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:6px;">ANTES</span>
+          "Continue acompanhando as nossas próximas edições. Equipe Recorte ✂"
+        </div>
+        <div style="padding:18px 20px;background:rgba(159,229,200,0.08);font-family:'General Sans';font-weight:500;font-size:14px;color:var(--ink);">
+          <span style="font-family:'JetBrains Mono';font-size:10px;color:var(--mint-deep);letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:6px;">DEPOIS</span>
+          "Amanhã tem mais. Bom dia." (domingo: "A gente se vê segunda. Bom domingo.")
+        </div>
+      </div>
+    </div>
+
+    <h3 class="gs-700" style="font-size:22px;margin:36px 0 14px;">Onde aplicar</h3>
+    <p class="gs-400" style="font-size:15px;color:var(--ink-soft);line-height:1.7;max-width:680px;">
+      O voice guide vive em <code style="background:var(--cream-2);padding:1px 6px;border-radius:3px;font-family:'JetBrains Mono';font-size:13px;">scripts/voice_prompt.py</code> e é injetado como prefixo cacheado de toda chamada a Claude em <code style="background:var(--cream-2);padding:1px 6px;border-radius:3px;font-family:'JetBrains Mono';font-size:13px;">scripts/daily_digest.py</code>. Pra mudar o tom da newsletter inteira, edite o <code style="background:var(--cream-2);padding:1px 6px;border-radius:3px;font-family:'JetBrains Mono';font-size:13px;">voice_prompt.py</code> — todos os componentes herdam automaticamente.
+    </p>
+  </section>
+
+  <!-- ================================== -->
+  <!-- DO AND DON'T -->
+  <!-- ================================== -->
+  <section id="do-dont">
+    <p class="section-kicker">07 · FAÇA / NÃO FAÇA</p>
+    <h2>Erros <span class="it">comuns</span></h2>
+    <p class="section-intro">Esses são os erros mais frequentes ao usar o sistema. Evite!</p>
+
+    <div class="dodont">
+      <div class="do">
+        <p class="do-header">✓ FAÇA</p>
+        <p style="font-family:'General Sans',sans-serif;font-size:16px;line-height:1.6;color:var(--ink-soft);">O <span class="gs-700" style="color:var(--ink);">Recorte</span> é uma newsletter brasileira.</p>
+        <p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--mint-deep);margin-top:14px;line-height:1.6;">General Sans 400 + brand mention 700.<br>Não troca de fonte.</p>
+      </div>
+      <div class="dont">
+        <p class="do-header">✕ NÃO FAÇA</p>
+        <p style="font-family:'General Sans',sans-serif;font-size:16px;line-height:1.6;color:var(--ink-soft);">O <span style="font-family:'Switzer',sans-serif;font-weight:900;color:var(--ink);letter-spacing:-0.03em;">Recorte</span> é uma newsletter brasileira.</p>
+        <p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--red);margin-top:14px;line-height:1.6;">Switzer no meio do parágrafo destoa. Quebra leitura.</p>
+      </div>
+    </div>
+
+    <div class="dodont">
+      <div class="do">
+        <p class="do-header">✓ FAÇA</p>
+        <p class="swz-900" style="font-size:32px;letter-spacing:-0.04em;color:var(--ink);">Recorte<span style="color:var(--mint-deep);margin-left:2px;">✂</span></p>
+        <p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--mint-deep);margin-top:14px;line-height:1.6;">Logo padrão: Switzer 900 + ✂ mint-deep.</p>
+      </div>
+      <div class="dont">
+        <p class="do-header">✕ NÃO FAÇA</p>
+        <p style="font-family:'Switzer',sans-serif;font-weight:500;font-size:32px;color:var(--ink);">Recorte<span style="color:var(--mint-deep);margin-left:2px;">✂</span></p>
+        <p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--red);margin-top:14px;line-height:1.6;">Logo SEMPRE peso 900. Nunca 500/700/800.</p>
+      </div>
+    </div>
+
+    <div class="dodont">
+      <div class="do">
+        <p class="do-header">✓ FAÇA</p>
+        <p class="gs-400" style="font-size:17px;line-height:1.7;color:var(--ink-soft);">"<span class="gb-it-400" style="color:var(--ink);">cada leitor único</span>" — texto editorial calmo.</p>
+        <p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--mint-deep);margin-top:14px;line-height:1.6;">Gambarino italic em palavras-chave editoriais.</p>
+      </div>
+      <div class="dont">
+        <p class="do-header">✕ NÃO FAÇA</p>
+        <p class="gb-it-400" style="font-size:17px;line-height:1.7;color:var(--ink-soft);">"Esta frase inteira em Gambarino italic vira difícil de ler em volumes."</p>
+        <p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--red);margin-top:14px;line-height:1.6;">Não use Gambarino pra parágrafos longos. Só acentos.</p>
+      </div>
+    </div>
+
+    <div class="dodont">
+      <div class="do">
+        <p class="do-header">✓ FAÇA</p>
+        <p class="swz-900" style="font-size:48px;letter-spacing:-0.035em;line-height:1;color:var(--mint-deep);">200+</p>
+        <p class="gs-600" style="font-size:13px;color:var(--ink-soft);margin-top:6px;">fontes brasileiras</p>
+        <p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--mint-deep);margin-top:14px;line-height:1.6;">Stats: Switzer 900 + cor mint-deep.</p>
+      </div>
+      <div class="dont">
+        <p class="do-header">✕ NÃO FAÇA</p>
+        <p class="gb-it-400" style="font-size:48px;letter-spacing:-0.025em;line-height:1;color:var(--mint-deep);">200+</p>
+        <p class="gb-it-400" style="font-size:13px;color:var(--ink-soft);margin-top:6px;">fontes brasileiras</p>
+        <p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--red);margin-top:14px;line-height:1.6;">Números NUNCA em Gambarino. Sempre Switzer 900.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================== -->
+  <!-- IMPLEMENTAÇÃO                       -->
+  <!-- ================================== -->
+  <section id="impl">
+    <p class="section-kicker">08 · IMPLEMENTAÇÃO</p>
+    <h2>CSS <span class="it">base</span></h2>
+    <p class="section-intro">Copie esse CSS pra todos os HTMLs do projeto. Define variáveis, fonte base, e os pesos disponíveis.</p>
+
+    <div class="code"><span class="comment">/* ============================== */</span>
+<span class="comment">/* TIPOGRAFIA RECORTE — sistema híbrido */</span>
+<span class="comment">/* ============================== */</span>
+
+<span class="comment">/* CARREGAR FONTES (no &lt;head&gt;) */</span>
+&lt;link rel=<span class="val">"preconnect"</span> href=<span class="val">"https://api.fontshare.com"</span>&gt;
+&lt;link rel=<span class="val">"stylesheet"</span> href=<span class="val">"https://api.fontshare.com/v2/css?f[]=switzer@400,500,700,800,900,400i,700i&f[]=general-sans@400,500,600,700&f[]=gambarino@400i,400&display=swap"</span>&gt;
+
+<span class="comment">/* CSS VARIABLES */</span>
+:root {
+  <span class="comment">/* Fontes */</span>
+  --font-display: <span class="val">'Switzer'</span>, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: <span class="val">'General Sans'</span>, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-italic: <span class="val">'Gambarino'</span>, Georgia, serif;
+  --font-mono: <span class="val">'JetBrains Mono'</span>, ui-monospace, monospace;
+}
+
+<span class="comment">/* BASE */</span>
+body {
+  <span class="key">font-family</span>: var(--font-body);
+  <span class="key">font-weight</span>: <span class="num">400</span>;
+  <span class="key">line-height</span>: <span class="num">1.65</span>;
+  <span class="key">color</span>: var(--ink-soft);
+}
+
+<span class="comment">/* HEADINGS */</span>
+h1, .H1 {
+  <span class="key">font-family</span>: var(--font-display);
+  <span class="key">font-weight</span>: <span class="num">900</span>;
+  <span class="key">letter-spacing</span>: -<span class="num">0.045em</span>;
+  <span class="key">line-height</span>: <span class="num">0.94</span>;
+}
+h2, .H2 {
+  <span class="key">font-family</span>: var(--font-display);
+  <span class="key">font-weight</span>: <span class="num">900</span>;
+  <span class="key">letter-spacing</span>: -<span class="num">0.03em</span>;
+  <span class="key">line-height</span>: <span class="num">1.04</span>;
+}
+h3, .H3 {
+  <span class="key">font-family</span>: var(--font-body);
+  <span class="key">font-weight</span>: <span class="num">700</span>;
+  <span class="key">letter-spacing</span>: -<span class="num">0.015em</span>;
+  <span class="key">line-height</span>: <span class="num">1.28</span>;
+}
+
+<span class="comment">/* ITALIC editorial (em destaques) */</span>
+.italic, em {
+  <span class="key">font-family</span>: var(--font-italic);
+  <span class="key">font-style</span>: italic;
+  <span class="key">font-weight</span>: <span class="num">400</span>;
+}
+
+<span class="comment">/* Brand mention em texto */</span>
+.brand {
+  <span class="key">font-family</span>: var(--font-body);
+  <span class="key">font-weight</span>: <span class="num">700</span>;
+  <span class="key">color</span>: var(--ink);
+}
+
+<span class="comment">/* Logo / wordmark */</span>
+.logo {
+  <span class="key">font-family</span>: var(--font-display);
+  <span class="key">font-weight</span>: <span class="num">900</span>;
+  <span class="key">letter-spacing</span>: -<span class="num">0.035em</span>;
+  <span class="key">color</span>: var(--ink);
+}
+.logo .scissor { <span class="key">color</span>: var(--mint-deep); }
+
+<span class="comment">/* CTA button */</span>
+.cta {
+  <span class="key">font-family</span>: var(--font-display);
+  <span class="key">font-weight</span>: <span class="num">800</span>;
+  <span class="key">font-size</span>: <span class="num">13px</span>;
+  <span class="key">letter-spacing</span>: <span class="num">0.12em</span>;
+  <span class="key">text-transform</span>: uppercase;
+}
+
+<span class="comment">/* Microcopy / kicker */</span>
+.micro {
+  <span class="key">font-family</span>: var(--font-display);
+  <span class="key">font-weight</span>: <span class="num">800</span>;
+  <span class="key">font-size</span>: <span class="num">11px</span>;
+  <span class="key">letter-spacing</span>: <span class="num">0.22em</span>;
+  <span class="key">text-transform</span>: uppercase;
+  <span class="key">color</span>: var(--ink-muted);
+}
+
+<span class="comment">/* Stats / números */</span>
+.stat {
+  <span class="key">font-family</span>: var(--font-display);
+  <span class="key">font-weight</span>: <span class="num">900</span>;
+  <span class="key">font-size</span>: <span class="num">60px</span>;
+  <span class="key">letter-spacing</span>: -<span class="num">0.035em</span>;
+  <span class="key">color</span>: var(--mint-deep);
+  <span class="key">line-height</span>: <span class="num">1</span>;
+}</div>
+
+    <h3 class="gs-700" style="font-size:22px;margin:36px 0 14px;">Email template (HTML inline styles)</h3>
+    <p class="gs-400" style="font-size:16px;color:var(--ink-soft);line-height:1.7;">No email, as mesmas regras se aplicam mas com <span class="brand">inline styles</span> obrigatórios (Gmail/Outlook não suportam &lt;style&gt; em todos os contextos). Use:</p>
+    <div class="code"><span class="comment">/* Email — constantes a usar no Python */</span>
+SERIF_FONT_FALLBACK = <span class="val">"'Gambarino', Georgia, 'Times New Roman', serif"</span>
+SANS_DISPLAY = <span class="val">"'Switzer', -apple-system, BlinkMacSystemFont, sans-serif"</span>
+SANS_BODY = <span class="val">"'General Sans', -apple-system, BlinkMacSystemFont, sans-serif"</span>
+
+<span class="comment">/* Exemplo: manchete tema */</span>
+&lt;h3 style=<span class="val">"font-family:{SERIF_FONT_FALLBACK};font-weight:400;font-size:26px;line-height:1.22;letter-spacing:-0.01em;color:#1A1A1A;margin:0 0 12px;"</span>&gt;
+  Anthropic anuncia Claude 5
+&lt;/h3&gt;
+
+<span class="comment">/* Exemplo: resumo */</span>
+&lt;p style=<span class="val">"font-family:{SANS_BODY};font-weight:400;font-size:16px;line-height:1.65;color:#4A4A4A;margin:0;"</span>&gt;
+  A empresa lançou hoje seu modelo mais capaz.
+&lt;/p&gt;</div>
+
+    <h3 class="gs-700" style="font-size:22px;margin:36px 0 14px;">Fallback chain</h3>
+    <p class="gs-400" style="font-size:16px;color:var(--ink-soft);line-height:1.7;">Caso o Fontshare CDN não carregue, a chain garante leitura aceitável:</p>
+    <div class="code">Switzer → -apple-system → BlinkMacSystemFont → sans-serif
+General Sans → -apple-system → BlinkMacSystemFont → sans-serif
+Gambarino → Georgia → <span class="val">"Times New Roman"</span> → serif</div>
+  </section>
+
+</div>
+
+<footer>
+  <p class="logo">Recorte<span class="scissor">✂</span></p>
+  <p>Brandbook v1 · Maio 2026 · Documentação completa do sistema visual</p>
+</footer>
+
+</body>
+</html>

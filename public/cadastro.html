@@ -4,9 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Recorte ✂ — Sua newsletter sob medida</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800;9..144,900&family=Mulish:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,700,800,900,400i,700i&f[]=general-sans@400,500,600,700&f[]=gambarino@400i,400&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
@@ -23,11 +22,11 @@
     --bg-card:       #FFFFFF;
     --bg-2:          #F4F1EA;
     --line:          #E8E1D0;
-    --red:           #C8102E;
+    --red:           #BE1622;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    font-family: 'Fraunces', Georgia, serif;
+    font-family: 'Switzer', sans-serif;
     background: var(--bg); color: var(--ink);
     min-height: 100vh; line-height: 1.6;
     font-size: 19px;
@@ -51,7 +50,7 @@
     display: flex; align-items: center; justify-content: space-between;
   }
   .logo {
-    font-family: 'Fraunces', Georgia, serif;
+    font-family: 'Switzer', sans-serif;
     font-weight: 900; font-size: 28px; letter-spacing: -0.04em;
     display: flex; align-items: center; gap: 12px;
     color: var(--ink);
@@ -88,7 +87,7 @@
     display: flex; align-items: center; justify-content: space-between;
   }
   .brand {
-    font-family: 'Fraunces', serif;
+    font-family: 'Switzer', sans-serif;
     font-weight: 700; font-size: 24px;
     letter-spacing: -0.025em;
     color: var(--ink);
@@ -99,7 +98,7 @@
     display: inline-flex; align-items: center; justify-content: center;
     width: 40px; height: 40px; border-radius: 50%;
     background: var(--bg); border: 2.5px solid var(--ink);
-    font-family: 'Fraunces', Georgia, serif;
+    font-family: 'Switzer', sans-serif;
     font-style: italic; font-weight: 700;
     font-size: 24px; color: var(--ink);
     letter-spacing: -0.05em; line-height: 1;
@@ -108,7 +107,7 @@
   .brand-dot { color: var(--mint-deep); }
   .nav { display: flex; align-items: center; gap: 28px; }
   .nav a {
-    font-family: 'Mulish', sans-serif;
+    font-family: 'General Sans', sans-serif;
     font-size: 15px; font-weight: 700;
     color: var(--ink-soft);
     text-decoration: none;
@@ -120,7 +119,7 @@
     color: var(--bg) !important;
     padding: 11px 20px;
     border-radius: 4px;
-    font-family: 'Fraunces', serif !important;
+    font-family: 'Switzer', sans-serif !important;
     font-style: italic;
     font-weight: 700 !important;
     transition: all 0.15s;
@@ -145,7 +144,7 @@
   }
   @media (max-width: 640px) { .hero { padding: 48px 0 32px; } }
   .hero-eyebrow {
-    font-family: 'Mulish', sans-serif;
+    font-family: 'General Sans', sans-serif;
     font-size: 13px; font-weight: 800;
     letter-spacing: 0.22em; text-transform: uppercase;
     color: var(--mint-dark);
@@ -156,7 +155,7 @@
   .hero-eyebrow .free-badge {
     display: inline-flex; align-items: center;
     background: var(--yellow); color: var(--ink);
-    font-family: 'Mulish', sans-serif;
+    font-family: 'General Sans', sans-serif;
     font-weight: 800; font-size: 11px;
     letter-spacing: 0.18em; text-transform: uppercase;
     padding: 5px 12px 6px; border-radius: 3px;
@@ -167,8 +166,7 @@
     margin-bottom: 28px; max-width: 320px;
   }
   .hero h1 {
-    font-family: 'Fraunces', Georgia, serif;
-    font-weight: 700;
+    font-family: 'Switzer', sans-serif; font-weight: 900; letter-spacing: -0.045em;
     font-size: clamp(38px, 6vw, 68px);
     line-height: 1.05;
     letter-spacing: -0.03em;
@@ -188,7 +186,7 @@
     -webkit-box-decoration-break: clone;
   }
   .hero-subtitle {
-    font-family: 'Fraunces', Georgia, serif;
+    font-family: 'Switzer', sans-serif;
     font-size: 22px;
     line-height: 1.5;
     color: var(--ink-soft);
@@ -204,7 +202,7 @@
     padding: 16px 20px;
     margin-bottom: 24px;
     display: flex; align-items: center; gap: 14px;
-    font-family: 'Mulish', sans-serif;
+    font-family: 'General Sans', sans-serif;
     font-size: 14.5px; line-height: 1.55; color: var(--ink);
     box-shadow: 4px 4px 0 var(--ink);
   }
@@ -224,7 +222,7 @@
   .step:last-child { border-bottom: none; padding-bottom: 0; }
   .step-header { display: flex; align-items: baseline; gap: 18px; margin-bottom: 18px; }
   .step-num {
-    font-family: 'Fraunces', serif;
+    font-family: 'Switzer', sans-serif;
     font-weight: 600; font-size: 44px; line-height: 1;
     color: var(--mint-deep); font-style: italic;
     flex-shrink: 0; position: relative;
@@ -235,7 +233,7 @@
     background: var(--yellow); margin-top: 6px;
   }
   .step-title {
-    font-family: 'Fraunces', serif;
+    font-family: 'Switzer', sans-serif;
     font-weight: 700; font-size: 26px; letter-spacing: -0.02em;
     color: var(--ink);
     font-variation-settings: "SOFT" 50, "opsz" 30;
@@ -303,7 +301,7 @@
 
   .mode-emoji { font-size: 32px; line-height: 1; display: block; margin: 12px 0 12px; }
   .mode-name {
-    font-family: 'Fraunces', serif;
+    font-family: 'Switzer', sans-serif;
     font-weight: 700; font-size: 20px;
     letter-spacing: -0.02em;
     color: var(--ink);
@@ -316,7 +314,7 @@
   .mode-badge {
     position: absolute; top: 12px; right: 12px;
     background: var(--ink); color: var(--mint);
-    font-family: 'Mulish', sans-serif;
+    font-family: 'General Sans', sans-serif;
     font-size: 9px; font-weight: 800;
     letter-spacing: 0.14em; text-transform: uppercase;
     padding: 4px 9px;
@@ -360,7 +358,7 @@
   .field {
     width: 100%; padding: 14px 16px;
     border: 2px solid var(--ink); background: var(--bg);
-    font-family: 'Mulish', sans-serif; font-size: 16px; color: var(--ink);
+    font-family: 'General Sans', sans-serif; font-size: 16px; color: var(--ink);
     transition: background 0.15s, box-shadow 0.15s, transform 0.15s;
   }
   .field:focus {
@@ -396,7 +394,7 @@
     display: flex; align-items: center; gap: 10px;
     padding: 12px 14px;
     border: 2px solid var(--ink); background: var(--bg-card);
-    font-family: 'Mulish', sans-serif;
+    font-family: 'General Sans', sans-serif;
     font-size: 14px; font-weight: 600; color: var(--ink);
     transition: all 0.15s;
   }
@@ -422,7 +420,7 @@
   .btn-add {
     padding: 0 18px;
     background: var(--bg); border: 2px solid var(--ink);
-    font-family: 'Mulish', sans-serif;
+    font-family: 'General Sans', sans-serif;
     font-size: 13px; font-weight: 700; color: var(--ink);
     cursor: pointer; transition: all 0.15s;
     white-space: nowrap;
@@ -437,7 +435,7 @@
     display: inline-flex; align-items: center; gap: 4px;
     background: var(--mint-deep); color: #FFF;
     padding: 4px 8px 4px 4px;
-    font-family: 'Mulish', sans-serif;
+    font-family: 'General Sans', sans-serif;
     font-size: 13px; font-weight: 700;
   }
   .tag-flag {
@@ -460,7 +458,7 @@
   /* Feedback do detector */
   .scope-hint {
     margin-top: -6px; margin-bottom: 12px;
-    font-family: 'Mulish', sans-serif;
+    font-family: 'General Sans', sans-serif;
     font-size: 12px; color: var(--ink-muted);
     padding-left: 2px;
     min-height: 18px;
@@ -480,7 +478,7 @@
     transition: all 0.15s;
   }
   .time-pill-label strong {
-    font-family: 'Fraunces', serif;
+    font-family: 'Switzer', sans-serif;
     font-size: 22px; font-weight: 800; color: var(--ink);
     font-variation-settings: "SOFT" 30, "opsz" 24;
   }
@@ -514,7 +512,7 @@
   .btn-submit {
     background: var(--mint); color: var(--ink); border: 2px solid var(--ink);
     padding: 18px 32px;
-    font-family: 'Fraunces', serif;
+    font-family: 'Switzer', sans-serif;
     font-weight: 800; font-size: 18px; letter-spacing: -0.01em;
     cursor: pointer; transition: all 0.15s;
     box-shadow: 4px 4px 0 var(--ink);
@@ -538,7 +536,7 @@
     font-size: 40px; box-shadow: 6px 6px 0 var(--ink);
   }
   .success h2 {
-    font-family: 'Fraunces', serif;
+    font-family: 'Switzer', sans-serif;
     font-weight: 900; font-size: 42px; letter-spacing: -0.04em;
     margin-bottom: 12px; color: var(--ink);
     font-variation-settings: "SOFT" 60, "WONK" 1, "opsz" 60;
@@ -551,11 +549,20 @@
   /* FOOTER */
   .footer {
     text-align: center; padding: 40px 0 60px;
-    font-family: 'Mulish', sans-serif;
+    font-family: 'General Sans', sans-serif;
     font-size: 13px; color: var(--ink-muted);
     border-top: 1px solid var(--line);
   }
   .footer strong { color: var(--ink); font-weight: 700; }
+
+  /* a11y: labels invisíveis pra screen readers, mantém placeholders visuais */
+  .visually-hidden {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0);
+    white-space: nowrap; border: 0;
+  }
 </style>
 </head>
 <body>
@@ -606,13 +613,15 @@
         </div>
       </div>
       <div class="input-row">
-        <input type="text" id="name" class="field" placeholder="Seu primeiro nome" required>
-        <input type="email" id="email" class="field" placeholder="seu@email.com" required>
+        <label for="name" class="visually-hidden">Seu primeiro nome</label>
+        <input type="text" id="name" class="field" placeholder="Seu primeiro nome" required aria-label="Seu primeiro nome" autocomplete="given-name">
+        <label for="email" class="visually-hidden">Seu email</label>
+        <input type="email" id="email" class="field" placeholder="seu@email.com" required aria-label="Seu email" autocomplete="email">
       </div>
       <div class="phone-row">
         <select id="phoneCountry" class="field country-select field-country"></select>
-        <input type="tel" id="phoneArea" class="field field-area" placeholder="DDD" maxlength="4" inputmode="numeric">
-        <input type="tel" id="phoneNumber" class="field field-number" placeholder="Telefone (opcional)" maxlength="15" inputmode="numeric">
+        <input type="tel" id="phoneArea" class="field field-area" placeholder="DDD" maxlength="4" inputmode="numeric" aria-label="Código de área (DDD)" autocomplete="tel-area-code">
+        <input type="tel" id="phoneNumber" class="field field-number" placeholder="Telefone (opcional)" maxlength="15" inputmode="numeric" aria-label="Número de telefone (opcional)" autocomplete="tel-national">
       </div>
     </div>
 
@@ -670,7 +679,7 @@
         </div>
       </div>
       <div class="custom-input-row">
-        <input type="text" id="customTopicInput" class="field" placeholder="ex: Futebol, FIIs, OpenAI, Apple…">
+        <input type="text" id="customTopicInput" class="field" placeholder="ex: Futebol, FIIs, OpenAI, Apple…" aria-label="Adicionar tema personalizado">
         <button type="button" class="btn-add" onclick="addCustomTopic()">+ Adicionar</button>
       </div>
       <div class="scope-hint" id="scopeHint">↳ digite acima e eu detecto o escopo</div>
@@ -701,7 +710,7 @@
         </div>
       </div>
       <div class="topics-add-row">
-        <input type="text" id="filterInput" placeholder="" maxlength="100">
+        <input type="text" id="filterInput" placeholder="" maxlength="100" aria-label="Adicionar filtro (veículo ou assunto a bloquear)">
         <button type="button" class="btn-add" id="addFilterBtn">+ Adicionar</button>
       </div>
       <div class="topics-list" id="filtersList"></div>
@@ -734,9 +743,9 @@
 
 <script>
   // ===== CONFIG =====
-  const SUPABASE_URL = 'https://jegvgviwbkbrmuhcivle.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_Q9FiImNakeN-DdGIbWIDjQ_v50JUNSS';
-  const WELCOME_FN_URL = 'https://jegvgviwbkbrmuhcivle.supabase.co/functions/v1/welcome';
+  const SUPABASE_URL = 'https://SEUPROJETO.supabase.co';
+  const SUPABASE_ANON_KEY = 'SUA_ANON_KEY';
+  const WELCOME_FN_URL = SUPABASE_URL + '/functions/v1/welcome';
   const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // ===== TEMAS CURADOS =====
@@ -840,7 +849,7 @@
         </div>
       </label>
     `).join('');
-    // Limite de 20 temas no total — intercepta marcação
+    // Limite de 15 temas no total — intercepta marcação
     grid.querySelectorAll('.topic-chip input').forEach(cb => {
       cb.addEventListener('change', (e) => {
         if (e.target.checked && getTotalTopicsCount() > 15) {

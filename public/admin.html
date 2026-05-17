@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Admin — Recorte ✂</title>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,700,800,900,400i,700i&f[]=general-sans@400,500,600,700&f[]=gambarino@400i,400&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --bg-2: #1a1a1a;
+    --bg-3: #2a2a2a;
+    --ink: #ffffff;
+    --soft: #c0c0c0;
+    --muted: #707070;
+    --mint: #9FE5C8;
+    --mint-deep: #0A6E50;
+    --red: #BE1622;
+    --amber: #FFC857;
+    --line: #303030;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:0; font-family: 'General Sans', sans-serif;
+         background: var(--bg); color: var(--ink); line-height: 1.5; }
+  .container { max-width: 1280px; margin: 0 auto; padding: 32px 24px; }
+  header { display:flex; align-items:center; justify-content:space-between; margin-bottom: 32px; }
+  h1 { font-family: 'Switzer', sans-serif; font-size: 32px; margin: 0; }
+  h1 .accent { color: var(--mint); }
+  .subtitle { color: var(--muted); font-size: 13px; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.05em; }
+  .grid { display: grid; gap: 16px; }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-2 { grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
+  @media (max-width: 900px) {
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+  .card { background: var(--bg-2); border-left: 4px solid var(--mint-deep); padding: 20px 24px; }
+  .stat-label { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .stat-value { font-family: 'Switzer', sans-serif; font-size: 40px; font-weight: 700; color: var(--ink); line-height: 1; }
+  .stat-pct { font-size: 14px; color: var(--mint); margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+  .stat-bad { color: var(--red); }
+  .panel { background: var(--bg-2); padding: 24px; }
+  .panel h2 { font-family: 'Switzer', sans-serif; font-size: 18px; margin: 0 0 16px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 12px; font-size: 13px; }
+  th { color: var(--muted); font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: 0.12em; border-bottom: 1px solid var(--line); }
+  td { border-bottom: 1px solid var(--bg-3); }
+  tr:hover td { background: var(--bg-3); }
+  td a { color: var(--mint); text-decoration: none; }
+  td a:hover { text-decoration: underline; }
+  .badge { display: inline-block; background: var(--bg-3); color: var(--soft); font-size: 10px;
+           font-weight: 700; padding: 2px 8px; border-radius: 3px; letter-spacing: 0.08em; }
+  .badge-success { background: rgba(159,229,200,0.15); color: var(--mint); }
+  .badge-warn { background: rgba(255,200,87,0.15); color: var(--amber); }
+  .badge-bad { background: rgba(190,22,34,0.15); color: var(--red); }
+  .loading { text-align: center; padding: 60px; color: var(--muted); }
+  .error { background: rgba(190,22,34,0.1); color: var(--red); padding: 16px; margin: 20px 0; }
+  .small { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .empty-msg { text-align: center; padding: 32px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="container" id="app">
+  <header>
+    <div>
+      <h1>Recorte<span class="accent">✂</span> · Admin</h1>
+      <div class="subtitle" id="lastUpdated">carregando...</div>
+    </div>
+    <div>
+      <button onclick="loadData()" style="background:var(--bg-3);color:var(--ink);border:1px solid var(--line);padding:10px 18px;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;font-family:inherit;">↻ Atualizar</button>
+    </div>
+  </header>
+
+  <div id="content" class="loading">Carregando métricas...</div>
+</div>
+
+<script>
+  // CONFIG (substituir placeholders no deploy)
+  const SUPABASE_URL = 'https://SEUPROJETO.supabase.co';
+  const SUPABASE_ANON_KEY = 'SUA_ANON_KEY';
+
+  // Auth simples via ?key=
+  const ADMIN_KEY = 'SUA_ADMIN_KEY';  // sobrescrever no deploy
+
+  const params = new URLSearchParams(window.location.search);
+  if (ADMIN_KEY === 'SUA_ADMIN_KEY' || !ADMIN_KEY || ADMIN_KEY.length < 8) {
+    document.getElementById('app').innerHTML = `
+      <header><h1>Recorte<span class="accent">✂</span> · Admin</h1></header>
+      <div class="error">⚠️ Admin key não configurada. Edite admin.html antes do deploy.</div>
+    `;
+    throw new Error('admin key not configured');
+  }
+  if (params.get('key') !== ADMIN_KEY) {
+    document.getElementById('app').innerHTML = `
+      <header><h1>Recorte<span class="accent">✂</span> · Admin</h1></header>
+      <div class="error">Acesso restrito. Use a URL com <code>?key=...</code>.</div>
+    `;
+    throw new Error('unauthorized');
+  }
+
+  // ⚠️ Pra dashboard funcionar com SELECT em editions/email_events/link_clicks,
+  // precisa de uma RLS policy "service_role" + key SERVICE_ROLE (NÃO anon).
+  // Pra MVP, opção mais simples: a admin.html consulta com SERVICE_ROLE key
+  // (que estará no JS exposto — por isso o ?key= acima dá uma camada extra).
+  // Pra produção real, isso deve ir pra um endpoint backend.
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  async function loadData() {
+    document.getElementById('content').innerHTML = '<div class="loading">Carregando métricas...</div>';
+
+    try {
+      const [usersR, editionsR, eventsR, linksR] = await Promise.all([
+        sb.from('users').select('id, active, welcome_sent, created_at', { count: 'exact', head: false }),
+        sb.from('editions_public').select('id, kind, scheduled_for, sent_at, view_count', { count: 'exact', head: false }).order('sent_at', { ascending: false, nullsFirst: false }).limit(30),
+        sb.from('email_events_public').select('event_type, created_at, edition_id, link', { count: 'exact', head: false }).order('created_at', { ascending: false }).limit(2000),
+        sb.from('link_clicks_summary').select('target_url, source, topic_label, click_count, last_clicked_at').order('click_count', { ascending: false }).limit(50),
+      ]);
+
+      const users = usersR.data || [];
+      const editions = editionsR.data || [];
+      const events = eventsR.data || [];
+      const links = linksR.data || [];
+
+      const totalUsers = users.length;
+      const activeUsers = users.filter(u => u.active).length;
+      const editionsSent = editions.filter(e => e.sent_at).length;
+
+      const sentEvents = events.filter(e => e.event_type === 'email.sent').length;
+      const openedEvents = events.filter(e => e.event_type === 'email.opened').length;
+      const clickedEvents = events.filter(e => e.event_type === 'email.clicked').length;
+      const bouncedEvents = events.filter(e => e.event_type === 'email.bounced').length;
+      const complaintEvents = events.filter(e => e.event_type === 'email.complained').length;
+
+      // Unique opens: por edition_id
+      const uniqueOpensByEdition = new Set(events.filter(e => e.event_type === 'email.opened').map(e => e.edition_id).filter(Boolean));
+      const openRate = sentEvents > 0 ? (uniqueOpensByEdition.size / sentEvents * 100) : 0;
+      const clickRate = sentEvents > 0 ? (clickedEvents / sentEvents * 100) : 0;
+      const bounceRate = sentEvents > 0 ? ((bouncedEvents + complaintEvents) / sentEvents * 100) : 0;
+
+      const html = `
+        <div class="grid grid-4">
+          <div class="card">
+            <div class="stat-label">Users ativos</div>
+            <div class="stat-value">${activeUsers}</div>
+            <div class="stat-pct">de ${totalUsers} totais</div>
+          </div>
+          <div class="card">
+            <div class="stat-label">Open rate (30d)</div>
+            <div class="stat-value">${openRate.toFixed(1)}%</div>
+            <div class="stat-pct ${openRate < 30 ? 'stat-bad' : ''}">${uniqueOpensByEdition.size} opens únicos · ${sentEvents} envios</div>
+          </div>
+          <div class="card">
+            <div class="stat-label">Click rate</div>
+            <div class="stat-value">${clickRate.toFixed(1)}%</div>
+            <div class="stat-pct">${clickedEvents} cliques rastreados</div>
+          </div>
+          <div class="card">
+            <div class="stat-label">Bounce / complaint</div>
+            <div class="stat-value">${bounceRate.toFixed(2)}%</div>
+            <div class="stat-pct ${bounceRate > 1 ? 'stat-bad' : ''}">${bouncedEvents} bounces · ${complaintEvents} reclamações</div>
+          </div>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="panel">
+            <h2>📰 Últimas edições</h2>
+            ${editions.length === 0 ? '<div class="empty-msg">Nenhuma edição registrada ainda.</div>' : `
+            <table>
+              <thead>
+                <tr><th>Data</th><th>Tipo</th><th>Views</th><th>Ver</th></tr>
+              </thead>
+              <tbody>
+                ${editions.slice(0, 15).map(e => `
+                  <tr>
+                    <td>${e.scheduled_for || (e.sent_at ? e.sent_at.slice(0,10) : '—')}</td>
+                    <td><span class="badge ${e.kind === 'welcome' ? 'badge-warn' : 'badge-success'}">${e.kind}</span></td>
+                    <td>${e.view_count || 0}</td>
+                    <td><a href="/r/${e.id}" target="_blank">↗ abrir</a></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            `}
+          </div>
+
+          <div class="panel">
+            <h2>🔥 Top cliques</h2>
+            ${links.length === 0 ? '<div class="empty-msg">Nenhum clique registrado ainda.</div>' : `
+            <table>
+              <thead>
+                <tr><th>Manchete / URL</th><th>Fonte</th><th>Cliques</th></tr>
+              </thead>
+              <tbody>
+                ${links.slice(0, 15).map(l => {
+                  const u = l.target_url || '';
+                  const display = u.length > 70 ? u.slice(0, 67) + '...' : u;
+                  return `
+                  <tr>
+                    <td><a href="${u}" target="_blank">${display || '—'}</a><br><span class="small">${l.topic_label || ''}</span></td>
+                    <td><span class="badge">${l.source || '—'}</span></td>
+                    <td>${l.click_count || 0}</td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+            `}
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:24px;">
+          <h2>📊 Últimos 30 eventos</h2>
+          ${events.length === 0 ? '<div class="empty-msg">Nenhum evento ainda. Configure o webhook do Resend.</div>' : `
+          <table>
+            <thead>
+              <tr><th>Quando</th><th>Tipo</th><th>Edição</th><th>Link</th></tr>
+            </thead>
+            <tbody>
+              ${events.slice(0, 30).map(ev => `
+                <tr>
+                  <td class="small">${new Date(ev.created_at).toLocaleString('pt-BR')}</td>
+                  <td><span class="badge ${ev.event_type.includes('bounce') || ev.event_type.includes('complain') ? 'badge-bad' : 'badge-success'}">${ev.event_type.replace('email.','')}</span></td>
+                  <td class="small">${ev.edition_id ? ev.edition_id.slice(0,8) : '—'}</td>
+                  <td class="small">${ev.link ? ev.link.slice(0,60) : '—'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          `}
+        </div>
+      `;
+
+      document.getElementById('content').innerHTML = html;
+      document.getElementById('lastUpdated').textContent = `Atualizado às ${new Date().toLocaleTimeString('pt-BR')}`;
+    } catch (e) {
+      document.getElementById('content').innerHTML = `<div class="error">Erro carregando dados: ${e.message}</div>`;
+      console.error(e);
+    }
+  }
+
+  loadData();
+  setInterval(loadData, 60_000);  // auto-refresh a cada 1 min
+</script>
+
+</body>
+</html>

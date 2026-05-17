@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arquivo · Recorte ✂</title>
+<meta name="description" content="Edições passadas do Recorte ✂ — newsletter diária de notícias curadas.">
+<meta property="og:title" content="Arquivo do Recorte ✂">
+<meta property="og:description" content="Veja todas as edições passadas do Recorte.">
+<meta property="og:image" content="https://recorte.news/og-default.png">
+<meta property="og:url" content="https://recorte.news/arquivo.html">
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,700,800,900,400i,700i&f[]=general-sans@400,500,600,700&f[]=gambarino@400i,400&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #F2F0E6; --bg-2: #E8E5D8; --ink: #1A1A1A; --ink-soft: #4A4A4A;
+    --ink-muted: #7A7A7A; --mint: #9FE5C8; --mint-deep: #0A6E50; --line: #C0BFB0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#1a1a1a; --bg-2:#2a2a2a; --ink:#f0f0f0; --ink-soft:#c0c0c0;
+            --ink-muted:#909090; --line:#404040; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 0; background: var(--bg); color: var(--ink);
+         font-family: 'General Sans', -apple-system, sans-serif; line-height: 1.5; min-height: 100vh; }
+  .tricolor-stripe { display: flex; height: 4px; }
+  .tricolor-stripe span { flex: 1; }
+  .tricolor-stripe span:nth-child(1) { background: var(--mint); }
+  .tricolor-stripe span:nth-child(2) { background: var(--ink); }
+  .tricolor-stripe span:nth-child(3) { background: #FFD60A; }
+  header { background: var(--bg); border-bottom: 2px solid var(--ink); }
+  .header-inner { max-width: 1100px; margin: 0 auto; padding: 18px 24px;
+                  display: flex; justify-content: space-between; align-items: center; }
+  .logo { font-family: 'Switzer', sans-serif; font-size: 26px; font-weight: 800;
+          color: var(--ink); text-decoration: none; letter-spacing: -0.02em; }
+  .logo span { color: var(--mint-deep); }
+  nav { display: flex; gap: 18px; font-size: 13px; font-weight: 700; }
+  nav a { color: var(--ink); text-decoration: none; padding: 6px 0; border-bottom: 2px solid transparent; }
+  nav a:hover { border-bottom-color: var(--mint-deep); }
+  nav a.active { border-bottom-color: var(--ink); }
+  .container { max-width: 1100px; margin: 0 auto; padding: 48px 24px; }
+  .hero { text-align: center; margin-bottom: 48px; }
+  .hero h1 { font-family: 'Switzer', sans-serif; font-size: 48px; font-weight: 800;
+             margin: 0 0 12px; letter-spacing: -0.02em; }
+  .hero h1 .accent { color: var(--mint-deep); }
+  .hero .subtitle { color: var(--ink-soft); font-size: 18px;
+                    font-family: 'Gambarino', Georgia, serif; font-style: italic; }
+  .grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+  .card { background: var(--bg-2); border-left: 5px solid var(--mint-deep);
+          padding: 24px; transition: transform 0.15s ease;
+          text-decoration: none; color: inherit; display: block; }
+  .card:hover { transform: translate(-2px, -2px); box-shadow: 4px 4px 0 var(--ink); }
+  .card-date { font-family: 'JetBrains Mono', monospace; font-size: 11px;
+               letter-spacing: 0.12em; color: var(--mint-deep);
+               text-transform: uppercase; font-weight: 700; margin-bottom: 12px; }
+  .card-title { font-family: 'Switzer', sans-serif; font-size: 20px; font-weight: 700;
+                line-height: 1.3; color: var(--ink); margin-bottom: 12px; }
+  .card-meta { font-size: 12px; color: var(--ink-muted); }
+  .card-badge { display: inline-block; background: var(--ink); color: var(--bg);
+                font-size: 10px; font-weight: 800; letter-spacing: 0.12em;
+                padding: 3px 8px; text-transform: uppercase; margin-bottom: 12px; }
+  .card-badge.weekly { background: var(--mint-deep); color: white; }
+  .loading, .empty { text-align: center; padding: 60px 20px; color: var(--ink-muted); }
+  .empty h2 { font-family: 'Switzer', sans-serif; color: var(--ink); font-size: 24px; }
+  footer { background: var(--bg-2); padding: 24px; text-align: center; margin-top: 80px;
+           font-size: 12px; color: var(--ink-muted); }
+  footer a { color: var(--ink-soft); text-decoration: underline; font-weight: 700; }
+  @media (max-width: 640px) {
+    .hero h1 { font-size: 36px; }
+    .header-inner nav { gap: 12px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="tricolor-stripe"><span></span><span></span><span></span></div>
+<header>
+  <div class="header-inner">
+    <a href="/" class="logo">Recorte<span>✂</span></a>
+    <nav>
+      <a href="/sobre.html">Sobre</a>
+      <a href="/faq.html">FAQ</a>
+      <a href="/arquivo.html" class="active">Arquivo</a>
+      <a href="/cadastro.html">Cadastro</a>
+    </nav>
+  </div>
+</header>
+
+<div class="container">
+  <section class="hero">
+    <h1>Arquivo do <span class="accent">Recorte ✂</span></h1>
+    <p class="subtitle">Últimas edições publicadas. Leia o que perdeu.</p>
+  </section>
+
+  <div id="content" class="loading">Carregando edições...</div>
+</div>
+
+<footer>
+  Recorte ✂ · pra ler antes do café ☕<br>
+  <a href="/cadastro.html">Cadastra-te grátis</a> ·
+  <a href="/sobre.html">Sobre</a> ·
+  <a href="/politica-privacidade.html">Privacidade</a>
+</footer>
+
+<script>
+  const SUPABASE_URL = 'https://SEUPROJETO.supabase.co';
+  const SUPABASE_ANON_KEY = 'SUA_ANON_KEY';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  function fmtDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+  }
+
+  async function load() {
+    try {
+      const { data, error } = await sb
+        .from('editions_public')
+        .select('id, kind, scheduled_for, subject, sent_at')
+        .order('sent_at', { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      const editions = data || [];
+      if (editions.length === 0) {
+        document.getElementById('content').innerHTML = `
+          <div class="empty">
+            <h2>Nenhuma edição publicada ainda</h2>
+            <p>Volte em breve. Ou <a href="/cadastro.html" style="color:var(--mint-deep);font-weight:700;">cadastre-se</a> pra receber por e-mail.</p>
+          </div>`;
+        return;
+      }
+      const seen = new Set();
+      const unique = [];
+      for (const e of editions) {
+        const key = `${e.scheduled_for}__${e.kind}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        unique.push(e);
+      }
+      const html = `
+        <div class="grid">
+          ${unique.map(e => `
+            <a class="card" href="/r/${e.id}">
+              <div class="card-badge ${e.kind === 'weekly' ? 'weekly' : ''}">${e.kind === 'weekly' ? '📅 Semanal' : '☕ Diário'}</div>
+              <div class="card-date">${fmtDate(e.scheduled_for)}</div>
+              <div class="card-title">${(e.subject || 'Recorte ✂').replace(/—.*$/,'')}</div>
+              <div class="card-meta">Clique para ler →</div>
+            </a>
+          `).join('')}
+        </div>
+      `;
+      document.getElementById('content').innerHTML = html;
+    } catch (e) {
+      document.getElementById('content').innerHTML = `
+        <div class="empty">
+          <h2>Não foi possível carregar</h2>
+          <p>Tente recarregar a página. ${e.message}</p>
+        </div>`;
+      console.error(e);
+    }
+  }
+  load();
+</script>
+
+</body>
+</html>

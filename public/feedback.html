@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <title>Recorte ✂</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700;900&family=Mulish:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,700,800,900,400i,700i&f[]=general-sans@400,500,600,700&f[]=gambarino@400i,400&display=swap">
 <style>
   :root{
     --mint:#6EE7B7; --mint-deep:#10B981; --mint-dark:#047857;
@@ -15,7 +16,7 @@
   *{box-sizing:border-box}
   html,body{margin:0;padding:0;height:100%;background:var(--bg)}
   body{
-    font-family:'Mulish',system-ui,sans-serif;
+    font-family:'General Sans',system-ui,sans-serif;
     color:var(--ink);
     display:flex;align-items:center;justify-content:center;
     padding:24px;min-height:100vh;
@@ -34,7 +35,7 @@
   }
   .toast .emoji{font-size:32px;line-height:1;margin-bottom:8px;display:block}
   .toast h2{
-    font-family:'Fraunces',serif;font-weight:700;
+    font-family: 'Switzer', sans-serif;font-weight:700;
     font-size:22px;letter-spacing:-0.02em;
     margin:0 0 4px;line-height:1.15;
   }
@@ -63,7 +64,7 @@
   .card .icon.success{background:var(--mint)}
   .card .icon.warn{background:var(--orange);color:#fff}
   .card h1{
-    font-family:'Fraunces',serif;font-weight:900;
+    font-family: 'Switzer', sans-serif;font-weight:900;
     font-size:30px;letter-spacing:-0.025em;
     margin:0 0 12px;line-height:1.1;
   }
@@ -80,7 +81,7 @@
   .btn-undo{
     display:inline-block;padding:10px 22px;
     background:var(--ink);color:#fff;text-decoration:none;
-    font-family:'Mulish',sans-serif;font-weight:700;
+    font-family: 'General Sans', sans-serif;font-weight:700;
     font-size:12px;letter-spacing:0.08em;text-transform:uppercase;
     border:2px solid var(--ink);
     box-shadow:4px 4px 0 var(--mint-deep);
@@ -89,11 +90,11 @@
   }
   .btn-undo:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--mint-deep)}
   .countdown{
-    font-size:11px;color:var(--ink-muted);
+    font-size:12px;color:var(--ink-soft);
     font-style:italic;letter-spacing:0.02em;
   }
   .foot{
-    font-size:11px;color:var(--ink-muted);margin-top:24px;
+    font-size:12px;color:var(--ink-soft);margin-top:24px;
     letter-spacing:0.02em;
   }
   .foot strong{color:var(--ink)}
@@ -128,7 +129,7 @@
       .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
-  // Toast minimalista (+/-): 4s + fade-out
+  // Toast minimalista (+/-): 3s + fade-out
   function renderToast(emoji, h2, msg){
     root.innerHTML =
       '<div class="toast">' +
@@ -136,7 +137,7 @@
         '<h2>' + h2 + '</h2>' +
         (msg ? '<p>' + msg + '</p>' : '') +
       '</div>';
-    scheduleClose(4000);
+    scheduleClose(3000);
   }
 
   // Card grande (pausar tema): 4s + Desfazer + fade-out
@@ -150,12 +151,12 @@
           '<a href="' + esc(undoUrl) + '" class="btn-undo">↶ Desfazer</a>' +
           '<span class="countdown" id="cd">Fecha em 4s</span>' +
         '</div>' +
-        '<div class="foot"><strong>Recorte ✂</strong> · sua newsletter aprende com você</div>' +
+        '<div class="foot"><strong>Recorte ✂</strong> · a gente aprende com você</div>' +
       '</div>';
     scheduleClose(4000);
   }
 
-  // Card de undo confirmado: 4s + fade-out
+  // Card de undo confirmado: 3s
   function renderUndone(label){
     root.innerHTML =
       '<div class="toast">' +
@@ -163,7 +164,7 @@
         '<h2>Pause <em>cancelado!</em></h2>' +
         '<p><strong>"' + esc(label) + '"</strong> volta a aparecer no próximo email.</p>' +
       '</div>';
-    scheduleClose(4000);
+    scheduleClose(3000);
   }
 
   // Card de erro: sem auto-close
