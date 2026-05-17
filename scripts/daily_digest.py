@@ -41,7 +41,7 @@ DRY_RUN = os.environ.get("DRY_RUN", "false").lower() == "true"
 
 MODEL = "claude-haiku-4-5-20251001"
 # Modelo premium pra tasks de alta visibilidade (Em Alta + Welcome curate_news)
-MODEL_PREMIUM = "claude-sonnet-4-6-20250929"
+MODEL_PREMIUM = "claude-sonnet-4-6"
 MAX_NEWS_OUT_PER_TOPIC = 2  # legado — agora cálculo dinâmico via daily_news_per_topic()
 MAX_TRENDING_OUT = 10
 
