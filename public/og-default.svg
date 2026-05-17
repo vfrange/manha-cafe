@@ -19,25 +19,30 @@
   <!-- Top stripe -->
   <rect width="1200" height="14" fill="url(#stripe)"/>
 
-  <!-- Brand: Recorte + tesoura -->
-  <text x="540" y="245" text-anchor="middle"
+  <!-- Brand: Recorte (text-anchor=end pra ancorar pelo lado direito, gap calculado de ~60px) -->
+  <!-- Texto termina em x=760, começa em x=206 (554px de largura) -->
+  <text x="760" y="245" text-anchor="end"
         font-family="'Switzer', 'Poppins', 'Inter', 'Helvetica Neue', system-ui, sans-serif"
         font-size="140" font-weight="900"
-        letter-spacing="-5" fill="#1A1A1A">Recorte</text>
+        letter-spacing="-1" fill="#1A1A1A">Recorte</text>
 
-  <!-- Tesoura SVG nativa -->
-  <g transform="translate(880, 175)" stroke="#0A6E50" stroke-width="11" stroke-linecap="round" fill="none">
-    <line x1="-32" y1="-48" x2="38" y2="58"/>
-    <line x1="32" y1="-48" x2="-38" y2="58"/>
-    <circle cx="-32" cy="-48" r="24" fill="#F2F0E6"/>
-    <circle cx="32" cy="-48" r="24" fill="#F2F0E6"/>
+  <!-- Tesoura HORIZONTAL — olho esquerdo em x=820 (gap=60px do "e") -->
+  <g transform="translate(870, 200)" stroke="#0A6E50" stroke-width="14" stroke-linecap="round" fill="none">
+    <!-- Lâmina superior: olho superior → ponta inferior direita -->
+    <line x1="-50" y1="-35" x2="55" y2="32"/>
+    <!-- Lâmina inferior: olho inferior → ponta superior direita -->
+    <line x1="-50" y1="35" x2="55" y2="-32"/>
+    <!-- Olho superior -->
+    <circle cx="-50" cy="-35" r="26" fill="#F2F0E6"/>
+    <!-- Olho inferior -->
+    <circle cx="-50" cy="35" r="26" fill="#F2F0E6"/>
   </g>
 
   <!-- Tagline linha 1 -->
   <text x="600" y="350" text-anchor="middle"
         font-family="'Switzer', 'Poppins', 'Inter', system-ui, sans-serif"
         font-size="44" font-weight="600"
-        letter-spacing="-1" fill="#1A1A1A">
+        letter-spacing="0" fill="#1A1A1A">
     Tudo que acontece. Só o que importa.
   </text>
 
