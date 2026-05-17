@@ -1,9 +1,9 @@
-# ⚠️ DESCONTINUADO — substituído pelo pipeline prepare_weekly.yml + dispatch_weekly.yml.
-# Mantido aqui só pra histórico e disparo manual. NÃO tem cron schedule.
+name: Recorte da Semana
 
-name: "[DEPRECATED] Recorte da Semana"
-
+# Domingo 9h BRT — edição semanal retrospectiva (era sábado, migrado em mai/2026)
 on:
+  schedule:
+    - cron: '0 12 * * 0'  # domingo 12:00 UTC = 09:00 BRT
   workflow_dispatch:
 
 jobs:

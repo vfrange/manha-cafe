@@ -1,15 +1,22 @@
-# ⚠️ DESCONTINUADO — substituído pelo pipeline prepare_daily.yml + dispatch_daily.yml.
-# Mantido aqui só pra histórico e disparo manual de emergência. NÃO tem cron schedule.
-
-name: "[DEPRECATED] Daily Digest"
+name: Daily Digest
 
 on:
+  schedule:
+    - cron: '0 9 * * 1-5'    # 06:00 BRT
+    - cron: '30 9 * * 1-5'   # 06:30 BRT (fallback 1)
+    - cron: '0 10 * * 1-5'   # 07:00 BRT (fallback 2)
+    - cron: '30 10 * * 1-5'  # 07:30 BRT (fallback 3)
+    - cron: '0 11 * * 1-5'   # 08:00 BRT (fallback 4 — última chance)
   workflow_dispatch:
     inputs:
       target_hour:
-        description: 'Hora BRT (0-23) — vazio = atual. ATENÇÃO: pode duplicar com prepare/dispatch ativos.'
+        description: 'Hora BRT (0-23) — vazio = atual'
         required: false
         default: ''
+      dry_run:
+        description: 'DRY RUN (não envia, gera preview)'
+        type: boolean
+        default: false
 
 jobs:
   digest:

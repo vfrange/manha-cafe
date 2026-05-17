@@ -51,6 +51,10 @@ jobs:
           cp public/politica-privacidade.html dist/politica-privacidade.html
           # unsubscribed.html: confirmação de cancelamento de inscrição
           cp public/unsubscribed.html dist/unsubscribed.html
+          # admin.html: dashboard interno (auth via ?key=)
+          cp public/admin.html dist/admin.html
+          # arquivo.html: edições anteriores públicas
+          cp public/arquivo.html dist/arquivo.html
           # 404 fallback redireciona pro index
           echo '<!DOCTYPE html><meta http-equiv="refresh" content="0; url=/">' > dist/404.html
 
