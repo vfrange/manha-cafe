@@ -206,7 +206,7 @@ def _render_welcome_block():
 
       <!-- Badge -->
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:18px;"><tr>
-        <td style="background:{COLORS['ink']};border:1.5px solid {COLORS['ink']};padding:5px 12px;font-family:{SANS_FONT};font-size:10px;font-weight:800;letter-spacing:0.22em;text-transform:uppercase;color:{COLORS['mint']};">✂ Sua primeira edição</td>
+        <td style="background:{COLORS['ink']};border:1.5px solid {COLORS['ink']};padding:5px 12px;font-family:{SANS_FONT};font-size:10px;font-weight:800;letter-spacing:0.22em;text-transform:uppercase;color:{COLORS['mint']};"><span style="color:{COLORS['mint']};">✂︎</span> Sua primeira edição</td>
       </tr></table>
 
       <!-- Headline -->
@@ -224,22 +224,22 @@ def _render_welcome_block():
       <!-- Textos balanceados (3-5 palavras) + min-height pra alturas iguais cross-client -->
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;table-layout:fixed;">
         <tr>
-          <td width="32%" height="118" style="background:#fff;border:1.5px solid {COLORS['ink']};padding:18px 12px;text-align:center;vertical-align:top;mso-line-height-rule:exactly;" class="feat-mob">
-            <div style="font-size:26px;line-height:1;margin-bottom:8px;">☕</div>
-            <div style="font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:{COLORS['ink']};margin-bottom:5px;">Toda manhã</div>
-            <div style="font-family:{SANS_FONT};font-size:12px;line-height:1.35;color:{COLORS['ink_muted']};font-weight:500;">Antes do café, 6h</div>
+          <td width="32%" height="118" style="background:#fff;border:1.5px solid {COLORS['ink']};padding:18px 12px;text-align:center;vertical-align:top;mso-line-height-rule:exactly;min-height:118px;" class="feat-mob">
+            <div class="feat-emoji" style="font-size:26px;line-height:1;margin-bottom:8px;">☕</div>
+            <div class="feat-title" style="font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:{COLORS['ink']};margin-bottom:5px;">Toda manhã</div>
+            <div class="feat-desc" style="font-family:{SANS_FONT};font-size:12px;line-height:1.35;color:{COLORS['ink_muted']};font-weight:500;">Antes do café, 6h</div>
           </td>
           <td width="2%" style="font-size:0;line-height:0;">&nbsp;</td>
-          <td width="32%" height="118" style="background:#fff;border:1.5px solid {COLORS['ink']};padding:18px 12px;text-align:center;vertical-align:top;mso-line-height-rule:exactly;" class="feat-mob">
-            <div style="font-size:26px;line-height:1;margin-bottom:8px;">🗞</div>
-            <div style="font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:{COLORS['ink']};margin-bottom:5px;">Aos domingos</div>
-            <div style="font-family:{SANS_FONT};font-size:12px;line-height:1.35;color:{COLORS['ink_muted']};font-weight:500;">A semana, recortada</div>
+          <td width="32%" height="118" style="background:#fff;border:1.5px solid {COLORS['ink']};padding:18px 12px;text-align:center;vertical-align:top;mso-line-height-rule:exactly;min-height:118px;" class="feat-mob">
+            <div class="feat-emoji" style="font-size:26px;line-height:1;margin-bottom:8px;">🗞</div>
+            <div class="feat-title" style="font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:{COLORS['ink']};margin-bottom:5px;">Aos domingos</div>
+            <div class="feat-desc" style="font-family:{SANS_FONT};font-size:12px;line-height:1.35;color:{COLORS['ink_muted']};font-weight:500;">A semana, recortada</div>
           </td>
           <td width="2%" style="font-size:0;line-height:0;">&nbsp;</td>
-          <td width="32%" height="118" style="background:#fff;border:1.5px solid {COLORS['ink']};padding:18px 12px;text-align:center;vertical-align:top;mso-line-height-rule:exactly;" class="feat-mob">
-            <div style="font-size:26px;line-height:1;margin-bottom:8px;">🎛</div>
-            <div style="font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:{COLORS['ink']};margin-bottom:5px;">Você no controle</div>
-            <div style="font-family:{SANS_FONT};font-size:12px;line-height:1.35;color:{COLORS['ink_muted']};font-weight:500;">Ajusta quando quiser</div>
+          <td width="32%" height="118" style="background:#fff;border:1.5px solid {COLORS['ink']};padding:18px 12px;text-align:center;vertical-align:top;mso-line-height-rule:exactly;min-height:118px;" class="feat-mob">
+            <div class="feat-emoji" style="font-size:26px;line-height:1;margin-bottom:8px;">🎛</div>
+            <div class="feat-title" style="font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:{COLORS['ink']};margin-bottom:5px;">Você no controle</div>
+            <div class="feat-desc" style="font-family:{SANS_FONT};font-size:12px;line-height:1.35;color:{COLORS['ink_muted']};font-weight:500;">Ajusta quando quiser</div>
           </td>
         </tr>
       </table>
@@ -261,7 +261,7 @@ def _render_welcome_block():
     </tr>
   </table>
   <div style="text-align:center;margin-top:-18px;">
-    <span style="display:inline-block;background:{COLORS['bg']};padding:0 16px;font-size:30px;color:{COLORS['mint_dark']};line-height:1;">✂</span>
+    <span style="display:inline-block;background:{COLORS['bg']};padding:0 16px;font-size:30px;color:{COLORS['mint_dark']};line-height:1;">✂︎</span>
   </div>
 </td></tr>"""
 
@@ -270,83 +270,39 @@ def _render_welcome_block():
 # TRENDING SECTION
 # ============================================================================
 def _render_news_image(img_url, alt_text, topic_id=None):
-    """Renderiza imagem da notícia com fallback visual elegante.
+    """Renderiza imagem da notícia OU NADA.
 
-    Quando imagem carrega: vê só a imagem (limpa).
-    Quando imagem quebra (hotlink protect, paywall, 404, Apple Mail Privacy):
-    vê card mint com gradiente + emoji do tema + manchete estilizada.
+    Filosofia minimalista: imagem ou existe e carrega, ou o slot some
+    silenciosamente. Sem fallback visual (card mint, SVG, emoji grande).
+    Sem placeholder do tipo "?" chamativo.
 
-    Técnica: alt text estilizado (color, font, etc no <img style>) +
-    background colorido no <td> pai. Standard pattern de bulletproof bg images.
+    Quando imagem carrega: vê só a imagem (limpa, sem moldura).
+    Quando imagem quebra: o slot colapsa naturalmente (alt vazio, sem bg,
+    sem altura forçada).
+    Quando img_url=None/inválida: retorna string vazia (nada no email).
 
-    Compatibilidade testada:
+    Compatibilidade:
     - Gmail web/iOS/Android ✓
-    - Apple Mail (com Mail Privacy Protection) ✓
+    - Apple Mail (Mail Privacy Protection): se MPP bloqueia, slot colapsa
     - Outlook 365 web/desktop ✓
-    - Outlook.com ✓
     """
-    if not alt_text:
-        alt_text = "Recorte ✂"
-
-    # SECURITY: Whitelist de schemas — só http(s) permitido
-    # Bloqueia javascript:, data:, file:, vbscript:, etc.
-    if img_url and isinstance(img_url, str):
-        img_url_clean = img_url.strip()
-        if not (img_url_clean.lower().startswith('http://') or
-                img_url_clean.lower().startswith('https://')):
-            img_url = None  # Trata como sem imagem → renderiza só fallback
-
-    # Mapeamento emoji por tema — fallback visual quando imagem quebra
-    TOPIC_EMOJIS = {
-        "tech": "🤖", "tecnologia": "🤖",
-        "brasil": "🇧🇷", "br": "🇧🇷",
-        "mundo": "🌎", "internacional": "🌎",
-        "mercado": "📈", "economia": "📈", "negocios": "📈",
-        "saude": "🏥", "saúde": "🏥",
-        "esporte": "⚽", "esportes": "⚽",
-        "cultura": "🎬", "entretenimento": "🎬",
-        "ciencia": "🔬", "ciência": "🔬",
-        "politica": "🏛", "política": "🏛",
-        "trending": "🔥", "em_alta": "🔥",
-    }
-    topic_key = (topic_id or "").lower().strip() if topic_id else ""
-    fallback_emoji = TOPIC_EMOJIS.get(topic_key, "✂")
-
-    # Alt text com emoji prefixado — fica visível como fallback estilizado
-    full_alt = f"{fallback_emoji}  {alt_text}"
-    alt = _esc(full_alt)
-
-    # Se não tem img_url, renderiza só o card de fallback puro
+    # Validação rigorosa de URL — só http(s) permitido
     if not img_url or not isinstance(img_url, str):
-        return f"""
-    <tr><td style="padding:0 0 12px 0;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-        <tr>
-          <td align="center" valign="middle" height="220"
-              bgcolor="{COLORS['mint']}"
-              style="background-color:{COLORS['mint']};background-image:linear-gradient(135deg,{COLORS['mint']} 0%,{COLORS['mint_deep']} 100%);border-radius:8px;color:{COLORS['mint_dark']};font-family:{SANS_DISPLAY};font-weight:800;font-size:20px;letter-spacing:-0.02em;padding:24px;line-height:1.3;">
-            <span style="font-size:56px;line-height:1;display:block;margin-bottom:12px;">{fallback_emoji}</span>
-            {_esc(alt_text)}
-          </td>
-        </tr>
-      </table>
-    </td></tr>"""
+        return ""
 
-    # Com img_url: tenta carregar; se quebrar, alt estilizado vira o fallback
-    img_url_esc = _esc(img_url)
+    img_url_clean = img_url.strip()
+    if not (img_url_clean.lower().startswith('http://') or
+            img_url_clean.lower().startswith('https://')):
+        return ""
+
+    # URL válida → renderiza img minimalista, sem moldura mint, sem altura forçada.
+    # Alt vazio: suprime o "?" e o ícone de broken image em vários clientes.
+    img_url_esc = _esc(img_url_clean)
     return f"""
-    <tr><td style="padding:0 0 12px 0;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-        <tr>
-          <td align="center" valign="middle" height="220"
-              bgcolor="{COLORS['mint']}"
-              style="background-color:{COLORS['mint']};background-image:linear-gradient(135deg,{COLORS['mint']} 0%,{COLORS['mint_deep']} 100%);border-radius:8px;">
-            <img src="{img_url_esc}" alt="{alt}" width="560" border="0"
-                 class="news-img"
-                 style="display:block;width:100%;max-width:560px;min-height:220px;max-height:320px;height:auto;border:0;border-radius:8px;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;background-color:{COLORS['mint']};color:{COLORS['mint_dark']};font-family:{SANS_DISPLAY};font-weight:800;font-size:18px;line-height:1.3;text-align:center;padding:24px;" />
-          </td>
-        </tr>
-      </table>
+    <tr><td style="padding:0 0 12px 0;font-size:0;line-height:0;">
+      <img src="{img_url_esc}" alt="" width="560" border="0"
+           class="news-img"
+           style="display:block;width:100%;max-width:560px;height:auto;border:0;border-radius:8px;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;" />
     </td></tr>"""
 
 
@@ -577,7 +533,7 @@ def _render_news_sections(sections, email_mode="coado"):
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr><td style="border-top:3px dashed {COLORS['ink']};font-size:0;line-height:0;">&nbsp;</td></tr>
                 <tr><td align="center" style="line-height:1;">
-                  <div style="display:inline-block;background:{COLORS['bg']};margin-top:-19px;padding:0 18px;font-size:30px;color:{COLORS['mint_deep']};line-height:1;">✂</div>
+                  <div style="display:inline-block;background:{COLORS['bg']};margin-top:-19px;padding:0 18px;font-size:30px;color:{COLORS['mint_deep']};line-height:1;">✂︎</div>
                 </td></tr>
               </table>
               <div style="font-family:{MONO_FONT};font-size:9px;letter-spacing:0.3em;color:{COLORS['mint_dark']};text-transform:uppercase;text-align:right;margin-top:4px;font-weight:700;">recortado pra você</div>
@@ -859,6 +815,11 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     .stat-num {{ font-size:20px !important; }}
     .news-img {{ width:100% !important; height:auto !important; max-height:200px !important; }}
     .share-btn {{ display:block !important; width:100% !important; margin:6px 0 !important; }}
+    /* 3 caixas welcome: força altura igual + reduz fontes pra não quebrar palavras */
+    .feat-mob {{ height:130px !important; min-height:130px !important; padding:14px 6px !important; vertical-align:top !important; }}
+    .feat-mob .feat-emoji {{ font-size:22px !important; margin-bottom:6px !important; }}
+    .feat-mob .feat-title {{ font-size:9.5px !important; letter-spacing:0.04em !important; line-height:1.15 !important; }}
+    .feat-mob .feat-desc {{ font-size:10.5px !important; line-height:1.25 !important; }}
   }}
   /* Dark mode — Apple Mail / iOS / clientes que respeitam prefers-color-scheme */
   @media (prefers-color-scheme: dark) {{
@@ -901,7 +862,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
               <td valign="middle" style="padding-right:14px;">
                 <div style="width:42px;height:42px;background:{COLORS['bg']};border:2.5px solid {COLORS['ink']};border-radius:50%;text-align:center;line-height:38px;font-family:{SANS_DISPLAY};font-weight:900;font-size:22px;color:{COLORS['ink']};letter-spacing:-0.04em;">R<span style="color:{COLORS['mint_deep']};">.</span></div>
               </td>
-              <td valign="middle" style="font-family:{SANS_DISPLAY};font-weight:900;font-size:30px;letter-spacing:-0.035em;color:{COLORS['ink']};">Recorte<span style="color:{COLORS['mint_deep']};margin-left:2px;">✂</span></td>
+              <td valign="middle" style="font-family:{SANS_DISPLAY};font-weight:900;font-size:30px;letter-spacing:-0.035em;color:{COLORS['ink']};">Recorte<span style="color:{COLORS['mint_deep']};margin-left:2px;">✂︎</span></td>
             </tr></table>
           </td>
           <td valign="middle" align="right" style="font-family:{SERIF_FONT};font-style:italic;font-size:13px;color:{COLORS['mint_dark']};">
