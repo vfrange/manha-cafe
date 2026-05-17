@@ -80,14 +80,14 @@
 
 <script>
   // CONFIG (substituir placeholders no deploy)
-  const SUPABASE_URL = 'https://SEUPROJETO.supabase.co';
-  const SUPABASE_ANON_KEY = 'SUA_ANON_KEY';
+  const SUPABASE_URL = 'https://jegvgviwbkbrmuhcivle.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_Q9FiImNakeN-DdGIbWIDjQ_v50JUNSS';
 
   // Auth simples via ?key=
-  const ADMIN_KEY = 'SUA_ADMIN_KEY';  // sobrescrever no deploy
+  const ADMIN_KEY = 'nuHA7IMF69jEoGNrfjTCUOorxYBeqt5S';  // sobrescrever no deploy
 
   const params = new URLSearchParams(window.location.search);
-  if (ADMIN_KEY === 'SUA_ADMIN_KEY' || !ADMIN_KEY || ADMIN_KEY.length < 8) {
+  if (!ADMIN_KEY || ADMIN_KEY.length < 8) {
     document.getElementById('app').innerHTML = `
       <header><h1>Recorte<span class="accent">✂</span> · Admin</h1></header>
       <div class="error">⚠️ Admin key não configurada. Edite admin.html antes do deploy.</div>
