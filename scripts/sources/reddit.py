@@ -55,10 +55,14 @@ def fetch_subreddit(subreddit, limit=15, time_filter="day"):
     return posts
 
 
-def fetch(query, category=None, max_items=6):
+def fetch(query, category=None, max_items=6, time_filter="day"):
     """
     Busca posts do Reddit relevantes pro tema.
-    category opcional: 'tech', 'business', 'world', 'brazil', etc.
+    Args:
+        query: termo de busca
+        category opcional: 'tech', 'business', 'world', 'brazil', etc.
+        max_items: limite
+        time_filter: 'day' (default) ou 'week' pra retrospectiva semanal
     """
     kws = _keywords(query)
     if not kws:
@@ -85,7 +89,7 @@ def fetch(query, category=None, max_items=6):
 
     results = []
     for sub in subs:
-        posts = fetch_subreddit(sub, limit=15)
+        posts = fetch_subreddit(sub, limit=15, time_filter=time_filter)
         for p in posts:
             title_low = p["title"].lower()
             if any(kw in title_low for kw in kws):
@@ -100,8 +104,9 @@ def fetch(query, category=None, max_items=6):
     return results[:max_items]
 
 
-def fetch_trending_general(max_items=15):
-    """Trending geral via r/popular — pra trending alternativo."""
+def fetch_trending_general(max_items=15, time_filter="day"):
+    """Trending geral via r/popular — pra trending alternativo.
+    time_filter: 'day' ou 'week' (weekly digest)."""
     return [
         {
             "termo": p["title"],
@@ -111,5 +116,5 @@ def fetch_trending_general(max_items=15):
             "noticia_link": p["link"],
             "noticia_fonte": p["source"],
         }
-        for p in fetch_subreddit("popular", limit=max_items)
+        for p in fetch_subreddit("popular", limit=max_items, time_filter=time_filter)
     ]

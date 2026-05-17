@@ -135,17 +135,45 @@ COLORS = {
     "bg":            "#FFFAF0",  # creme base
     "bg_2":          "#F4F1EA",  # creme escuro pra sections
     "line":          "#E8E1D0",  # hairline creme
-    "red":           "#C8102E",  # vermelho — "menos como essa"
+    "red":           "#BE1622",  # vermelho — "menos como essa"
 }
 
-# Stack tipográfica com fallbacks robustos
-SERIF_FONT = "'Fraunces', Georgia, 'Times New Roman', serif"
-SANS_FONT = "'Mulish', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+# Stack tipográfica do Recorte v1 — sistema híbrido
+# - Switzer (display): hero, headings, logo, números, microcopy
+# - General Sans (body): leitura, forms, parágrafos
+# - Gambarino (italic): acentos editoriais, saudação, manchetes editoriais
+# Fontshare CDN: ITF (Indian Type Foundry), gratuita pra uso comercial.
+# Email clients que NÃO carregam web fonts caem nos fallbacks (Georgia / system sans).
+SERIF_FONT = "'Gambarino', Georgia, 'Times New Roman', serif"
+SANS_FONT = "'General Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+SANS_DISPLAY = "'Switzer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
 MONO_FONT = "'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace"
 
 
 def _esc(s):
     return html_lib.escape(s or "")
+
+
+def _safe_url(url, fallback="#"):
+    """Valida que o URL usa schema permitido (http/https/mailto).
+
+    Protege contra:
+    - javascript: URIs (XSS via href/src)
+    - data: URIs (data exfiltration, ataque embarcado)
+    - file:, vbscript:, etc.
+
+    Returns: URL HTML-escaped, ou fallback se schema inválido.
+    """
+    if not url or not isinstance(url, str):
+        return fallback
+    url_clean = url.strip()
+    if not url_clean:
+        return fallback
+    # Whitelist explícita de schemas
+    allowed_prefixes = ('http://', 'https://', 'mailto:')
+    if not any(url_clean.lower().startswith(p) for p in allowed_prefixes):
+        return fallback
+    return html_lib.escape(url_clean)
 
 
 # ============================================================================
@@ -182,42 +210,43 @@ def _render_welcome_block():
       </tr></table>
 
       <!-- Headline -->
-      <h1 style="font-family:{SERIF_FONT};font-weight:900;font-size:38px;line-height:1.05;letter-spacing:-0.03em;color:{COLORS['ink']};margin:0 0 14px 0;">
+      <h1 style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:38px;line-height:1.05;letter-spacing:-0.03em;color:{COLORS['ink']};margin:0 0 14px 0;">
         Você acabou de <em style="font-style:italic;font-weight:700;color:{COLORS['mint_dark']};">cortar</em><br/>
         <span style="background:linear-gradient(180deg,transparent 65%,{COLORS['yellow']} 65%);padding:0 3px;">o ruído.</span>
       </h1>
 
       <!-- Intro -->
-      <p style="font-family:{SERIF_FONT};font-weight:500;font-size:18px;line-height:1.5;color:{COLORS['ink_soft']};margin:0 0 24px 0;">
+      <p style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:18px;line-height:1.5;color:{COLORS['ink_soft']};margin:0 0 24px 0;">
         Daqui pra frente, notícia é feita <strong style="color:{COLORS['ink']};font-weight:700;">pra você</strong>. Não pra "todo mundo".
       </p>
 
       <!-- 3 Features (table-based pra compatibilidade Outlook) -->
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
+      <!-- Textos balanceados (3-5 palavras) + min-height pra alturas iguais cross-client -->
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;table-layout:fixed;">
         <tr>
-          <td width="32%" style="background:#fff;border:1.5px solid {COLORS['ink']};padding:14px 10px;text-align:center;vertical-align:top;" class="feat-mob">
-            <div style="font-size:24px;line-height:1;margin-bottom:6px;">☕</div>
-            <div style="font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:{COLORS['ink']};margin-bottom:3px;">Todo dia</div>
-            <div style="font-family:{SANS_FONT};font-size:12px;line-height:1.3;color:{COLORS['ink_muted']};font-weight:500;">06h da manhã, antes do café</div>
+          <td width="32%" height="118" style="background:#fff;border:1.5px solid {COLORS['ink']};padding:18px 12px;text-align:center;vertical-align:top;mso-line-height-rule:exactly;" class="feat-mob">
+            <div style="font-size:26px;line-height:1;margin-bottom:8px;">☕</div>
+            <div style="font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:{COLORS['ink']};margin-bottom:5px;">Toda manhã</div>
+            <div style="font-family:{SANS_FONT};font-size:12px;line-height:1.35;color:{COLORS['ink_muted']};font-weight:500;">Antes do café, 6h</div>
           </td>
           <td width="2%" style="font-size:0;line-height:0;">&nbsp;</td>
-          <td width="32%" style="background:#fff;border:1.5px solid {COLORS['ink']};padding:14px 10px;text-align:center;vertical-align:top;" class="feat-mob">
-            <div style="font-size:24px;line-height:1;margin-bottom:6px;">🗞</div>
-            <div style="font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:{COLORS['ink']};margin-bottom:3px;">Aos sábados</div>
-            <div style="font-family:{SANS_FONT};font-size:12px;line-height:1.3;color:{COLORS['ink_muted']};font-weight:500;">08h, a semana em retrospectiva</div>
+          <td width="32%" height="118" style="background:#fff;border:1.5px solid {COLORS['ink']};padding:18px 12px;text-align:center;vertical-align:top;mso-line-height-rule:exactly;" class="feat-mob">
+            <div style="font-size:26px;line-height:1;margin-bottom:8px;">🗞</div>
+            <div style="font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:{COLORS['ink']};margin-bottom:5px;">Aos domingos</div>
+            <div style="font-family:{SANS_FONT};font-size:12px;line-height:1.35;color:{COLORS['ink_muted']};font-weight:500;">A semana, recortada</div>
           </td>
           <td width="2%" style="font-size:0;line-height:0;">&nbsp;</td>
-          <td width="32%" style="background:#fff;border:1.5px solid {COLORS['ink']};padding:14px 10px;text-align:center;vertical-align:top;" class="feat-mob">
-            <div style="font-size:24px;line-height:1;margin-bottom:6px;">🎛</div>
-            <div style="font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:{COLORS['ink']};margin-bottom:3px;">Você no controle</div>
-            <div style="font-family:{SANS_FONT};font-size:12px;line-height:1.3;color:{COLORS['ink_muted']};font-weight:500;">Ajuste suas preferências a qualquer momento</div>
+          <td width="32%" height="118" style="background:#fff;border:1.5px solid {COLORS['ink']};padding:18px 12px;text-align:center;vertical-align:top;mso-line-height-rule:exactly;" class="feat-mob">
+            <div style="font-size:26px;line-height:1;margin-bottom:8px;">🎛</div>
+            <div style="font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:{COLORS['ink']};margin-bottom:5px;">Você no controle</div>
+            <div style="font-family:{SANS_FONT};font-size:12px;line-height:1.35;color:{COLORS['ink_muted']};font-weight:500;">Ajusta quando quiser</div>
           </td>
         </tr>
       </table>
 
       <!-- Manifesto compacto -->
       <div style="border-top:1px solid {COLORS['ink']};padding-top:18px;font-family:{SERIF_FONT};font-style:italic;font-size:15px;line-height:1.55;color:{COLORS['ink_soft']};">
-        Cada manhã, agentes de IA treinados e monitorados por humanos leem o mundo, cruzam com os <strong style="font-style:normal;color:{COLORS['ink']};font-weight:700;">seus temas</strong>, removem o que você filtrou, e montam uma edição que só existe pra <strong style="font-style:normal;color:{COLORS['ink']};font-weight:700;">um leitor</strong> — você.
+        Cada manhã, a gente lê o mundo, cruza com os <strong style="font-style:normal;color:{COLORS['ink']};font-weight:700;">seus temas</strong>, tira o que você filtrou, e monta uma edição que só existe pra <strong style="font-style:normal;color:{COLORS['ink']};font-weight:700;">um leitor</strong> — você.
       </div>
 
     </td></tr>
@@ -240,6 +269,87 @@ def _render_welcome_block():
 # ============================================================================
 # TRENDING SECTION
 # ============================================================================
+def _render_news_image(img_url, alt_text, topic_id=None):
+    """Renderiza imagem da notícia com fallback visual elegante.
+
+    Quando imagem carrega: vê só a imagem (limpa).
+    Quando imagem quebra (hotlink protect, paywall, 404, Apple Mail Privacy):
+    vê card mint com gradiente + emoji do tema + manchete estilizada.
+
+    Técnica: alt text estilizado (color, font, etc no <img style>) +
+    background colorido no <td> pai. Standard pattern de bulletproof bg images.
+
+    Compatibilidade testada:
+    - Gmail web/iOS/Android ✓
+    - Apple Mail (com Mail Privacy Protection) ✓
+    - Outlook 365 web/desktop ✓
+    - Outlook.com ✓
+    """
+    if not alt_text:
+        alt_text = "Recorte ✂"
+
+    # SECURITY: Whitelist de schemas — só http(s) permitido
+    # Bloqueia javascript:, data:, file:, vbscript:, etc.
+    if img_url and isinstance(img_url, str):
+        img_url_clean = img_url.strip()
+        if not (img_url_clean.lower().startswith('http://') or
+                img_url_clean.lower().startswith('https://')):
+            img_url = None  # Trata como sem imagem → renderiza só fallback
+
+    # Mapeamento emoji por tema — fallback visual quando imagem quebra
+    TOPIC_EMOJIS = {
+        "tech": "🤖", "tecnologia": "🤖",
+        "brasil": "🇧🇷", "br": "🇧🇷",
+        "mundo": "🌎", "internacional": "🌎",
+        "mercado": "📈", "economia": "📈", "negocios": "📈",
+        "saude": "🏥", "saúde": "🏥",
+        "esporte": "⚽", "esportes": "⚽",
+        "cultura": "🎬", "entretenimento": "🎬",
+        "ciencia": "🔬", "ciência": "🔬",
+        "politica": "🏛", "política": "🏛",
+        "trending": "🔥", "em_alta": "🔥",
+    }
+    topic_key = (topic_id or "").lower().strip() if topic_id else ""
+    fallback_emoji = TOPIC_EMOJIS.get(topic_key, "✂")
+
+    # Alt text com emoji prefixado — fica visível como fallback estilizado
+    full_alt = f"{fallback_emoji}  {alt_text}"
+    alt = _esc(full_alt)
+
+    # Se não tem img_url, renderiza só o card de fallback puro
+    if not img_url or not isinstance(img_url, str):
+        return f"""
+    <tr><td style="padding:0 0 12px 0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td align="center" valign="middle" height="220"
+              bgcolor="{COLORS['mint']}"
+              style="background-color:{COLORS['mint']};background-image:linear-gradient(135deg,{COLORS['mint']} 0%,{COLORS['mint_deep']} 100%);border-radius:8px;color:{COLORS['mint_dark']};font-family:{SANS_DISPLAY};font-weight:800;font-size:20px;letter-spacing:-0.02em;padding:24px;line-height:1.3;">
+            <span style="font-size:56px;line-height:1;display:block;margin-bottom:12px;">{fallback_emoji}</span>
+            {_esc(alt_text)}
+          </td>
+        </tr>
+      </table>
+    </td></tr>"""
+
+    # Com img_url: tenta carregar; se quebrar, alt estilizado vira o fallback
+    img_url_esc = _esc(img_url)
+    return f"""
+    <tr><td style="padding:0 0 12px 0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td align="center" valign="middle" height="220"
+              bgcolor="{COLORS['mint']}"
+              style="background-color:{COLORS['mint']};background-image:linear-gradient(135deg,{COLORS['mint']} 0%,{COLORS['mint_deep']} 100%);border-radius:8px;">
+            <img src="{img_url_esc}" alt="{alt}" width="560" border="0"
+                 class="news-img"
+                 style="display:block;width:100%;max-width:560px;min-height:220px;max-height:320px;height:auto;border:0;border-radius:8px;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;background-color:{COLORS['mint']};color:{COLORS['mint_dark']};font-family:{SANS_DISPLAY};font-weight:800;font-size:18px;line-height:1.3;text-align:center;padding:24px;" />
+          </td>
+        </tr>
+      </table>
+    </td></tr>"""
+
+
 def _render_trending_section(trending, scope_label, email_mode="coado"):
     if not trending:
         return ""
@@ -303,13 +413,14 @@ def _render_trending_section(trending, scope_label, email_mode="coado"):
             fonte_suffix = ""
             if fonte:
                 fonte_suffix = f'<span style="color:{COLORS["ink"]};font-weight:800;">&nbsp;·&nbsp;{_esc(fonte)}</span>'
-            link_html = f'<tr><td style="font-family:{SANS_FONT};font-size:12px;color:{COLORS["ink_muted"]};padding-bottom:8px;"><a href="{_esc(link)}" style="color:{COLORS["ink"]};text-decoration:none;font-weight:800;border-bottom:2.5px solid {COLORS["mint_deep"]};padding-bottom:1px;margin-right:6px;">Ler matéria →</a>{fonte_suffix}{lang_chip}</td></tr>'
+            link_html = f'<tr><td style="font-family:{SANS_FONT};font-size:12px;color:{COLORS["ink_muted"]};padding-bottom:8px;"><a href="{_safe_url(link)}" style="color:{COLORS["ink"]};text-decoration:none;font-weight:800;border-bottom:2.5px solid {COLORS["mint_deep"]};padding-bottom:1px;margin-right:6px;">Ler matéria →</a>{fonte_suffix}{lang_chip}</td></tr>'
 
         items_html += f"""
         <tr><td style="padding:0 0 28px 0;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-            <tr><td>{buscas_html}<div style="font-family:{SERIF_FONT};font-weight:700;font-size:22px;line-height:1.22;color:{COLORS['ink']};letter-spacing:-0.015em;margin-bottom:10px;">{manchete}</div></td></tr>
-            <tr><td style="font-family:{SANS_FONT};font-size:15px;line-height:1.55;color:{COLORS['ink_soft']};padding-bottom:14px;">{resumo}</td></tr>
+            {_render_news_image(item.get('img_url'), manchete, topic_id='trending') if idx == 0 else ''}
+            <tr><td>{buscas_html}<div style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:22px;line-height:1.22;color:{COLORS['ink']};letter-spacing:-0.015em;margin-bottom:10px;" class="dark-text">{manchete}</div></td></tr>
+            <tr><td style="font-family:{SANS_FONT};font-size:15px;line-height:1.55;color:{COLORS['ink_soft']};padding-bottom:14px;" class="dark-text-soft">{resumo}</td></tr>
             {fatos_html}
             {link_html}
           </table>
@@ -365,14 +476,17 @@ def _render_news_sections(sections, email_mode="coado"):
         pause_btn = ""
         if sec.get("fb_pause_url"):
             pause_btn = f"""<td align="right" style="font-family:{SERIF_FONT};font-style:italic;font-size:11px;color:{COLORS['ink_muted']};">
-              <a href="{_esc(sec['fb_pause_url'])}" style="color:{COLORS['ink_muted']};text-decoration:none;border-bottom:1px dashed {COLORS['ink_muted']};">⏸ pausar 7d</a>
+              <a href="{_safe_url(sec['fb_pause_url'])}" style="color:{COLORS['ink_muted']};text-decoration:none;border-bottom:1px dashed {COLORS['ink_muted']};">⏸ pausar 7d</a>
             </td>"""
 
         noticias_html = ""
+        rendered_count = 0  # quantas notícias já renderizadas (a 1ª válida recebe imagem)
         for n in sec["noticias"]:
             # Defensivo: pula itens sem campos mínimos (Claude às vezes devolve item incompleto)
             if not n.get("manchete") or not n.get("resumo"):
                 continue
+            is_first_news = (rendered_count == 0)
+            rendered_count += 1
 
             is_espresso = (email_mode == "espresso")
 
@@ -409,9 +523,9 @@ def _render_news_sections(sections, email_mode="coado"):
             fb_btns = ""
             if n.get("fb_more_url") and n.get("fb_less_url"):
                 fb_btns = f"""<tr><td style="padding-top:14px;border-top:1px solid {COLORS['line']};font-family:{SANS_FONT};font-size:11px;font-weight:700;">
-                  <a href="{_esc(n['fb_more_url'])}" style="color:{COLORS['mint_deep']};text-decoration:none;">＋ mais como essa</a>
+                  <a href="{_safe_url(n['fb_more_url'])}" style="color:{COLORS['mint_deep']};text-decoration:none;">＋ mais como essa</a>
                   &nbsp;&nbsp;
-                  <a href="{_esc(n['fb_less_url'])}" style="color:{COLORS['red']};text-decoration:none;">— menos como essa</a>
+                  <a href="{_safe_url(n['fb_less_url'])}" style="color:{COLORS['red']};text-decoration:none;">— menos como essa</a>
                 </td></tr>"""
 
             # Chip de viés político (apenas em notícias políticas)
@@ -441,12 +555,13 @@ def _render_news_sections(sections, email_mode="coado"):
             noticias_html += f"""
             <tr><td style="padding:0 0 32px 0;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr><td style="font-family:{SERIF_FONT};font-weight:700;font-size:{'22' if is_espresso else '26'}px;line-height:1.18;color:{COLORS['ink']};letter-spacing:-0.02em;padding-bottom:{'8' if is_espresso else '14'}px;">{_esc(n.get('manchete',''))}</td></tr>
-                <tr><td style="font-family:{SANS_FONT};font-size:{'14' if is_espresso else '16'}px;line-height:1.6;color:{COLORS['ink_soft']};padding-bottom:{'10' if is_espresso else '16'}px;">{_esc(resumo_display)}</td></tr>
+                {_render_news_image(n.get('img_url'), n.get('manchete',''), topic_id=sec.get('topic_id') or sec.get('topic')) if is_first_news else ''}
+                <tr><td style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:{'22' if is_espresso else '26'}px;line-height:1.18;color:{COLORS['ink']};letter-spacing:-0.02em;padding-bottom:{'8' if is_espresso else '14'}px;" class="dark-text">{_esc(n.get('manchete',''))}</td></tr>
+                <tr><td style="font-family:{SANS_FONT};font-size:{'14' if is_espresso else '16'}px;line-height:1.6;color:{COLORS['ink_soft']};padding-bottom:{'10' if is_espresso else '16'}px;" class="dark-text-soft">{_esc(resumo_display)}</td></tr>
                 {fatos_html}
-                <tr><td style="font-family:{SANS_FONT};font-size:12px;color:{COLORS['ink_muted']};padding-bottom:8px;">
-                  <a href="{_esc(n.get('link','#'))}" style="color:{COLORS['ink']};text-decoration:none;font-weight:800;border-bottom:2.5px solid {COLORS['mint_deep']};padding-bottom:1px;margin-right:12px;">Ler matéria →</a>
-                  <span style="color:{COLORS['ink']};font-weight:800;">{_esc(n.get('fonte','') or 'Fonte')}</span>
+                <tr><td style="font-family:{SANS_FONT};font-size:12px;color:{COLORS['ink_muted']};padding-bottom:8px;" class="dark-text-muted">
+                  <a href="{_safe_url(n.get('link'))}" style="color:{COLORS['ink']};text-decoration:none;font-weight:800;border-bottom:2.5px solid {COLORS['mint_deep']};padding-bottom:1px;margin-right:12px;" class="dark-text">Ler matéria →</a>
+                  <span style="color:{COLORS['ink']};font-weight:800;" class="dark-text">{_esc(n.get('fonte','') or 'Fonte')}</span>
                   {lang_chip}
                 </td></tr>
                 <tr><td style="padding-top:8px;padding-bottom:4px;">{bias_chips}</td></tr>
@@ -573,7 +688,9 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
                  email_mode="coado", weekly_mode=False,
                  user_tz="America/Sao_Paulo", saudacao_mode="auto",
                  filtered_items_count=0, is_welcome=False,
-                 unsub_url="#"):
+                 unsub_url="#",
+                 edition_id=None,
+                 share_base_url="https://recorte.news/r"):
     """
     Renderiza o HTML completo do email diário.
 
@@ -581,11 +698,14 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
         user_name: nome do usuário (usa primeiro nome na saudação)
         date_obj: datetime do envio (em BRT, do servidor)
         user_tz: timezone IANA do user (ex: "America/Sao_Paulo"). Usado pra saudação no welcome.
-        saudacao_mode: "auto" (calcula pela hora local do user) | "manha" | "sabado" | "neutro"
+        saudacao_mode: "auto" (calcula pela hora local do user) | "manha" | "domingo" | "sabado" (alias) | "neutro"
         filtered_items_count: número de filtros do user pra exibir no rodapé
         is_welcome: se True, injeta bloco de boas-vindas no topo (antes do hero do daily).
                     Esse bloco aparece SÓ no primeiro email do user.
         unsub_url: URL assinada pra cancelar inscrição (1-click). Vai no footer + header List-Unsubscribe.
+        edition_id: UUID da edição (alimenta share buttons /r/{id} no rodapé).
+                    Se None, share buttons apontam pra recorte.news (home).
+        share_base_url: base URL pro web preview público (default https://recorte.news/r).
         ...
     """
     trending = trending or []
@@ -606,12 +726,13 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     # Saudação inteligente:
     # - "auto": calcula pela hora LOCAL do user (usando user_tz). Pra welcome (chega em horários variáveis).
     # - "manha": sempre "Bom dia". Pro daily (sempre 6h BRT).
-    # - "sabado": "Bom sábado" — pro weekly digest.
+    # - "domingo": "Bom domingo" — pro weekly digest (era "sabado", mantido como alias).
     # - "neutro": "Oi" — fallback.
     if saudacao_mode == "manha":
         saudacao = "Bom dia"
-    elif saudacao_mode == "sabado":
-        saudacao = "Bom sábado"
+    elif saudacao_mode in ("domingo", "sabado"):
+        # "sabado" mantido como alias por compat — weekly agora é domingo
+        saudacao = "Bom domingo"
     elif saudacao_mode == "neutro":
         saudacao = "Oi"
     else:  # auto: hora local do user
@@ -648,11 +769,11 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     # Textos do hero — variam entre daily e weekly
     if weekly_mode:
         hero_h1 = f'<span style="background:linear-gradient(180deg,transparent 60%,{COLORS["mint"]} 60%);padding:0 2px;">Sua semana</span><br/>em {intro_count}.'
-        hero_subtitle = "Os fatos que marcaram seus temas nos últimos 7 dias, com análise mais profunda. Bom fim de semana."
-        mode_badge = "🗞 RECORTE DA SEMANA"
+        hero_subtitle = "Sua semana inteira, recortada pra você. Pega o café — temos um tempinho."
+        mode_badge = "🗞 DOMINGO · RECORTE DA SEMANA"
     else:
         hero_h1 = f'Hoje em <span style="background:linear-gradient(180deg,transparent 60%,{COLORS["mint"]} 60%);padding:0 2px;">{intro_count}</span><br/>só pra você.'
-        hero_subtitle = "A cada toque em ＋ ou —, eu aprendo o que importa pra você. Bom café."
+        hero_subtitle = "A cada toque em ＋ ou —, a gente entende melhor o que importa pra você. Bom café."
         mode_badge = "⚡ ESPRESSO" if email_mode == "espresso" else "☕ CAFÉ COADO"
 
     # TTS player (opcional)
@@ -663,13 +784,13 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
         <tr><td style="background:{COLORS['yellow']};padding:14px 36px;border-bottom:2px solid {COLORS['ink']};">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
             <td width="38" valign="middle" style="padding-right:14px;">
-              <a href="{_esc(tts_url)}" style="text-decoration:none;">
+              <a href="{_safe_url(tts_url)}" style="text-decoration:none;">
                 <div style="width:38px;height:38px;background:{COLORS['ink']};color:{COLORS['yellow']};border-radius:50%;text-align:center;line-height:38px;font-family:{SANS_FONT};font-size:14px;font-weight:700;">▶</div>
               </a>
             </td>
             <td valign="middle">
-              <div style="font-family:{SERIF_FONT};font-weight:700;font-size:14px;color:{COLORS['ink']};letter-spacing:-0.005em;">Ouça esta edição</div>
-              <div style="font-family:{SANS_FONT};font-size:11px;color:{COLORS['ink']};opacity:0.7;font-weight:500;">narrada por uma voz IA · personalizada pra você</div>
+              <div style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:14px;color:{COLORS['ink']};letter-spacing:-0.005em;">Ouça esta edição</div>
+              <div style="font-family:{SANS_FONT};font-size:11px;color:{COLORS['ink']};opacity:0.7;font-weight:500;">narrada pra você</div>
             </td>
             <td valign="middle" align="right" style="font-family:{MONO_FONT};font-size:12px;color:{COLORS['ink']};font-weight:600;background:rgba(10,37,64,0.1);padding:4px 8px;">{_esc(duration_str)}</td>
           </tr></table>
@@ -700,46 +821,87 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     manage_link = manage_url
     unsub_link = unsub_url or "#"
 
-    google_fonts_link = '<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,800;9..144,900&family=Mulish:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">'
+    # Share URL: pra welcome (sem edition_id), aponta pra home; pra daily/weekly, aponta pro /r/{id}
+    if edition_id:
+        share_url = f"{share_base_url.rstrip('/')}/{edition_id}"
+    else:
+        share_url = "https://recorte.news"
+    # Texto pré-preenchido (url-encoded). WhatsApp/X aceitam %20 e similares.
+    from urllib.parse import quote as _q
+    if weekly_mode:
+        share_msg = f"📰 Meu Recorte da semana — notícias curadas pra mim. Vale conhecer:"
+    elif is_welcome:
+        share_msg = f"📰 Acabei de assinar o Recorte ✂ — cada manhã tem um jornal feito pra mim. Vale conhecer:"
+    else:
+        share_msg = f"📰 Meu Recorte de hoje — notícias curadas pra mim. Vale conhecer:"
+    share_wa_text = _q(f"{share_msg} {share_url}")
+    share_x_text = _q(f"{share_msg} {share_url}")
+
+    # Fontshare CDN (ITF): Switzer, General Sans, Gambarino. Email clients que
+    # bloquearem web fonts caem nos fallbacks definidos em SERIF_FONT/SANS_FONT/SANS_DISPLAY.
+    web_fonts_link = '<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,700,800,900&f[]=general-sans@400,500,600,700&f[]=gambarino@400i,400&display=swap">'
 
     return f"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="pt-BR"><head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="color-scheme" content="light">
-<meta name="supported-color-schemes" content="light">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
 <title>Recorte ✂ · {date_short}</title>
-{google_fonts_link}
+{web_fonts_link}
 <!--[if mso]><style type="text/css">body, table, td {{font-family: Georgia, 'Times New Roman', serif !important;}} .mso-sans {{font-family: Arial, Helvetica, sans-serif !important;}}</style><![endif]-->
 <style>
+  /* Responsivo mobile (≤600px) */
   @media only screen and (max-width:600px){{
     .container {{ width:100% !important; max-width:100% !important; }}
     .px-mob {{ padding-left:20px !important; padding-right:20px !important; }}
     .hero-h1 {{ font-size:36px !important; line-height:1.05 !important; }}
     .stat-num {{ font-size:20px !important; }}
+    .news-img {{ width:100% !important; height:auto !important; max-height:200px !important; }}
+    .share-btn {{ display:block !important; width:100% !important; margin:6px 0 !important; }}
   }}
+  /* Dark mode — Apple Mail / iOS / clientes que respeitam prefers-color-scheme */
+  @media (prefers-color-scheme: dark) {{
+    .dark-bg {{ background:#1a1a1a !important; }}
+    .dark-bg-card {{ background:#2a2a2a !important; }}
+    .dark-text {{ color:#f0f0f0 !important; }}
+    .dark-text-soft {{ color:#c0c0c0 !important; }}
+    .dark-text-muted {{ color:#909090 !important; }}
+    .dark-border {{ border-color:#404040 !important; }}
+    .dark-mint {{ background:#2d5d4f !important; }}
+    .dark-coral {{ background:#7a3838 !important; }}
+    .light-only {{ display:none !important; }}
+  }}
+  /* Outlook.com dark mode (data-ogsc) */
+  [data-ogsc] .dark-bg {{ background:#1a1a1a !important; }}
+  [data-ogsc] .dark-bg-card {{ background:#2a2a2a !important; }}
+  [data-ogsc] .dark-text {{ color:#f0f0f0 !important; }}
+  [data-ogsc] .dark-text-soft {{ color:#c0c0c0 !important; }}
+  [data-ogsc] .dark-text-muted {{ color:#909090 !important; }}
+  /* Imagem da notícia */
+  .news-img {{ display:block; width:100%; max-width:560px; height:auto; border:0; border-radius:8px; }}
 </style>
 </head>
-<body style="margin:0;padding:0;background:{COLORS['bg']};font-family:{SANS_FONT};-webkit-font-smoothing:antialiased;">
+<body style="margin:0;padding:0;background:{COLORS['bg']};font-family:{SANS_FONT};-webkit-font-smoothing:antialiased;" class="dark-bg">
 
 <!-- preheader: visível no preview do inbox -->
 <div style="display:none;font-size:1px;color:{COLORS['bg']};line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
   {saudacao}, {_esc(first_name)}. {"Sua semana em " + intro_count + " — antes do café." if weekly_mode else "Hoje em " + intro_count + " só pra você — em 5 minutos."}
 </div>
 
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{COLORS['bg']};">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{COLORS['bg']};" class="dark-bg">
   <tr><td align="center" style="padding:24px 16px;">
-    <table role="presentation" class="container" width="640" cellpadding="0" cellspacing="0" border="0" style="max-width:640px;background:{COLORS['bg']};">
+    <table role="presentation" class="container dark-bg" width="640" cellpadding="0" cellspacing="0" border="0" style="max-width:640px;background:{COLORS['bg']};">
 
       <!-- MASTHEAD verde-menta -->
-      <tr><td style="background:{COLORS['mint']};padding:26px 36px 22px;" class="px-mob">
+      <tr><td style="background:{COLORS['mint']};padding:26px 36px 22px;" class="px-mob dark-mint">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
           <td valign="middle">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
               <td valign="middle" style="padding-right:14px;">
-                <div style="width:42px;height:42px;background:{COLORS['bg']};border:2.5px solid {COLORS['ink']};border-radius:50%;text-align:center;line-height:38px;font-family:{SERIF_FONT};font-style:italic;font-weight:700;font-size:24px;color:{COLORS['ink']};letter-spacing:-0.05em;">r<span style="color:{COLORS['mint_deep']};">.</span></div>
+                <div style="width:42px;height:42px;background:{COLORS['bg']};border:2.5px solid {COLORS['ink']};border-radius:50%;text-align:center;line-height:38px;font-family:{SANS_DISPLAY};font-weight:900;font-size:22px;color:{COLORS['ink']};letter-spacing:-0.04em;">R<span style="color:{COLORS['mint_deep']};">.</span></div>
               </td>
-              <td valign="middle" style="font-family:{SERIF_FONT};font-weight:700;font-size:30px;letter-spacing:-0.025em;color:{COLORS['ink']};">Recorte</td>
+              <td valign="middle" style="font-family:{SANS_DISPLAY};font-weight:900;font-size:30px;letter-spacing:-0.035em;color:{COLORS['ink']};">Recorte<span style="color:{COLORS['mint_deep']};margin-left:2px;">✂</span></td>
             </tr></table>
           </td>
           <td valign="middle" align="right" style="font-family:{SERIF_FONT};font-style:italic;font-size:13px;color:{COLORS['mint_dark']};">
@@ -758,29 +920,29 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
       <!-- HERO -->
       <tr><td style="padding:44px 36px 28px;" class="px-mob">
         <div style="font-family:{SERIF_FONT};font-style:italic;font-size:15px;color:{COLORS['mint_dark']};margin-bottom:12px;">— {saudacao}, {_esc(first_name)}.</div>
-        <h1 class="hero-h1" style="font-family:{SERIF_FONT};font-weight:900;font-size:44px;line-height:1.0;letter-spacing:-0.04em;color:{COLORS['ink']};margin:0 0 18px 0;">{hero_h1}</h1>
+        <h1 class="hero-h1" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:44px;line-height:1.0;letter-spacing:-0.04em;color:{COLORS['ink']};margin:0 0 18px 0;">{hero_h1}</h1>
         <p style="font-family:{SANS_FONT};font-size:16px;line-height:1.55;color:{COLORS['ink_soft']};margin:0 0 24px 0;max-width:520px;">{hero_subtitle}</p>
 
         <!-- Quick stats bar -->
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid {COLORS['line']};border-bottom:1px solid {COLORS['line']};">
           <tr>
             <td align="center" style="padding:14px 4px;">
-              <div class="stat-num" style="font-family:{SERIF_FONT};font-weight:800;font-size:24px;color:{COLORS['mint_dark']};line-height:1;letter-spacing:-0.02em;">{stat_noticias}</div>
+              <div class="stat-num" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:24px;color:{COLORS['mint_dark']};line-height:1;letter-spacing:-0.02em;">{stat_noticias}</div>
               <div style="font-family:{SANS_FONT};font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:{COLORS['ink_muted']};margin-top:5px;">Notícias</div>
             </td>
             <td width="1" style="background:{COLORS['line']};">&nbsp;</td>
             <td align="center" style="padding:14px 4px;">
-              <div class="stat-num" style="font-family:{SERIF_FONT};font-weight:800;font-size:24px;color:{COLORS['mint_dark']};line-height:1;letter-spacing:-0.02em;">{stat_trending}</div>
+              <div class="stat-num" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:24px;color:{COLORS['mint_dark']};line-height:1;letter-spacing:-0.02em;">{stat_trending}</div>
               <div style="font-family:{SANS_FONT};font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:{COLORS['ink_muted']};margin-top:5px;">Em alta</div>
             </td>
             <td width="1" style="background:{COLORS['line']};">&nbsp;</td>
             <td align="center" style="padding:14px 4px;">
-              <div class="stat-num" style="font-family:{SERIF_FONT};font-weight:800;font-size:24px;color:{COLORS['mint_dark']};line-height:1;letter-spacing:-0.02em;">{stat_temas}</div>
+              <div class="stat-num" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:24px;color:{COLORS['mint_dark']};line-height:1;letter-spacing:-0.02em;">{stat_temas}</div>
               <div style="font-family:{SANS_FONT};font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:{COLORS['ink_muted']};margin-top:5px;">Temas seus</div>
             </td>
             <td width="1" style="background:{COLORS['line']};">&nbsp;</td>
             <td align="center" style="padding:14px 4px;">
-              <div class="stat-num" style="font-family:{SERIF_FONT};font-weight:800;font-size:24px;color:{COLORS['mint_dark']};line-height:1;letter-spacing:-0.02em;">{stat_minutos}'</div>
+              <div class="stat-num" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:24px;color:{COLORS['mint_dark']};line-height:1;letter-spacing:-0.02em;">{stat_minutos}'</div>
               <div style="font-family:{SANS_FONT};font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:{COLORS['ink_muted']};margin-top:5px;">Leitura</div>
             </td>
           </tr>
@@ -802,27 +964,58 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
         <div style="font-family:{SANS_FONT};font-weight:800;font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:{COLORS['mint_dark']};">— Recorte ✂ &nbsp;·&nbsp; até amanhã às 6h</div>
       </td></tr>
 
+      <!-- COMPARTILHAR -->
+      <tr><td style="padding:24px 36px 8px 36px;text-align:center;" class="px-mob">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;">
+          <tr><td align="center" style="padding-bottom:12px;font-family:{SERIF_FONT};font-style:italic;font-size:15px;color:{COLORS['ink_soft']};" class="dark-text-soft">
+            Curtiu? <strong style="color:{COLORS['ink']};" class="dark-text">Encaminha pra um amigo ✂</strong>
+          </td></tr>
+          <tr><td align="center">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+              <td style="padding:0 4px;">
+                <a class="share-btn" href="https://wa.me/?text={share_wa_text}"
+                   style="display:inline-block;background:#25D366;color:#ffffff;font-family:{SANS_FONT};font-weight:800;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;text-decoration:none;padding:10px 18px;border-radius:4px;mso-padding-alt:0;">
+                  💬 WhatsApp
+                </a>
+              </td>
+              <td style="padding:0 4px;">
+                <a class="share-btn" href="https://twitter.com/intent/tweet?text={share_x_text}"
+                   style="display:inline-block;background:#000000;color:#ffffff;font-family:{SANS_FONT};font-weight:800;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;text-decoration:none;padding:10px 18px;border-radius:4px;">
+                  𝕏 Compartilhar
+                </a>
+              </td>
+              <td style="padding:0 4px;">
+                <a class="share-btn" href="{share_url}"
+                   style="display:inline-block;background:{COLORS['mint_deep']};color:#ffffff;font-family:{SANS_FONT};font-weight:800;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;text-decoration:none;padding:10px 18px;border-radius:4px;">
+                  🔗 Abrir online
+                </a>
+              </td>
+            </tr></table>
+          </td></tr>
+        </table>
+      </td></tr>
+
       <!-- FOOTER -->
-      <tr><td style="background:{COLORS['bg_2']};padding:28px 36px;text-align:center;" class="px-mob">
-        <div style="font-family:{SANS_FONT};font-size:11px;color:{COLORS['ink_muted']};line-height:1.7;">
-          Você está recebendo porque se cadastrou em <strong style="color:{COLORS['ink']};">Recorte ✂</strong>.
+      <tr><td style="background:{COLORS['bg_2']};padding:28px 36px;text-align:center;" class="px-mob dark-bg-card">
+        <div style="font-family:{SANS_FONT};font-size:11px;color:{COLORS['ink_muted']};line-height:1.7;" class="dark-text-muted">
+          Você está recebendo porque se cadastrou em <strong style="color:{COLORS['ink']};" class="dark-text">Recorte ✂</strong>.
           {('<br/><span style="font-family:' + MONO_FONT + ';font-size:10px;color:' + COLORS['ink_muted'] + ';opacity:0.7;letter-spacing:0.08em;">' + str(filtered_items_count) + ' filtro' + ('s' if filtered_items_count != 1 else '') + ' ativo' + ('s' if filtered_items_count != 1 else '') + ' · você no controle</span>') if filtered_items_count > 0 else ''}
           <br/><br/>
-          <a href="{_esc(manage_link)}" style="color:{COLORS['ink_soft']};text-decoration:underline;font-weight:700;font-size:12px;">⚙ Ajustar minhas preferências</a>
+          <a href="{_safe_url(manage_link)}" style="color:{COLORS['ink_soft']};text-decoration:underline;font-weight:700;font-size:12px;" class="dark-text-soft">⚙ Ajustar minhas preferências</a>
           &nbsp;&nbsp;·&nbsp;&nbsp;
-          <a href="{_esc(unsub_link)}" style="color:{COLORS['ink_soft']};text-decoration:underline;font-weight:700;font-size:12px;">✕ Cancelar inscrição</a>
+          <a href="{_safe_url(unsub_link)}" style="color:{COLORS['ink_soft']};text-decoration:underline;font-weight:700;font-size:12px;" class="dark-text-soft">✕ Cancelar inscrição</a>
           <br/><br/>
-          <span style="font-size:10px;color:{COLORS['ink_muted']};opacity:0.8;line-height:1.65;">Curadoria editorial por agentes de IA treinados e monitorados por humanos · 200+ fontes brasileiras e internacionais · Conteúdo de terceiros. Direitos reservados aos veículos originais.</span>
+          <span style="font-size:10px;color:{COLORS['ink_muted']};opacity:0.8;line-height:1.65;" class="dark-text-muted">A gente lê o mundo todo dia, pra você · Conteúdo de terceiros. Direitos reservados aos veículos originais.</span>
           <br/><br/>
-          <a href="https://recorte.news/termos.html" style="color:{COLORS['ink_muted']};text-decoration:underline;font-size:10px;opacity:0.7;">Termos de Uso</a>
+          <a href="https://recorte.news/termos.html" style="color:{COLORS['ink_muted']};text-decoration:underline;font-size:10px;opacity:0.7;" class="dark-text-muted">Termos de Uso</a>
           &nbsp;·&nbsp;
-          <a href="https://recorte.news/politica-privacidade.html" style="color:{COLORS['ink_muted']};text-decoration:underline;font-size:10px;opacity:0.7;">Política de Privacidade</a>
+          <a href="https://recorte.news/politica-privacidade.html" style="color:{COLORS['ink_muted']};text-decoration:underline;font-size:10px;opacity:0.7;" class="dark-text-muted">Política de Privacidade</a>
           &nbsp;·&nbsp;
-          <a href="mailto:contato@recorte.news" style="color:{COLORS['ink_muted']};text-decoration:underline;font-size:10px;opacity:0.7;">Contato</a>
-          <div style="margin-top:14px;font-size:10px;color:{COLORS['ink_muted']};opacity:0.65;line-height:1.6;">
+          <a href="mailto:contato@recorte.news" style="color:{COLORS['ink_muted']};text-decoration:underline;font-size:10px;opacity:0.7;" class="dark-text-muted">Contato</a>
+          <div style="margin-top:14px;font-size:10px;color:{COLORS['ink_muted']};opacity:0.65;line-height:1.6;" class="dark-text-muted">
             Recorte ✂ · Operado pela Equipe Recorte ✂ · São Paulo/SP · Brasil
           </div>
-          <div style="margin-top:6px;font-family:{MONO_FONT};font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:{COLORS['ink_muted']};opacity:0.55;">Última coleta · {date_obj.strftime('%d/%m %H:%M')} BRT</div>
+          <div style="margin-top:6px;font-family:{MONO_FONT};font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:{COLORS['ink_muted']};opacity:0.55;" class="dark-text-muted">Última coleta · {date_obj.strftime('%d/%m %H:%M')} BRT</div>
         </div>
       </td></tr>
 

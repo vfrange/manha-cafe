@@ -110,6 +110,17 @@ def dispatch_one(queue_row):
 
         # 3. Envia (com headers RFC 8058 List-Unsubscribe pra deliverability + opt-out 1-click)
         unsub_url = gen_unsub_url(SUPABASE_URL, user_id)
+        edition_id = queue_row.get("edition_id")
+        kind = queue_row.get("kind", "daily")
+
+        # Tags Resend pra que o webhook consiga mapear o evento → user/edition
+        tags = [
+            {"name": "kind", "value": str(kind)},
+            {"name": "user_id", "value": str(user_id)},
+        ]
+        if edition_id:
+            tags.append({"name": "edition_id", "value": str(edition_id)})
+
         result = resend.Emails.send({
             "from": FROM_EMAIL,
             "to": user["email"],
@@ -121,11 +132,20 @@ def dispatch_one(queue_row):
                 # RFC 8058: indica que o link suporta opt-out one-click (sem confirmação intermediária)
                 "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
             },
+            "tags": tags,
         })
         resend_id = result.get("id") if isinstance(result, dict) else None
 
         # 4. Marca sent
         mark_sent(qid, resend_id)
+
+        # 4b. Marca edition como enviada (sent_at + resend_id)
+        if edition_id:
+            try:
+                from tracking import finalize_edition
+                finalize_edition(supabase, edition_id, resend_id)
+            except Exception as e:
+                log(f"  ⚠ finalize_edition falhou: {e}")
 
         # 5. Atualiza last_sent_at do user (pra o dedup do prepare funcionar)
         now_iso = datetime.now(timezone.utc).isoformat()

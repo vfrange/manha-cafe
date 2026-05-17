@@ -31,12 +31,26 @@ COUNTRY_LOCALES = {
 }
 
 
-def fetch(query, country="BR", max_items=8):
+def fetch(query, country="BR", max_items=8, when=None):
+    """
+    Busca no Google News RSS.
+    Args:
+        query: termo de busca
+        country: código de país (BR, US, etc) ou "GLOBAL"
+        max_items: limite de items
+        when: opcional, filtro temporal Google News (ex: "1d", "7d", "1m").
+              Quando passado, retorna só notícias publicadas nesse período.
+              Usado pelo Recorte da Semana com when="7d".
+    """
+    # Anexa filtro temporal à query se passado (sintaxe Google News: "termo when:7d")
+    final_query = query
+    if when:
+        final_query = f"{query} when:{when}"
     if country == "GLOBAL" or country not in COUNTRY_LOCALES:
-        url = f"https://news.google.com/rss/search?q={quote_plus(query)}&hl=en&gl=US&ceid=US:en"
+        url = f"https://news.google.com/rss/search?q={quote_plus(final_query)}&hl=en&gl=US&ceid=US:en"
     else:
         loc = COUNTRY_LOCALES[country]
-        url = f"https://news.google.com/rss/search?q={quote_plus(query)}&hl={loc['hl']}&gl={loc['gl']}&ceid={loc['ceid']}"
+        url = f"https://news.google.com/rss/search?q={quote_plus(final_query)}&hl={loc['hl']}&gl={loc['gl']}&ceid={loc['ceid']}"
 
     feed = feedparser.parse(url)
     items = []

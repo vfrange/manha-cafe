@@ -17,6 +17,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import resend
 from supabase import create_client
 from anthropic import Anthropic
+from voice_prompt import VOICE_PROMPT
 
 from email_template import render_email
 from feedback_token import short_id, feedback_url, manage_url as gen_manage_url, unsub_url as gen_unsub_url
@@ -39,6 +40,8 @@ TARGET_HOUR_BRT = int(os.environ.get("TARGET_HOUR_BRT", "-1"))
 DRY_RUN = os.environ.get("DRY_RUN", "false").lower() == "true"
 
 MODEL = "claude-haiku-4-5-20251001"
+# Modelo premium pra tasks de alta visibilidade (Em Alta + Welcome curate_news)
+MODEL_PREMIUM = "claude-sonnet-4-6-20250929"
 MAX_NEWS_OUT_PER_TOPIC = 2  # legado — agora cálculo dinâmico via daily_news_per_topic()
 MAX_TRENDING_OUT = 10
 
@@ -212,7 +215,7 @@ def fetch_trending(country, weekly=False):
         except Exception as e:
             log(f"  ⚠ reddit trending: {e}")
 
-    # 3) Bluesky "What's Hot" (buzz social que substituiu o Twitter)
+    # 3) Bluesky "What's Hot" (buzz social que substituiu o X/Twitter)
     try:
         trends.extend(bluesky.fetch_trending(max_items=8))
     except Exception as e:
@@ -279,20 +282,48 @@ def _robust_json_parse(text):
     return {}
 
 
-def _call_claude_json(prompt, max_tokens=4000, retries=2, log_prefix=""):
+def _call_claude_json(prompt, max_tokens=4000, retries=2, log_prefix="",
+                      model=None, system_prompt=None):
     """
     Chama Claude e parseia JSON. Se falhar, tenta de novo (até `retries` vezes adicionais).
     Reforça o prompt em cada retry pra forçar JSON limpo.
+
+    Args:
+        prompt: user message (parte dinâmica — não cacheada)
+        max_tokens: limite de output
+        retries: tentativas adicionais em caso de erro
+        model: override do modelo (None usa MODEL=Haiku 4.5; pra Sonnet, passa MODEL_PREMIUM)
+        system_prompt: instruções estáticas que viram system + são cacheadas (até 90% de desconto
+                       em chamadas repetidas no mesmo período de 5 min). Precisa ter pelo menos
+                       1024 tokens pra cache ser efetivo. Se None, system=[] (sem cache).
+
     Retorna dict (vazio se tudo falhar).
     """
     last_err = None
     current_prompt = prompt
+    selected_model = model or MODEL
+
+    # System com prompt caching habilitado.
+    # Anthropic cobra ~10% do input rate em cache hits (vs 100% sem cache).
+    system_blocks = []
+    if system_prompt:
+        system_blocks = [{
+            "type": "text",
+            "text": system_prompt,
+            "cache_control": {"type": "ephemeral"},
+        }]
+
     for attempt in range(1, retries + 2):  # 1ª tentativa + retries
         try:
-            resp = claude.messages.create(
-                model=MODEL, max_tokens=max_tokens,
-                messages=[{"role": "user", "content": current_prompt}]
-            )
+            kwargs = {
+                "model": selected_model,
+                "max_tokens": max_tokens,
+                "messages": [{"role": "user", "content": current_prompt}],
+            }
+            if system_blocks:
+                kwargs["system"] = system_blocks
+
+            resp = claude.messages.create(**kwargs)
             text = resp.content[0].text.strip()
             parsed = _robust_json_parse(text)
             if parsed:  # retorno não-vazio = sucesso
@@ -313,15 +344,17 @@ def _call_claude_json(prompt, max_tokens=4000, retries=2, log_prefix=""):
 
 
 def _curate_news_batch(user_name, topics_with_news, learned_profile="", filtered_items=None,
-                       weekly=False, news_per_topic=None):
+                       weekly=False, news_per_topic=None, is_welcome=False):
     """Processa UM batch de temas (até MAX_TOPICS_PER_BATCH). Aplica filtros do user se passados.
 
     Args:
         weekly: se True, prompts focam em retrospectiva semanal e sintese contextualizada.
         news_per_topic: limite de notícias por tema (sobrescreve MAX_NEWS_OUT_PER_TOPIC).
                         Se None, usa default daily (2). Weekly tipicamente passa 3 ou 4.
+        is_welcome: se True, usa MODEL_PREMIUM (Sonnet 4.6) pra primeira impressão.
     """
     out_per_topic = news_per_topic if news_per_topic is not None else MAX_NEWS_OUT_PER_TOPIC
+    selected_model = MODEL_PREMIUM if is_welcome else None  # None = MODEL default (Haiku)
 
     payload = []
     has_political = False
@@ -397,20 +430,58 @@ Se o "fonte" de uma matéria estiver nessa lista, DESCARTE-A integralmente. Se a
         resumo_instr = "**resumo**: 3-4 frases (100-160 palavras) em PT-BR. Explica o que aconteceu, números/fatos centrais, contexto e implicação imediata"
         fatos_instr = "**fatos_chave**: array de 3 a 5 bullets curtos (cada um 6-15 palavras) com os pontos mais importantes — números, datas, players, valores, decisões. Ex: [\"Selic caiu de 13,75% para 13,25%\", \"1ª redução em 12 meses\", \"Mercado esperava corte de 0,75 ponto\"]"
 
-    prompt = f"""Você é editor de uma newsletter premium em PT-BR ao estilo Morning Brew, escrevendo para {user_name}.
+    # System prompt: parte ESTÁTICA (cacheável) — regras gerais que não mudam por user/dia
+    # Atinge >2048 tokens (mínimo pro cache do Haiku 4.5)
+    # VOICE_PROMPT vem PRIMEIRO como prefixo idêntico em todas as chamadas → cache hit perfeito
+    system_prompt = f"""{VOICE_PROMPT}
+
+# ============================================
+# INSTRUÇÕES ESPECÍFICAS DESTA TAREFA — CURADORIA
+# ============================================
+
+Você está fazendo a CURADORIA editorial da edição diária do Recorte ✂ — \
+escolhendo as matérias mais relevantes pra este leitor específico, escrevendo \
+as manchetes, resumos e fatos-chave em PT-BR.
+
+Tudo que você escrever vai direto pra caixa de entrada do leitor — siga o \
+VOICE GUIDE acima rigorosamente.
+
+{SAFETY_INSTRUCTIONS}
+
+{POLITICAL_BIAS_INSTRUCTIONS}
+
+🇧🇷 **REGRA CRÍTICA DE IDIOMA**: TODO o conteúdo gerado DEVE estar em **português brasileiro natural**, MESMO QUE a matéria original esteja em inglês, espanhol ou outro idioma. Traduza com fluência, mantendo nomes próprios e marcas no original.
+
+⚠️ **REGRA CRÍTICA DE FORMATO**: Retorne APENAS JSON VÁLIDO, sem markdown, sem blocos de código, sem ```json```. Escape TODAS as aspas duplas dentro de strings com \\". Não use quebras de linha dentro de strings. Não inclua texto antes ou depois do JSON. A primeira character da resposta DEVE ser `{{` e a última `}}`.
+
+📰 **OBJETIVO EDITORIAL**: O leitor deve conseguir entender cada notícia INTEIRA sem precisar abrir o link. Seja rico em fatos, números, datas e contexto. Mantenha o tom do VOICE GUIDE — direto, brasileiro, próximo.
+
+🚫 **REGRA CRÍTICA DE DEDUPLICAÇÃO**: NUNCA inclua duas notícias sobre o MESMO evento, mesmo que venham de fontes diferentes ou com palavras ligeiramente diferentes. Se ver vários itens brutos sobre o mesmo acontecimento, escolha APENAS UM (preferindo: fonte mais respeitável > matéria mais completa > publicação mais recente). Em caso de dúvida sobre se 2 são o mesmo evento, considere que SÃO e una.
+
+📋 **ESTRUTURA DE RESPOSTA**: O JSON deve seguir o schema exato indicado no user message. Não invente campos. Não omita campos requeridos.
+
+🎯 **CRITÉRIOS DE QUALIDADE**:
+- Manchetes seguindo o VOICE GUIDE (máx 9 palavras quando possível, máx 90 chars sempre)
+- Resumos com números, contexto, e implicação clara
+- Fatos-chave concretos: datas, valores, players nomeados
+- Sempre cite a fonte original (campo "fonte")
+- Indique idioma original se NÃO for PT (campo "lang")
+
+⚖️ **RIGOR EDITORIAL**:
+- Não invente fatos, números, citações ou eventos
+- Não extrapole além do que está na matéria original
+- Se a matéria for confusa ou contradice outras, sinalize na curadoria descartando-a
+- Política, religião, identidade: enquadramento factual sempre
+
+Os dados específicos do dia + instruções pontuais virão no próximo turn do user."""
+
+    # User message: parte DINÂMICA (não cacheada) — dados do dia + parametros user-específicos
+    user_message = f"""**USUÁRIO:** {user_name}
 {profile_section}
 {filter_instruction}
-{SAFETY_INSTRUCTIONS}
-{bias_section}
 {time_context}
 
 {editorial_brief}
-
-🇧🇷 **REGRA CRÍTICA DE IDIOMA**: TODO o conteúdo gerado DEVE estar em **português brasileiro natural**, MESMO QUE a matéria original esteja em inglês, espanhol ou outro idioma. Traduza com fluência.
-
-⚠️ **REGRA CRÍTICA DE FORMATO**: Retorne APENAS JSON VÁLIDO, sem markdown, sem ```. Escape TODAS as aspas duplas dentro de strings com \\". Não use quebras de linha dentro de strings.
-
-📰 **OBJETIVO**: O usuário deve conseguir entender a notícia INTEIRA sem precisar abrir o link. Seja rico em fatos, números e contexto. Mas mantenha estilo Morning Brew: direto, esperto, sem encher linguiça.
 
 Para cada notícia selecionada, retorne:
 - **manchete**: título em PT-BR direto, máx 90 caracteres, sem clickbait
@@ -419,7 +490,7 @@ Para cada notícia selecionada, retorne:
 - **link**: copie o link original
 - **fonte**: nome do veículo
 - **lang**: código do idioma original da matéria (ex: "en", "fr", "de"). Omita se for PT-BR.
-- **pol_bias** (APENAS para temas marcados `tema_politico: true`): "factual", "centro", "esq" ou "dir". Veja regras acima.
+- **pol_bias** (APENAS para temas marcados `tema_politico: true`): "factual", "centro", "esq" ou "dir".
 
 Se um tema tiver pouca notícia relevante, retorne menos itens. Se nada for relevante, omita o tema.
 
@@ -429,7 +500,10 @@ Dados:
 **RESPONDA APENAS JSON VÁLIDO**:
 {{"secoes":[{{"tema":"<nome>","noticias":[{{"manchete":"...","resumo":"...","fatos_chave":["...","..."],"link":"...","fonte":"...","lang":"...","pol_bias":"..."}}]}}]}}"""
 
-    parsed = _call_claude_json(prompt, max_tokens=12000, retries=2, log_prefix=" (curate_news)")
+    parsed = _call_claude_json(user_message, max_tokens=12000, retries=2,
+                                log_prefix=" (curate_news)",
+                                model=selected_model,
+                                system_prompt=system_prompt)
     secoes = parsed.get("secoes", []) if parsed else []
     # POST-FILTER: re-valida cada item curado
     for sec in secoes:
@@ -442,7 +516,7 @@ Dados:
 
 
 def curate_news(user_name, topics_with_news, learned_profile="", filtered_items=None,
-                weekly=False, news_per_topic=None):
+                weekly=False, news_per_topic=None, is_welcome=False):
     """
     Curadoria com batching: divide temas em grupos de até MAX_TOPICS_PER_BATCH
     pra evitar JSON gigante que pode quebrar.
@@ -450,6 +524,7 @@ def curate_news(user_name, topics_with_news, learned_profile="", filtered_items=
     Args:
         weekly: edição semanal (prompt e budget diferentes)
         news_per_topic: limite por tema (default 2 daily; weekly tipicamente passa 3 ou 4).
+        is_welcome: primeira edição do user — usa Sonnet 4.6 (premium) pra impressão melhor.
     """
     if not topics_with_news:
         return []
@@ -459,13 +534,14 @@ def curate_news(user_name, topics_with_news, learned_profile="", filtered_items=
         topics_with_news[i:i+MAX_TOPICS_PER_BATCH]
         for i in range(0, len(topics_with_news), MAX_TOPICS_PER_BATCH)
     ]
-    log(f"  curando em {len(batches)} batch(es) de até {MAX_TOPICS_PER_BATCH} temas{' (modo weekly)' if weekly else ''}")
+    log(f"  curando em {len(batches)} batch(es) de até {MAX_TOPICS_PER_BATCH} temas{' (modo weekly)' if weekly else ''}{' [WELCOME=Sonnet]' if is_welcome else ''}")
 
     for idx, batch in enumerate(batches, 1):
         log(f"  batch {idx}/{len(batches)}: {len(batch)} temas")
         sections = _curate_news_batch(
             user_name, batch, learned_profile, filtered_items,
             weekly=weekly, news_per_topic=news_per_topic,
+            is_welcome=is_welcome,
         )
         all_sections.extend(sections)
 
@@ -646,23 +722,53 @@ Se um trend é sobre um tema dessa lista, DESCARTE-O.
 Não tente reinterpretar — se em dúvida, descarte.
 """
 
-    prompt = f"""Você é editor da seção "🔥 Em Alta" em PT-BR pra {user_name}, escopo: **{scope_label}**.
+    # System prompt (cacheável): regras gerais que não mudam por user/dia
+    # VOICE_PROMPT vem PRIMEIRO como prefixo idêntico → cache hit perfeito
+    system_prompt = f"""{VOICE_PROMPT}
+
+# ============================================
+# INSTRUÇÕES ESPECÍFICAS DESTA TAREFA — EM ALTA
+# ============================================
+
+Você está montando a seção "🔥 Em Alta" da edição diária do Recorte ✂ — \
+manchetes virais e top stories do dia, com contexto editorial.
+
+Tudo que você escrever vai direto pra caixa de entrada do leitor — siga o \
+VOICE GUIDE acima rigorosamente.
+
+{SAFETY_INSTRUCTIONS}
+
+🚫 **REGRA CRÍTICA DE DEDUPLICAÇÃO**: NUNCA inclua duas manchetes sobre o MESMO evento, mesmo de fontes diferentes ou com palavras levemente diferentes. Se ver vários trends brutos sobre o mesmo acontecimento, escolha APENAS UM (preferindo: fonte mais respeitável > matéria mais completa). Em caso de dúvida sobre se 2 trends são o mesmo evento, considere que SÃO e una.
+
+🇧🇷 **REGRA CRÍTICA DE IDIOMA**: TODO conteúdo (manchete, resumo, fatos_chave) DEVE estar em **português brasileiro fluente**, MESMO QUE original esteja em inglês ou outro idioma. Mantenha nomes próprios e marcas no original.
+
+⚠️ **REGRA CRÍTICA DE FORMATO**: Retorne APENAS JSON VÁLIDO, sem markdown, sem blocos ```json```. Escape aspas duplas com \\". Sem quebras de linha dentro de strings. A primeira character DEVE ser `{{` e a última `}}`.
+
+📰 **OBJETIVO EDITORIAL**: O leitor entende cada evento sem precisar abrir o link. Seja rico em fatos e contexto, com o tom do VOICE GUIDE.
+
+🎯 **CRITÉRIOS DE CURADORIA DE TRENDING**:
+- Priorize: eventos significativos, lançamentos importantes, esporte/cultura de impacto, ciência/tecnologia disruptiva
+- Evite: fofoca rasa, conteúdo regional sem contexto, jargão obscuro, "celebridade fez X" sem implicação maior
+- Trending real ≠ apenas "está bombando em redes sociais"; precisa ter substância editorial
+
+⚖️ **RIGOR**:
+- Não invente fatos, números, citações
+- Cite a fonte original do trending (campo "fonte")
+- Se há discordância entre fontes, prefira matérias bem-fundadas
+
+Os dados específicos + parâmetros virão no próximo turn do user."""
+
+    user_message = f"""**USUÁRIO:** {user_name}
+**ESCOPO:** {scope_label}
 {profile_section}
 {filter_instruction}
 {mix_instruction}
-{SAFETY_INSTRUCTIONS}
 
 {context_intro}
 
-{instruction_verb} ({total_out} itens): top stories + redes sociais + viralizações. Priorize: eventos significativos, lançamentos, esporte/cultura de impacto. Evite fofoca rasa, conteúdo regional sem contexto, ou jargão obscuro.
+{instruction_verb} ({total_out} itens): top stories + redes sociais + viralizações.
 
-🚫 **REGRA CRÍTICA DE DEDUPLICAÇÃO**: NUNCA inclua duas manchetes sobre o MESMO evento, mesmo que venham de fontes diferentes ou com palavras ligeiramente diferentes. Se ver vários trends brutos sobre o mesmo acontecimento, escolha APENAS UM (o de fonte mais relevante) e descarte os outros. Em caso de dúvida sobre se 2 trends são o mesmo evento, considere que SÃO e una.
-
-🇧🇷 **REGRA CRÍTICA DE IDIOMA**: TODO conteúdo (manchete, resumo, fatos) DEVE estar em **português brasileiro fluente**, MESMO QUE original esteja em inglês ou outro idioma. Mantenha nomes próprios e marcas no original.
-
-⚠️ **REGRA CRÍTICA DE FORMATO**: APENAS JSON VÁLIDO, sem markdown, sem ```. Escape aspas duplas com \\". Sem quebras de linha dentro de strings.
-
-📰 **OBJETIVO**: o usuário entende cada evento sem precisar abrir o link. {'Como é semanal, dê contexto e mencione a evolução ao longo dos dias quando relevante.' if weekly else 'Seja rico em fatos e contexto.'}
+{'Como é semanal, dê contexto e mencione a evolução ao longo dos dias quando relevante.' if weekly else 'Seja rico em fatos e contexto.'}
 
 Pra cada item:
 - **manchete**: título PT-BR direto, máx 90 chars, sem clickbait
@@ -678,7 +784,11 @@ Trends brutos:
 **APENAS JSON VÁLIDO**:
 {{"trending":[{{"manchete":"...","resumo":"...","fatos_chave":["..."],"link":"...","fonte":"..."}}]}}"""
 
-    parsed = _call_claude_json(prompt, max_tokens=6000, retries=2, log_prefix=" (curate_trends)")
+    # curate_trends sempre usa Sonnet 4.6 (Em Alta é a peça mais visível do email)
+    parsed = _call_claude_json(user_message, max_tokens=6000, retries=2,
+                                log_prefix=" (curate_trends)",
+                                model=MODEL_PREMIUM,
+                                system_prompt=system_prompt)
     items = parsed.get("trending", []) if parsed else []
     # Post-filter: safety
     items = [it for it in items if is_safe_curated(it)]
@@ -720,18 +830,21 @@ def generate_daily_recap(user_name, sections, trending, learned_profile=""):
     if learned_profile.strip():
         profile_section = f"\nPerfil de {user_name}: {learned_profile}\nUse pra dar destaque ao que casa com o perfil.\n"
 
-    prompt = f"""Você escreve "Seu dia em 60 segundos" — o briefing executivo no topo do email do {user_name}, estilo Morning Brew.
+    prompt = f"""Você escreve "Seu dia em 60 segundos" — o briefing no topo do email do {user_name}.
+
+Siga o VOICE GUIDE do Recorte ✂ (tom brasileiro direto, próximo, "a gente lê o mundo pra você").
 {profile_section}
-**TAREFA 1 — RECAP**: Cria UM PARÁGRAFO único de **140-180 palavras** em PT-BR que faça o usuário entender, em 1 minuto, o que rolou hoje no mundo dele.
+**TAREFA 1 — RECAP**: Cria UM PARÁGRAFO único de **140-180 palavras** em PT-BR que faça o leitor entender, em 1 minuto, o que rolou hoje no mundo dele.
 
 Regras do recap:
-- Tom direto, esperto, sem clichê. Lê como se fosse um amigo bem informado contando.
+- Tom direto, brasileiro, próximo. Lê como amigo bem informado contando ao pé do café.
 - Cobre 4-6 fatos do dia, escolhendo os de maior impacto/novidade.
 - Conecta áreas quando faz sentido ("...na mesma semana em que..." / "...enquanto isso...").
-- Termina com 1 frase de fechamento.
+- Termina com 1 frase de fechamento natural.
 - NÃO use bullets. NÃO use markdown. NÃO repita "hoje". UM parágrafo corrido.
+- Use segunda pessoa quando for natural ("você reparou que...", "vale prestar atenção em...").
 
-**TAREFA 2 — QUOTE**: Pinça UMA frase forte ou citação marcante de alguma das manchetes/notícias do dia. Pode ser declaração de pessoa pública, dado impressionante, ou conclusão de matéria. **Máximo 18 palavras**. Use aspas curvas “”. Pode ser uma observação sua sobre o dia inteiro também, no estilo de uma editorial. Deve ter caráter, personalidade.
+**TAREFA 2 — QUOTE**: Pinça UMA frase forte ou citação marcante de alguma das manchetes/notícias do dia. Pode ser declaração de pessoa pública, dado impressionante, ou observação editorial sua. **Máximo 18 palavras**. Use aspas curvas “”. Deve ter caráter, personalidade.
 
 Manchetes de hoje:
 {json.dumps(summary_input, ensure_ascii=False, indent=2)}
@@ -739,7 +852,8 @@ Manchetes de hoje:
 Responda APENAS JSON VÁLIDO neste formato exato:
 {{"recap": "<parágrafo>", "quote": "<frase com aspas curvas>", "quote_author": "<autor ou contexto curto, ex: 'André Lara Resende, FSP' ou 'da redação do Recorte'>"}}"""
 
-    parsed = _call_claude_json(prompt, max_tokens=900, retries=2, log_prefix=" (recap)")
+    parsed = _call_claude_json(prompt, max_tokens=900, retries=2, log_prefix=" (recap)",
+                                system_prompt=VOICE_PROMPT)
     if not parsed:
         return {"recap": "", "quote": "", "quote_author": ""}
     return {
@@ -876,12 +990,13 @@ def is_topic_paused(topic_label, paused_topics, now):
 
 
 # ============ SENDER ============
-def send_email(to_email, to_name, html, date_obj, weekly=False, user_id=None):
+def send_email(to_email, to_name, html, date_obj, weekly=False, user_id=None,
+               edition_id=None, kind=None):
     first = to_name.split()[0]
     if weekly:
-        subject = f"🗞 Seu Recorte da Semana, {first} — {date_obj.strftime('%d/%m')}"
+        subject = f"Bom domingo, {first}. Sua semana, recortada ✂"
     else:
-        subject = f"☕ Seu Recorte de hoje, {first} — {date_obj.strftime('%d/%m')}"
+        subject = f"Bom dia, {first}. Hoje tem ✂ ({date_obj.strftime('%d/%m')})"
     if DRY_RUN:
         log("DRY_RUN", to=to_email, subject=subject)
         fname = f"preview_{to_email.replace('@','_at_')}.html"
@@ -896,11 +1011,23 @@ def send_email(to_email, to_name, html, date_obj, weekly=False, user_id=None):
             "List-Unsubscribe": f"<{unsub}>, <mailto:unsubscribe@recorte.news?subject=Unsubscribe>",
             "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
         }
-    return resend.Emails.send({
+    # Tags pra mapear eventos do webhook → user/edition
+    tags = []
+    if kind:
+        tags.append({"name": "kind", "value": str(kind)})
+    if user_id:
+        tags.append({"name": "user_id", "value": str(user_id)})
+    if edition_id:
+        tags.append({"name": "edition_id", "value": str(edition_id)})
+
+    payload = {
         "from": FROM_EMAIL, "to": to_email,
         "subject": subject, "html": html,
         "headers": headers,
-    })
+    }
+    if tags:
+        payload["tags"] = tags
+    return resend.Emails.send(payload)
 
 
 # ============ MAIN ============
@@ -1003,6 +1130,9 @@ def process_user(user, now_brt, weekly=False):
     else:
         news_per_topic = daily_news_per_topic(topic_count_for_scaling)
 
+    # is_welcome precisa ser calculado ANTES do curate (pra Sonnet entrar no welcome)
+    is_welcome = not user.get("welcome_sent")
+
     # Cada tema pode aparecer múltiplas vezes (1 por escopo escolhido). Fetch por registro,
     # depois agrupa pelo label pra virar 1 seção no email.
     by_label = {}
@@ -1055,6 +1185,24 @@ def process_user(user, now_brt, weekly=False):
     # Mantém ordem original dentro de cada grupo (estável)
     topics_with_news.sort(key=lambda g: 0 if g.get("source") == "custom" else 1)
 
+    # URL VALIDATION: HEAD check em URLs ANTES de mandar pro Claude (descarta links 4xx/5xx).
+    # SKIP Google News (sempre retorna 200/redirect — validação real só após resolve_gnews_urls).
+    try:
+        from sources.utils import filter_valid_urls
+        for group in topics_with_news:
+            original_count = len(group["news"])
+            # Separa URLs Google News das outras
+            gnews = [n for n in group["news"] if "news.google.com" in (n.get("link") or "")]
+            others = [n for n in group["news"] if "news.google.com" not in (n.get("link") or "")]
+            # Valida apenas as URLs diretas dos publishers
+            validated_others = filter_valid_urls(others, url_key="link") if others else []
+            group["news"] = gnews + validated_others
+            removed = original_count - len(group["news"])
+            if removed:
+                log(f"  🔗 {group['label']}: removidas {removed}/{original_count} URLs inválidas (não-GNews)")
+    except Exception as e:
+        log(f"  ⚠ URL validation falhou (não bloqueia): {e}")
+
     sections = []
     if topics_with_news:
         raw_sections = curate_news(
@@ -1062,6 +1210,7 @@ def process_user(user, now_brt, weekly=False):
             filtered_items=filtered_items,
             weekly=weekly,
             news_per_topic=news_per_topic,
+            is_welcome=is_welcome,
         )
         # casa metadados de volta pelo label (topic_id + scopes reais)
         label_meta = {t["label"]: {"topic_id": t["topic_id"], "scopes": t["scopes"]} for t in topics_with_news}
@@ -1146,13 +1295,54 @@ def process_user(user, now_brt, weekly=False):
     # Saudação: o daily roda 6h BRT (sempre manhã); weekly roda sábado 8h BRT.
     # Mas este path TAMBÉM serve o welcome (que pode rodar a qualquer hora) — nesse caso usa auto.
     user_tz = user.get("timezone") or "America/Sao_Paulo"
-    is_welcome = not user.get("welcome_sent")
+    # is_welcome foi calculado antes (linha ~1042) pra alimentar curate_news com Sonnet
     if is_welcome:
         saudacao_mode = "auto"  # respeita fuso do user
     elif weekly:
         saudacao_mode = "sabado"
     else:
         saudacao_mode = "manha"
+
+    # IMAGE EXTRACTION: pra a 1ª notícia de cada tema + 1ª de trending,
+    # busca og:image (paralelo + cache + validation).
+    try:
+        from sources.utils import extract_images, validate_images
+        urls_to_fetch = []
+        for sec in sections:
+            for n in sec.get("noticias", []):
+                if n.get("manchete") and n.get("resumo"):
+                    if n.get("link"):
+                        urls_to_fetch.append(n["link"])
+                    break
+        for item in trending[:1]:
+            if item.get("link"):
+                urls_to_fetch.append(item["link"])
+        if urls_to_fetch:
+            img_map = extract_images(urls_to_fetch)
+            non_empty = [v for v in img_map.values() if v]
+            valid_imgs = validate_images(non_empty) if non_empty else {}
+            for sec in sections:
+                for n in sec.get("noticias", []):
+                    if n.get("manchete") and n.get("resumo"):
+                        if n.get("link"):
+                            img = img_map.get(n["link"])
+                            if img and valid_imgs.get(img):
+                                n["img_url"] = img
+                        break
+            if trending and trending[0].get("link"):
+                img = img_map.get(trending[0]["link"])
+                if img and valid_imgs.get(img):
+                    trending[0]["img_url"] = img
+    except Exception as e:
+        log(f"  ⚠ Image extraction falhou (não bloqueia): {e}")
+
+    # Edition ID antes do render
+    from tracking import gen_edition_id, save_edition, wrap_links_in_html, finalize_edition
+    edition_id = gen_edition_id()
+
+    # URLs base — env vars sobrescrevem o default recorte.news (caso roteamento ainda não esteja configurado)
+    click_base = os.environ.get("CLICK_BASE_URL", "https://recorte.news/c")
+    share_base = os.environ.get("SHARE_BASE_URL", "https://recorte.news/r")
 
     html = render_email(
         user_name=user["name"], date_obj=now_brt,
@@ -1169,15 +1359,50 @@ def process_user(user, now_brt, weekly=False):
         filtered_items_count=len(filtered_items),
         is_welcome=is_welcome,
         unsub_url=signed_unsub,
+        edition_id=edition_id,
+        share_base_url=share_base,
     )
-    result = send_email(user["email"], user["name"], html, now_brt, weekly=weekly, user_id=uid)
+
+    # Wrap links externos /c/{short_id} pra tracking
+    try:
+        html = wrap_links_in_html(
+            html, user_id=uid, edition_id=edition_id,
+            supabase_client=supabase,
+            click_base_url=click_base,
+        )
+    except Exception as e:
+        log(f"  ⚠ Click wrap falhou (não bloqueia): {e}")
+
+    # Determina kind pra edition
+    edition_kind = "welcome" if is_welcome else ("weekly" if weekly else "daily")
+    scheduled_for_date = now_brt.date().isoformat()
+
+    # Salva edition (pra /r/{id} servir)
+    try:
+        save_edition(
+            supabase, user_id=uid, kind=edition_kind,
+            subject=f"Recorte {edition_kind} {scheduled_for_date}",  # subject temporário, dispatch sobrescreve
+            html=html, scheduled_for=scheduled_for_date,
+            edition_id=edition_id,
+        )
+    except Exception as e:
+        log(f"  ⚠ save_edition falhou (não bloqueia): {e}")
+
+    result = send_email(user["email"], user["name"], html, now_brt,
+                        weekly=weekly, user_id=uid,
+                        edition_id=edition_id, kind=edition_kind)
     log(f"  ✓ enviado", id=result.get("id"))
+
+    # Marca edition como enviada
+    try:
+        finalize_edition(supabase, edition_id, result.get("id"))
+    except Exception as e:
+        log(f"  ⚠ finalize_edition falhou: {e}")
+
     user_updates = {
         "last_sent_at": now_brt.isoformat(),
         "welcome_sent": True,
     }
-    # Se é a primeira vez que envia (welcome), grava timestamp pra
-    # o prepare_weekly poder pular o weekly do mesmo dia.
     if is_welcome:
         user_updates["welcome_sent_at"] = now_brt.isoformat()
     supabase.table("users").update(user_updates).eq("id", uid).execute()

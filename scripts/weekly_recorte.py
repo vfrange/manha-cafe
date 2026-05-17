@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-weekly_recorte.py — Recorte da Semana (sábado 10h BRT).
+weekly_recorte.py — Recorte da Semana (domingo 9h BRT).
 Pra cada user ativo, envia uma edição especial: 5 temas top + análise retrospectiva.
 Reutiliza process_user() do daily_digest com flag weekly=True.
 """
