@@ -2,6 +2,10 @@ name: Deploy Cadastro to GitHub Pages
 
 # Faz deploy automático do public/cadastro.html como index.html no GitHub Pages
 # a cada push na main (só quando algo em public/ mudou).
+#
+# IMPORTANTE: lista explícita do que vai pro ar.
+# Arquivos como brandbook.html e instagram-kit.html ficam fora — são ferramentas
+# locais de uso interno, não devem ser expostos publicamente.
 
 on:
   push:
@@ -55,8 +59,13 @@ jobs:
           cp public/admin.html dist/admin.html
           # arquivo.html: edições anteriores públicas
           cp public/arquivo.html dist/arquivo.html
+          # og-default.svg: imagem padrão de Open Graph (preview em WhatsApp/Twitter/etc)
+          cp public/og-default.svg dist/og-default.svg
           # 404 fallback redireciona pro index
           echo '<!DOCTYPE html><meta http-equiv="refresh" content="0; url=/">' > dist/404.html
+          # Log do que foi para deploy (visível nos Actions)
+          echo "=== Arquivos no dist/ ==="
+          ls -la dist/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
