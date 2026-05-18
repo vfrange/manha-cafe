@@ -172,13 +172,22 @@ def fetch_all_sources(query, country, category=None, label=None, source_type="cu
     results = []
     with ThreadPoolExecutor(max_workers=6) as ex:
         futures = {ex.submit(fn): name for name, fn in fetchers}
-        for fut in as_completed(futures, timeout=25):
-            name = futures[fut]
-            try:
-                items = fut.result()
-                results.extend(items)
-            except Exception as e:
-                log(f"  ⚠ erro fonte {name}: {e}")
+        try:
+            for fut in as_completed(futures, timeout=25):
+                name = futures[fut]
+                try:
+                    items = fut.result()
+                    results.extend(items)
+                except Exception as e:
+                    log(f"  ⚠ erro fonte {name}: {e}")
+        except TimeoutError:
+            # Não falha o pipeline inteiro se uma fonte travar — segue com o que coletou
+            pendentes = [futures[f] for f in futures if not f.done()]
+            log(f"  ⚠ timeout 25s — {len(pendentes)}/{len(futures)} fonte(s) não responderam: {', '.join(pendentes)} — seguindo com {len(results)} itens das fontes que responderam")
+            # Cancela as travadas pra não vazar threads
+            for f in futures:
+                if not f.done():
+                    f.cancel()
 
     # dedupe por título (cross-source)
     seen = set()
