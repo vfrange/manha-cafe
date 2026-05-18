@@ -5,6 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex,nofollow">
 <title>Admin — Recorte ✂</title>
+<meta name="description" content="Painel administrativo do Recorte ✂.">
+<meta name="robots" content="noindex,nofollow">
+
+<!-- Open Graph / Social Preview -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Admin — Recorte ✂">
+<meta property="og:description" content="Painel administrativo.">
+<meta property="og:image" content="https://recorte.news/og-default.png">
+<meta property="og:url" content="https://recorte.news/admin.html">
+<meta property="og:site_name" content="Recorte ✂">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Admin — Recorte ✂">
+<meta name="twitter:description" content="Painel administrativo.">
+<meta name="twitter:image" content="https://recorte.news/og-default.png">
 <link rel="preconnect" href="https://api.fontshare.com">
 <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,700,800,900,400i,700i&f[]=general-sans@400,500,600,700&f[]=gambarino@400i,400&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -80,14 +94,14 @@
 
 <script>
   // CONFIG (substituir placeholders no deploy)
-  const SUPABASE_URL = 'https://jegvgviwbkbrmuhcivle.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_Q9FiImNakeN-DdGIbWIDjQ_v50JUNSS';
+  const SUPABASE_URL = 'https://SEUPROJETO.supabase.co';
+  const SUPABASE_ANON_KEY = 'SUA_ANON_KEY';
 
   // Auth simples via ?key=
-  const ADMIN_KEY = 'nuHA7IMF69jEoGNrfjTCUOorxYBeqt5S';  // sobrescrever no deploy
+  const ADMIN_KEY = 'SUA_ADMIN_KEY';  // sobrescrever no deploy
 
   const params = new URLSearchParams(window.location.search);
-  if (!ADMIN_KEY || ADMIN_KEY.length < 8) {
+  if (ADMIN_KEY === 'SUA_ADMIN_KEY' || !ADMIN_KEY || ADMIN_KEY.length < 8) {
     document.getElementById('app').innerHTML = `
       <header><h1>Recorte<span class="accent">✂</span> · Admin</h1></header>
       <div class="error">⚠️ Admin key não configurada. Edite admin.html antes do deploy.</div>
