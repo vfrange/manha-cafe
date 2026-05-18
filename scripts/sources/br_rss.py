@@ -5,6 +5,11 @@ Cada categoria agrupa feeds de múltiplas fontes pra dar redundância e qualidad
 import re
 import feedparser
 
+try:
+    from .utils import extract_img_from_entry
+except ImportError:
+    from sources.utils import extract_img_from_entry
+
 
 # Mapeamento categoria → lista de feeds
 BR_FEEDS = {
@@ -117,11 +122,13 @@ def fetch(query, category=None, max_items=8, max_per_feed=4):
                 if not any(kw in title_low or kw in summary_low for kw in kws):
                     continue
             summary = re.sub(r"<[^>]+>", "", entry.get("summary",""))[:400].strip()
+            img_url = extract_img_from_entry(entry)
             results.append({
                 "title": title,
                 "link": entry.get("link",""),
                 "source": fonte,
                 "summary": summary,
+                "img_url": img_url,
                 "origin": "br_rss",
             })
             count += 1

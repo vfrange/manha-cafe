@@ -292,3 +292,70 @@ def validate_images(image_urls: List[str]) -> Dict[str, bool]:
         return {u: False for u in image_urls}
 
     return {u: (r if isinstance(r, bool) else False) for u, r in zip(image_urls, results)}
+
+
+# ============ HELPER: EXTRAÇÃO DE IMG DE FEEDPARSER ENTRY (estratégia A) ============
+def extract_img_from_entry(entry) -> Optional[str]:
+    """Extrai URL da imagem de uma entry do feedparser, se a fonte trouxer.
+    
+    Verifica nesta ordem:
+    1. media_content (Yahoo/Google News RSS — <media:content url="...">)
+    2. media_thumbnail (RSS com <media:thumbnail url="...">)
+    3. enclosures (RSS clássico — <enclosure url="..." type="image/...">)
+    4. links com rel="enclosure" e type image/*
+    5. content/summary HTML com primeira <img src="...">
+    
+    Retorna URL absoluta da imagem ou None.
+    """
+    if not entry:
+        return None
+    
+    # 1. media_content (Google News, Yahoo)
+    media_content = entry.get("media_content", []) or []
+    for m in media_content:
+        url = m.get("url") if isinstance(m, dict) else None
+        if url and is_valid_url(url):
+            return url
+    
+    # 2. media_thumbnail (alguns RSS BR)
+    media_thumbnail = entry.get("media_thumbnail", []) or []
+    for m in media_thumbnail:
+        url = m.get("url") if isinstance(m, dict) else None
+        if url and is_valid_url(url):
+            return url
+    
+    # 3. enclosures (RSS clássico)
+    enclosures = entry.get("enclosures", []) or []
+    for enc in enclosures:
+        url = enc.get("url") if isinstance(enc, dict) else (enc.get("href") if isinstance(enc, dict) else None)
+        ctype = (enc.get("type", "") if isinstance(enc, dict) else "").lower()
+        if url and is_valid_url(url) and (ctype.startswith("image/") or any(url.lower().endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".webp", ".gif"])):
+            return url
+    
+    # 4. links com rel=enclosure e type image
+    links = entry.get("links", []) or []
+    for link in links:
+        if not isinstance(link, dict):
+            continue
+        rel = (link.get("rel", "") or "").lower()
+        ctype = (link.get("type", "") or "").lower()
+        href = link.get("href", "")
+        if rel == "enclosure" and ctype.startswith("image/") and href and is_valid_url(href):
+            return href
+    
+    # 5. Fallback: <img src="..."> no summary/content
+    html_blob = entry.get("summary", "") or ""
+    if not html_blob:
+        content = entry.get("content", []) or []
+        if content and isinstance(content, list) and isinstance(content[0], dict):
+            html_blob = content[0].get("value", "")
+    if html_blob:
+        m = re.search(r'<img[^>]+src=[\'"]([^\'"]+)[\'"]', html_blob, re.IGNORECASE)
+        if m:
+            img_url = m.group(1)
+            if img_url.startswith("//"):
+                img_url = "https:" + img_url
+            if is_valid_url(img_url):
+                return img_url
+    
+    return None

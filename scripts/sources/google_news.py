@@ -3,6 +3,11 @@ import re
 import feedparser
 from urllib.parse import quote_plus
 
+try:
+    from .utils import extract_img_from_entry
+except ImportError:
+    from sources.utils import extract_img_from_entry
+
 COUNTRY_LOCALES = {
     "BR": {"hl": "pt-BR", "gl": "BR", "ceid": "BR:pt-419"},
     "US": {"hl": "en-US", "gl": "US", "ceid": "US:en"},
@@ -64,12 +69,14 @@ def fetch(query, country="BR", max_items=8, when=None):
         # Captura data de publicação do RSS (formato RFC 822 — ex: "Sat, 17 May 2026 14:30:00 GMT")
         # Usado pela curadoria pra priorizar notícias recentes e detectar eventos já ocorridos
         published_at = entry.get("published", "") or entry.get("pubDate", "")
+        img_url = extract_img_from_entry(entry)
         items.append({
             "title": title.strip(),
             "link": entry.link,
             "source": source.strip() or "Google News",
             "summary": summary.strip(),
             "published_at": published_at,
+            "img_url": img_url,
             "origin": "google_news",
         })
     return items

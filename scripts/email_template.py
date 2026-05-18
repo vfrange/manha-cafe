@@ -272,22 +272,28 @@ def _render_welcome_block():
 # ============================================================================
 # TRENDING SECTION
 # ============================================================================
-def _render_news_image(img_url, alt_text, topic_id=None):
-    """Renderiza imagem da notícia OU NADA.
+def _render_news_image(img_url, alt_text, topic_id=None, size_mode="hero"):
+    """Renderiza imagem da notícia OU NADA, com altura FIXA por size_mode.
+
+    Args:
+        size_mode: "hero" (560×315, primeira do tema) ou "thumb" (280×158, demais)
 
     Filosofia minimalista: imagem ou existe e carrega, ou o slot some
     silenciosamente. Sem fallback visual (card mint, SVG, emoji grande).
     Sem placeholder do tipo "?" chamativo.
 
-    Quando imagem carrega: vê só a imagem (limpa, sem moldura).
-    Quando imagem quebra: o slot colapsa naturalmente (alt vazio, sem bg,
-    sem altura forçada).
-    Quando img_url=None/inválida: retorna string vazia (nada no email).
+    Altura FIXA por size_mode (object-fit:cover faz crop centralizado):
+    - hero  → 560×315 (16:9 cinematic), mobile 200px via class .news-img
+    - thumb → 280×158 (16:9 menor), centralizado, mobile 140px via .news-img-thumb
+
+    Quando imagem carrega: crop cinematic centralizado, altura previsível.
+    Quando imagem quebra: slot colapsa (alt vazio, sem ícone broken image).
+    Quando img_url=None/inválida: retorna string vazia.
 
     Compatibilidade:
     - Gmail web/iOS/Android ✓
     - Apple Mail (Mail Privacy Protection): se MPP bloqueia, slot colapsa
-    - Outlook 365 web/desktop ✓
+    - Outlook 365 web/desktop ✓ (object-fit:cover suportado)
     """
     # Validação rigorosa de URL — só http(s) permitido
     if not img_url or not isinstance(img_url, str):
@@ -298,14 +304,34 @@ def _render_news_image(img_url, alt_text, topic_id=None):
             img_url_clean.lower().startswith('https://')):
         return ""
 
-    # URL válida → renderiza img minimalista, sem moldura mint, sem altura forçada.
-    # Alt vazio: suprime o "?" e o ícone de broken image em vários clientes.
+    # Dimensões por modo
+    if size_mode == "thumb":
+        width = 280
+        height = 158
+        img_class = "news-img-thumb"
+        td_style = "padding:0 0 12px 0;font-size:0;line-height:0;text-align:center;"
+        table_align = 'align="center"'
+        table_width = str(width)
+    else:  # hero (default)
+        width = 560
+        height = 315
+        img_class = "news-img"
+        td_style = "padding:0 0 12px 0;font-size:0;line-height:0;"
+        table_align = ""
+        table_width = "100%"
+
     img_url_esc = _esc(img_url_clean)
+    # alt="" suprime o "?" e o ícone de broken image em vários clientes.
+    # height inline + object-fit:cover via class CSS (definidas no <style>).
     return f"""
-    <tr><td style="padding:0 0 12px 0;font-size:0;line-height:0;">
-      <img src="{img_url_esc}" alt="" width="560" border="0"
-           class="news-img"
-           style="display:block;width:100%;max-width:560px;height:auto;border:0;border-radius:8px;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;" />
+    <tr><td style="{td_style}">
+      <table role="presentation" width="{table_width}" cellpadding="0" cellspacing="0" border="0" {table_align}>
+        <tr><td style="font-size:0;line-height:0;">
+          <img src="{img_url_esc}" alt="" width="{width}" height="{height}" border="0"
+               class="{img_class}"
+               style="display:block;width:100%;max-width:{width}px;height:{height}px;object-fit:cover;object-position:center;border:0;border-radius:8px;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;" />
+        </td></tr>
+      </table>
     </td></tr>"""
 
 
@@ -514,7 +540,7 @@ def _render_news_sections(sections, email_mode="coado"):
             noticias_html += f"""
             <tr><td style="padding:0 0 32px 0;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                {_render_news_image(n.get('img_url'), n.get('manchete',''), topic_id=sec.get('topic_id') or sec.get('topic')) if is_first_news else ''}
+                {_render_news_image(n.get('img_url'), n.get('manchete',''), topic_id=sec.get('topic_id') or sec.get('topic'), size_mode='hero') if is_first_news else (_render_news_image(n.get('img_url'), n.get('manchete',''), topic_id=sec.get('topic_id') or sec.get('topic'), size_mode='thumb') if n.get('img_url') else '')}
                 <tr><td style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:{'22' if is_espresso else '26'}px;line-height:1.18;color:{COLORS['ink']};letter-spacing:-0.02em;padding-bottom:{'8' if is_espresso else '14'}px;" class="dark-text">{_esc(n.get('manchete',''))}</td></tr>
                 <tr><td style="font-family:{SANS_FONT};font-size:{'14' if is_espresso else '16'}px;line-height:1.6;color:{COLORS['ink_soft']};padding-bottom:{'10' if is_espresso else '16'}px;" class="dark-text-soft">{_esc(resumo_display)}</td></tr>
                 {fatos_html}
@@ -821,7 +847,8 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     .px-mob {{ padding-left:20px !important; padding-right:20px !important; }}
     .hero-h1 {{ font-size:36px !important; line-height:1.05 !important; }}
     .stat-num {{ font-size:20px !important; }}
-    .news-img {{ width:100% !important; height:auto !important; max-height:200px !important; }}
+    .news-img {{ width:100% !important; height:200px !important; max-height:200px !important; object-fit:cover !important; }}
+    .news-img-thumb {{ width:100% !important; max-width:280px !important; height:140px !important; max-height:140px !important; object-fit:cover !important; }}
     .share-btn {{ display:block !important; width:100% !important; margin:6px 0 !important; }}
     /* 3 caixas welcome: força altura igual + reduz fontes pra não quebrar palavras */
     .feat-mob {{ height:130px !important; min-height:130px !important; padding:14px 6px !important; vertical-align:top !important; }}
@@ -848,7 +875,8 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
   [data-ogsc] .dark-text-soft {{ color:#c0c0c0 !important; }}
   [data-ogsc] .dark-text-muted {{ color:#909090 !important; }}
   /* Imagem da notícia */
-  .news-img {{ display:block; width:100%; max-width:560px; height:auto; border:0; border-radius:8px; }}
+  .news-img {{ display:block; width:100%; max-width:560px; height:315px; object-fit:cover; border:0; border-radius:8px; }}
+  .news-img-thumb {{ display:block; width:100%; max-width:280px; height:158px; object-fit:cover; border:0; border-radius:8px; margin:0 auto; }}
 </style>
 </head>
 <body style="margin:0;padding:0;background:{COLORS['bg']};font-family:{SANS_FONT};-webkit-font-smoothing:antialiased;" class="dark-bg">

@@ -44,11 +44,27 @@ def fetch_subreddit(subreddit, limit=15, time_filter="day"):
         if not title:
             continue
         url_post = d.get("url_overridden_by_dest") or f"https://reddit.com{d.get('permalink','')}"
+        # Captura imagem do post (preview ou thumbnail)
+        img_url = None
+        preview = d.get("preview") or {}
+        if preview:
+            images = preview.get("images") or []
+            if images:
+                src = images[0].get("source") or {}
+                preview_url = src.get("url")
+                if preview_url:
+                    # Reddit escapa &amp; nos URLs JSON
+                    img_url = preview_url.replace("&amp;", "&")
+        if not img_url:
+            thumb = d.get("thumbnail") or ""
+            if thumb.startswith("http"):
+                img_url = thumb
         posts.append({
             "title": title,
             "link": url_post,
             "source": f"r/{subreddit}",
             "summary": f"↑ {d.get('ups',0):,} votos · {d.get('num_comments',0):,} coments",
+            "img_url": img_url,
             "origin": "reddit",
             "score": d.get("ups", 0),
         })

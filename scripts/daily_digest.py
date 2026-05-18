@@ -1285,12 +1285,17 @@ def process_user(user, now_brt, weekly=False):
         label_meta = {t["label"]: {"topic_id": t["topic_id"], "scopes": t["scopes"]} for t in topics_with_news}
         # mapa link → lang pra reanexar idioma na resposta do Claude
         link_to_lang = {}
+        # mapa link → img_url pra reanexar imagem (estratégia A: só onde a fonte trouxe)
+        link_to_img = {}
         for t in topics_with_news:
             for n in t.get("news", []):
                 ln = n.get("link", "")
                 lg = (n.get("lang") or "").lower()
                 if ln and lg and lg != "pt":
                     link_to_lang[ln] = lg
+                img = n.get("img_url") or ""
+                if ln and img:
+                    link_to_img[ln] = img
 
         for s in raw_sections:
             if s.get("noticias"):
@@ -1310,11 +1315,13 @@ def process_user(user, now_brt, weekly=False):
                     country_label = " + ".join(flag_parts)
                 else:
                     country_label = s.get("pais", "")
-                # anexa lang em cada notícia (com base no link original)
+                # anexa lang e img_url em cada notícia (com base no link original)
                 for noticia in s["noticias"]:
                     lk = noticia.get("link", "")
                     if lk in link_to_lang:
                         noticia["lang"] = link_to_lang[lk]
+                    if lk in link_to_img:
+                        noticia["img_url"] = link_to_img[lk]
                 sections.append({
                     "topic": tema,
                     "topic_id": meta.get("topic_id"),
@@ -1372,38 +1379,59 @@ def process_user(user, now_brt, weekly=False):
     else:
         saudacao_mode = "manha"
 
-    # IMAGE EXTRACTION: pra a 1ª notícia de cada tema + 1ª de trending,
-    # busca og:image (paralelo + cache + validation).
+    # IMAGE EXTRACTION (estratégia HÍBRIDA A+B):
+    # A = img_url já veio do RSS da fonte (extract_img_from_entry em sources/)
+    # B = scrape og:image das URLs que A não cobriu (paralelo + cache + validation)
+    # Resultado: ~95% de cobertura sem disparar request HTTP em quem já tem imagem.
     try:
         from sources.utils import extract_images, validate_images
-        urls_to_fetch = []
+
+        # 1. Coleta URLs que ainda precisam de imagem (A não trouxe)
+        urls_para_scrape = []
         for sec in sections:
             for n in sec.get("noticias", []):
-                if n.get("manchete") and n.get("resumo"):
-                    if n.get("link"):
-                        urls_to_fetch.append(n["link"])
-                    break
-        for item in trending[:1]:
-            if item.get("link"):
-                urls_to_fetch.append(item["link"])
-        if urls_to_fetch:
-            img_map = extract_images(urls_to_fetch)
+                if not n.get("img_url") and n.get("link"):
+                    urls_para_scrape.append(n["link"])
+        for t in trending:
+            if not t.get("img_url") and t.get("link"):
+                urls_para_scrape.append(t["link"])
+
+        # 2. Scrape paralelo (timeout 5s/URL, max 10 conexões simultâneas)
+        if urls_para_scrape:
+            log(f"  🌐 scraping og:image de {len(urls_para_scrape)} URLs (paralelo)...")
+            img_map = extract_images(urls_para_scrape)
             non_empty = [v for v in img_map.values() if v]
             valid_imgs = validate_images(non_empty) if non_empty else {}
+
+            # 3. Aplica B onde A faltou (só se a imagem é válida)
             for sec in sections:
                 for n in sec.get("noticias", []):
-                    if n.get("manchete") and n.get("resumo"):
-                        if n.get("link"):
-                            img = img_map.get(n["link"])
-                            if img and valid_imgs.get(img):
-                                n["img_url"] = img
-                        break
-            if trending and trending[0].get("link"):
-                img = img_map.get(trending[0]["link"])
-                if img and valid_imgs.get(img):
-                    trending[0]["img_url"] = img
+                    if n.get("img_url"):
+                        continue  # A já trouxe, pula
+                    link = n.get("link", "")
+                    if link in img_map:
+                        img = img_map[link]
+                        if img and valid_imgs.get(img):
+                            n["img_url"] = img
+            for t in trending:
+                if t.get("img_url"):
+                    continue
+                link = t.get("link", "")
+                if link in img_map:
+                    img = img_map[link]
+                    if img and valid_imgs.get(img):
+                        t["img_url"] = img
+
+        # 4. Log final de cobertura (A + B combinados)
+        if trending:
+            n_with_img = sum(1 for t in trending if t.get("img_url"))
+            log(f"  📷 trending: {n_with_img}/{len(trending)} com imagem")
+        if sections:
+            total_n = sum(len(s.get("noticias", [])) for s in sections)
+            total_img = sum(1 for s in sections for n in s.get("noticias", []) if n.get("img_url"))
+            log(f"  📷 notícias: {total_img}/{total_n} com imagem (híbrido A+B)")
     except Exception as e:
-        log(f"  ⚠ Image extraction falhou (não bloqueia): {e}")
+        log(f"  ⚠ Image hybrid extraction falhou (não bloqueia): {e}")
 
     # Edition ID antes do render
     from tracking import gen_edition_id, save_edition, wrap_links_in_html, finalize_edition
@@ -1432,21 +1460,12 @@ def process_user(user, now_brt, weekly=False):
         share_base_url=share_base,
     )
 
-    # Wrap links externos /c/{short_id} pra tracking
-    try:
-        html = wrap_links_in_html(
-            html, user_id=uid, edition_id=edition_id,
-            supabase_client=supabase,
-            click_base_url=click_base,
-        )
-    except Exception as e:
-        log(f"  ⚠ Click wrap falhou (não bloqueia): {e}")
-
     # Determina kind pra edition
     edition_kind = "welcome" if is_welcome else ("weekly" if weekly else "daily")
     scheduled_for_date = now_brt.date().isoformat()
 
-    # Salva edition (pra /r/{id} servir)
+    # FIX: Salva edition ANTES de wrap_links pra FK de link_clicks funcionar.
+    # Salvamos com HTML raw aqui; depois do wrap, atualizamos com HTML final.
     try:
         save_edition(
             supabase, user_id=uid, kind=edition_kind,
@@ -1456,6 +1475,22 @@ def process_user(user, now_brt, weekly=False):
         )
     except Exception as e:
         log(f"  ⚠ save_edition falhou (não bloqueia): {e}")
+
+    # Wrap links externos /c/{short_id} pra tracking
+    # Agora a FK link_clicks.edition_id → editions.id funciona porque a edition já existe
+    try:
+        html = wrap_links_in_html(
+            html, user_id=uid, edition_id=edition_id,
+            supabase_client=supabase,
+            click_base_url=click_base,
+        )
+        # Atualiza HTML da edition pra /r/{id} servir versão com tracking de cliques
+        try:
+            supabase.table("editions").update({"html": html}).eq("id", edition_id).execute()
+        except Exception as e:
+            log(f"  ⚠ Update edition html falhou (não bloqueia): {e}")
+    except Exception as e:
+        log(f"  ⚠ Click wrap falhou (não bloqueia): {e}")
 
     result = send_email(user["email"], user["name"], html, now_brt,
                         weekly=weekly, user_id=uid,

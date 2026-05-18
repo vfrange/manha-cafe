@@ -7,6 +7,11 @@ NÃO pra temas customs específicos (que não terão match).
 import re
 import feedparser
 
+try:
+    from .utils import extract_img_from_entry
+except ImportError:
+    from sources.utils import extract_img_from_entry
+
 # Cada feed: (id, nome, url, idioma, viés_aproximado)
 FEEDS = {
     # Anglófonos top
@@ -73,11 +78,13 @@ def fetch_for_topic(topic_label, max_per_feed=3):
                 if not title:
                     continue
                 summary = re.sub(r"<[^>]+>", "", entry.get("summary", ""))[:400]
+                img_url = extract_img_from_entry(entry)
                 out.append({
                     "title": title,
                     "link": entry.get("link", ""),
                     "source": name,
                     "summary": summary.strip(),
+                    "img_url": img_url,
                     "origin": f"intl_rss:{fid}",
                     "lang": lang,
                     "bias_hint": bias,
