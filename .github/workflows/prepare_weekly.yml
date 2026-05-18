@@ -1,13 +1,16 @@
 name: Prepare Weekly
 
-# Sábado: prepara o Recorte da Semana pra disparar às 8h BRT.
+# Domingo: prepara o Recorte da Semana para disparar às 8h BRT.
+# Fallbacks até 7:30 BRT (30 min antes do dispatch).
 
 on:
   schedule:
-    - cron: '0 9 * * 6'    # 06:00 BRT
-    - cron: '30 9 * * 6'   # 06:30 BRT (fallback 1)
-    - cron: '0 10 * * 6'   # 07:00 BRT (fallback 2)
-    - cron: '30 10 * * 6'  # 07:30 BRT (fallback 3)
+    - cron: '0 8 * * 0'    # 05:00 BRT
+    - cron: '30 8 * * 0'   # 05:30 BRT (fallback 1)
+    - cron: '0 9 * * 0'    # 06:00 BRT (fallback 2)
+    - cron: '30 9 * * 0'   # 06:30 BRT (fallback 3)
+    - cron: '0 10 * * 0'   # 07:00 BRT (fallback 4)
+    - cron: '30 10 * * 0'  # 07:30 BRT (fallback 5 — última chance antes do dispatch 8h)
   workflow_dispatch:
 
 jobs:
