@@ -61,11 +61,15 @@ def fetch(query, country="BR", max_items=8, when=None):
             parts = title.rsplit(" - ", 1)
             title, source = parts[0], parts[1]
         summary = re.sub(r"<[^>]+>", "", entry.get("summary", ""))[:400]
+        # Captura data de publicação do RSS (formato RFC 822 — ex: "Sat, 17 May 2026 14:30:00 GMT")
+        # Usado pela curadoria pra priorizar notícias recentes e detectar eventos já ocorridos
+        published_at = entry.get("published", "") or entry.get("pubDate", "")
         items.append({
             "title": title.strip(),
             "link": entry.link,
             "source": source.strip() or "Google News",
             "summary": summary.strip(),
+            "published_at": published_at,
             "origin": "google_news",
         })
     return items
