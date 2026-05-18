@@ -253,16 +253,19 @@ def _render_welcome_block():
   </table>
 </td></tr>
 
-<!-- Linha de corte entre welcome e daily -->
-<tr><td style="padding:32px 36px;" class="px-mob">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+<!-- Linha de corte entre welcome e daily - tesoura centralizada SOBRE a linha tracejada -->
+<tr><td style="padding:24px 36px;" class="px-mob">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;">
     <tr>
-      <td style="border-top:3px dashed {COLORS['ink']};font-size:0;line-height:0;height:0;">&nbsp;</td>
+      <td valign="middle" style="padding-top:15px;line-height:0;font-size:0;">
+        <div style="border-top:3px dashed {COLORS['ink']};font-size:0;line-height:0;height:0;">&nbsp;</div>
+      </td>
+      <td valign="middle" align="center" width="60" style="font-size:30px;color:{COLORS['mint_dark']};line-height:1;padding:0 8px;mso-line-height-rule:exactly;">✂︎</td>
+      <td valign="middle" style="padding-top:15px;line-height:0;font-size:0;">
+        <div style="border-top:3px dashed {COLORS['ink']};font-size:0;line-height:0;height:0;">&nbsp;</div>
+      </td>
     </tr>
   </table>
-  <div style="text-align:center;margin-top:-18px;">
-    <span style="display:inline-block;background:{COLORS['bg']};padding:0 16px;font-size:30px;color:{COLORS['mint_dark']};line-height:1;">✂︎</span>
-  </div>
 </td></tr>"""
 
 
@@ -530,11 +533,16 @@ def _render_news_sections(sections, email_mode="coado"):
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:8px;border-bottom:4px solid {COLORS['bg_2']};">
             <tr><td style="padding:28px 0 4px 0;">
               <!-- Linha de corte tracejada + tesoura — separador editorial entre capítulos -->
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr><td style="border-top:3px dashed {COLORS['ink']};font-size:0;line-height:0;">&nbsp;</td></tr>
-                <tr><td align="center" style="line-height:1;">
-                  <div style="display:inline-block;background:{COLORS['bg']};margin-top:-19px;padding:0 18px;font-size:30px;color:{COLORS['mint_deep']};line-height:1;">✂︎</div>
-                </td></tr>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;">
+                <tr>
+                  <td valign="middle" style="padding-top:15px;line-height:0;font-size:0;">
+                    <div style="border-top:3px dashed {COLORS['ink']};font-size:0;line-height:0;height:0;">&nbsp;</div>
+                  </td>
+                  <td valign="middle" align="center" width="60" style="font-size:30px;color:{COLORS['mint_deep']};line-height:1;padding:0 8px;mso-line-height-rule:exactly;">✂︎</td>
+                  <td valign="middle" style="padding-top:15px;line-height:0;font-size:0;">
+                    <div style="border-top:3px dashed {COLORS['ink']};font-size:0;line-height:0;height:0;">&nbsp;</div>
+                  </td>
+                </tr>
               </table>
               <div style="font-family:{MONO_FONT};font-size:9px;letter-spacing:0.3em;color:{COLORS['mint_dark']};text-transform:uppercase;text-align:right;margin-top:4px;font-weight:700;">recortado pra você</div>
             </td></tr>
