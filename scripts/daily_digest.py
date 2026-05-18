@@ -41,7 +41,7 @@ DRY_RUN = os.environ.get("DRY_RUN", "false").lower() == "true"
 
 MODEL = "claude-haiku-4-5-20251001"
 # Modelo premium pra tasks de alta visibilidade (Em Alta + Welcome curate_news)
-MODEL_PREMIUM = "claude-sonnet-4-6"
+MODEL_PREMIUM = "claude-sonnet-4-6-20250929"
 MAX_NEWS_OUT_PER_TOPIC = 2  # legado — agora cálculo dinâmico via daily_news_per_topic()
 MAX_TRENDING_OUT = 10
 
@@ -147,8 +147,10 @@ def fetch_all_sources(query, country, category=None, label=None, source_type="cu
         kw in query.lower() for kw in ["tech","ia ","ai","intelig","gpt","openai","software"]
     )
 
-    # Filtros temporais quando weekly=True
-    gnews_when = "7d" if weekly else None
+    # Filtros temporais:
+    # - weekly: últimos 7 dias (Recorte da Semana)
+    # - daily/welcome: últimos 2 dias (evita notícias velhas tipo "escalação de jogo de ontem")
+    gnews_when = "7d" if weekly else "2d"
     reddit_time = "week" if weekly else "day"
     # No weekly aumentamos limites das fontes pra ter mais material pra curar
     gnews_max = 15 if weekly else 8
@@ -387,7 +389,8 @@ def _curate_news_batch(user_name, topics_with_news, learned_profile="", filtered
             "tema_politico": topic_is_political,
             "noticias_brutas": [
                 {"titulo": n["title"], "fonte": n["source"], "preview": n["summary"],
-                 "link": n["link"], "origem": n.get("origin","")}
+                 "link": n["link"], "origem": n.get("origin",""),
+                 "publicado_em": n.get("published_at", "")}
                 for n in clean_news
             ]
         })
@@ -458,6 +461,13 @@ VOICE GUIDE acima rigorosamente.
 
 🚫 **REGRA CRÍTICA DE DEDUPLICAÇÃO**: NUNCA inclua duas notícias sobre o MESMO evento, mesmo que venham de fontes diferentes ou com palavras ligeiramente diferentes. Se ver vários itens brutos sobre o mesmo acontecimento, escolha APENAS UM (preferindo: fonte mais respeitável > matéria mais completa > publicação mais recente). Em caso de dúvida sobre se 2 são o mesmo evento, considere que SÃO e una.
 
+🕐 **REGRA CRÍTICA DE FRESCOR TEMPORAL** (especialmente importante pra esportes, lançamentos, anúncios, eventos políticos):
+- Para qualquer EVENTO com timeline definida (jogos, eleições, lançamentos, anúncios programados, julgamentos): SE a data do evento JÁ PASSOU em relação à data de hoje, NUNCA escolha uma matéria que cubra a PREVISÃO/EXPECTATIVA/ESCALAÇÃO/PRÉ-JOGO desse evento. Sempre prefira a matéria com o RESULTADO/desfecho.
+- Exemplo CRÍTICO: se uma matéria fala "São Paulo escala fulano pra jogo de hoje contra X" e a data atual já passou desse jogo, essa matéria está VENCIDA — procure uma sobre o RESULTADO do jogo.
+- Quando 2 matérias falam do mesmo evento (uma "antes", outra "depois"): SEMPRE escolha a "depois".
+- Se NÃO conseguir saber se evento aconteceu ou não pelo contexto, prefira matéria SEM datas futuras concretas (eventos atemporais).
+- Se TODAS as matérias disponíveis sobre um tema forem previsões de eventos já passados, MELHOR DESCARTAR a categoria do que entregar matéria vencida.
+
 📋 **ESTRUTURA DE RESPOSTA**: O JSON deve seguir o schema exato indicado no user message. Não invente campos. Não omita campos requeridos.
 
 🎯 **CRITÉRIOS DE QUALIDADE**:
@@ -475,8 +485,13 @@ VOICE GUIDE acima rigorosamente.
 
 Os dados específicos do dia + instruções pontuais virão no próximo turn do user."""
 
+    # Data atual em BRT pra Claude comparar com publicado_em e detectar eventos vencidos
+    from datetime import datetime, timezone, timedelta
+    now_brt_str = datetime.now(timezone(timedelta(hours=-3))).strftime("%Y-%m-%d %H:%M BRT")
+
     # User message: parte DINÂMICA (não cacheada) — dados do dia + parametros user-específicos
     user_message = f"""**USUÁRIO:** {user_name}
+**DATA/HORA ATUAL (referência pro frescor temporal):** {now_brt_str}
 {profile_section}
 {filter_instruction}
 {time_context}
@@ -493,6 +508,8 @@ Para cada notícia selecionada, retorne:
 - **pol_bias** (APENAS para temas marcados `tema_politico: true`): "factual", "centro", "esq" ou "dir".
 
 Se um tema tiver pouca notícia relevante, retorne menos itens. Se nada for relevante, omita o tema.
+
+**Para cada item bruto, o campo `publicado_em` indica quando a matéria foi publicada (use isso pra aplicar a REGRA DE FRESCOR TEMPORAL do system prompt — descartando previsões de eventos já passados).**
 
 Dados:
 {json.dumps(payload, ensure_ascii=False, indent=2)}
@@ -906,6 +923,11 @@ def resolve_gnews_urls(sections, trending, max_workers=6):
     Resolve URLs de Google News pra URLs reais.
     Roda em paralelo pra não atrasar o pipeline.
     Aplicado SÓ nas URLs finais (~30-40 notícias), não nas 200+ brutas.
+
+    Após resolver, FILTRA notícias cuja URL não foi resolvida (ainda
+    é wrapper news.google.com) — esses links quebram no cliente do user
+    com tela "Aviso de redirecionamento". Melhor ter menos matérias do
+    que ter link quebrado.
     """
     from concurrent.futures import ThreadPoolExecutor
 
@@ -939,7 +961,28 @@ def resolve_gnews_urls(sections, trending, max_workers=6):
         results = list(ex.map(_resolve, targets))
         resolved_count = sum(1 for r in results if r)
 
-    log(f"  ✓ {resolved_count}/{len(targets)} URLs resolvidas (resto mantém wrapper)")
+    log(f"  ✓ {resolved_count}/{len(targets)} URLs resolvidas (resto será descartado)")
+
+    # Filtra: remove notícias cuja URL ainda é wrapper news.google.com
+    # (significa que _try_decode_gnews_url falhou — link quebraria no email)
+    dropped_sections = 0
+    for sec in sections:
+        before = len(sec.get("noticias", []))
+        sec["noticias"] = [n for n in sec.get("noticias", [])
+                           if "news.google.com" not in (n.get("link", "") or "")]
+        dropped_sections += before - len(sec["noticias"])
+
+    dropped_trending = 0
+    if trending:
+        # trending é uma lista — não dá pra reatribuir do caller, mas dá pra mutar in-place
+        before = len(trending)
+        trending[:] = [item for item in trending
+                       if "news.google.com" not in (item.get("link", "") or "")]
+        dropped_trending = before - len(trending)
+
+    total_dropped = dropped_sections + dropped_trending
+    if total_dropped > 0:
+        log(f"  ⚠ descartadas {total_dropped} notícia(s) com URL Google News não resolvida (link quebraria)")
 
 
 def add_feedback_links(user_id, sections):
@@ -991,12 +1034,29 @@ def is_topic_paused(topic_label, paused_topics, now):
 
 # ============ SENDER ============
 def send_email(to_email, to_name, html, date_obj, weekly=False, user_id=None,
-               edition_id=None, kind=None):
+               edition_id=None, kind=None, user_tz="America/Sao_Paulo"):
     first = to_name.split()[0]
     if weekly:
         subject = f"Bom domingo, {first}. Sua semana, recortada ✂"
     else:
-        subject = f"Bom dia, {first}. Hoje tem ✂ ({date_obj.strftime('%d/%m')})"
+        # Saudação dinâmica pela hora local do user (mesma lógica de render_email auto mode).
+        # Welcome pode rodar a qualquer hora — daily roda 6h BRT (sempre "Bom dia"),
+        # mas mesmo no daily faz sentido respeitar o fuso do user.
+        try:
+            from zoneinfo import ZoneInfo
+            local_dt = date_obj.astimezone(ZoneInfo(user_tz)) if date_obj.tzinfo else date_obj
+            hour = local_dt.hour
+        except Exception:
+            hour = date_obj.hour
+        if 5 <= hour < 12:
+            saudacao = "Bom dia"
+        elif 12 <= hour < 18:
+            saudacao = "Boa tarde"
+        elif 18 <= hour < 24:
+            saudacao = "Boa noite"
+        else:  # 0-4
+            saudacao = "Olá"
+        subject = f"{saudacao}, {first}. Hoje tem ✂ ({date_obj.strftime('%d/%m')})"
     if DRY_RUN:
         log("DRY_RUN", to=to_email, subject=subject)
         fname = f"preview_{to_email.replace('@','_at_')}.html"
@@ -1390,7 +1450,8 @@ def process_user(user, now_brt, weekly=False):
 
     result = send_email(user["email"], user["name"], html, now_brt,
                         weekly=weekly, user_id=uid,
-                        edition_id=edition_id, kind=edition_kind)
+                        edition_id=edition_id, kind=edition_kind,
+                        user_tz=user_tz)
     log(f"  ✓ enviado", id=result.get("id"))
 
     # Marca edition como enviada
