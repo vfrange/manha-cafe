@@ -1,16 +1,14 @@
 name: Prepare Daily
 
-# Roda de madrugada (seg-sex) e prepara os emails pra serem disparados
-# pelo dispatch_daily.yml às 6h BRT em ponto.
-#
-# Cron em UTC (GitHub Actions usa UTC). BRT = UTC-3.
+# Prepara emails para serem disparados pelo dispatch_daily.yml às 6h BRT em ponto.
+# Roda de seg a sáb (1-6). Crons em UTC (GitHub Actions usa UTC). BRT = UTC-3.
 
 on:
   schedule:
-    - cron: '0 7 * * 1-5'    # 04:00 BRT
-    - cron: '30 7 * * 1-5'   # 04:30 BRT (fallback 1)
-    - cron: '0 8 * * 1-5'    # 05:00 BRT (fallback 2)
-    - cron: '30 8 * * 1-5'   # 05:30 BRT (fallback 3 — última chance antes do dispatch 6h)
+    - cron: '0 7 * * 1-6'    # 04:00 BRT
+    - cron: '30 7 * * 1-6'   # 04:30 BRT (fallback 1)
+    - cron: '0 8 * * 1-6'    # 05:00 BRT (fallback 2)
+    - cron: '30 8 * * 1-6'   # 05:30 BRT (fallback 3 — última chance antes do dispatch 6h)
   workflow_dispatch:
 
 jobs:
