@@ -34,7 +34,7 @@ BRT = timezone(timedelta(hours=-3))
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
 RESEND_KEY = os.environ["RESEND_API_KEY"]
-FROM_EMAIL = os.environ.get("RESEND_FROM", "Recorte News <hoje@recorte.news>")
+FROM_EMAIL = os.environ.get("FROM_EMAIL", os.environ.get("RESEND_FROM", "Recorte News <hoje@recorte.news>"))
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 resend.api_key = RESEND_KEY
