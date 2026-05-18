@@ -1,13 +1,13 @@
 name: Dispatch Weekly
 
-# Sábado 8h BRT. Lê fila do prepare_weekly e envia.
+# Domingo 8h BRT. Lê fila preparada pelo prepare_weekly e envia.
 
 on:
   schedule:
-    - cron: '0 11 * * 6'   # 08:00 BRT
-    - cron: '5 11 * * 6'   # 08:05 BRT (fallback 1)
-    - cron: '10 11 * * 6'  # 08:10 BRT (fallback 2)
-    - cron: '20 11 * * 6'  # 08:20 BRT (fallback 3)
+    - cron: '0 11 * * 0'   # 08:00 BRT
+    - cron: '5 11 * * 0'   # 08:05 BRT (fallback 1)
+    - cron: '10 11 * * 0'  # 08:10 BRT (fallback 2)
+    - cron: '20 11 * * 0'  # 08:20 BRT (fallback 3)
   workflow_dispatch:
 
 jobs:
@@ -30,6 +30,9 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          FEEDBACK_SECRET: ${{ secrets.FEEDBACK_SECRET }}
+          FEEDBACK_BASE_URL: ${{ secrets.FEEDBACK_BASE_URL }}
           FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+          MANAGE_URL: ${{ secrets.MANAGE_URL }}
           DISPATCH_WORKERS: '10'
         run: python dispatch_emails.py --kind weekly
