@@ -644,22 +644,22 @@
         <span class="step-num">02</span>
         <div>
           <div class="step-title">Como você quer ler?</div>
-          <div class="step-hint">Dois ritmos. O <strong>Espresso</strong> é o que recomendamos pra começar — chega rápido, em 5 a 6 minutos. O <strong>Coado</strong> é pra quem curte uma leitura mais densa, com mais contexto. <em>Você pode trocar a qualquer momento.</em></div>
+          <div class="step-hint">Dois ritmos. O <strong>Coado</strong> é o que recomendamos — análise completa de cada notícia com contexto e dados, sem precisar clicar pra entender o que aconteceu. O <strong>Espresso</strong> é só manchete + 1 frase, pra quem quer leitura ultra-rápida. <em>Você pode trocar a qualquer momento.</em></div>
         </div>
       </div>
       <div class="mode-row">
-        <label class="mode-card selected" id="modeEspressoCard">
-          <input type="radio" name="readingMode" value="espresso" checked>
+        <label class="mode-card selected" id="modeCoadoCard">
+          <input type="radio" name="readingMode" value="coado" checked>
           <span class="mode-badge">Recomendado</span>
-          <span class="mode-emoji">⚡</span>
-          <div class="mode-name"><em>Espresso</em></div>
-          <div class="mode-desc">Manchete + 1 frase do que importa. Leitura em ~5 a 6 min.</div>
-        </label>
-        <label class="mode-card" id="modeCoadoCard">
-          <input type="radio" name="readingMode" value="coado">
           <span class="mode-emoji">☕</span>
           <div class="mode-name"><em>Coado</em></div>
           <div class="mode-desc">Análise completa com contexto e dados. Leitura em ~10 a 12 min.</div>
+        </label>
+        <label class="mode-card" id="modeEspressoCard">
+          <input type="radio" name="readingMode" value="espresso">
+          <span class="mode-emoji">⚡</span>
+          <div class="mode-name"><em>Espresso</em></div>
+          <div class="mode-desc">Manchete + 1 frase do que importa. Leitura em ~5 a 6 min.</div>
         </label>
       </div>
     </div>
@@ -1131,7 +1131,7 @@
 
     // Captura modo de leitura escolhido (default espresso)
     const selectedMode = document.querySelector('input[name="readingMode"]:checked');
-    const emailMode = (selectedMode && selectedMode.value === 'coado') ? 'coado' : 'espresso';
+    const emailMode = (selectedMode && selectedMode.value === 'espresso') ? 'espresso' : 'coado';
 
     try {
       const { data: userData, error: uErr } = await sbClient

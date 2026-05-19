@@ -190,10 +190,10 @@
               <tbody>
                 ${editions.slice(0, 15).map(e => `
                   <tr>
-                    <td>${e.scheduled_for || (e.sent_at ? e.sent_at.slice(0,10) : '—')}</td>
+                    <td>${e.sent_at ? new Date(e.sent_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'medium' }) : (e.scheduled_for || '—')}</td>
                     <td><span class="badge ${e.kind === 'welcome' ? 'badge-warn' : 'badge-success'}">${e.kind}</span></td>
                     <td>${e.view_count || 0}</td>
-                    <td><a href="/r/${e.id}" target="_blank">↗ abrir</a></td>
+                    <td><a href="https://jegvgviwbkbrmuhcivle.supabase.co/functions/v1/edition/${e.id}" target="_blank">↗ abrir</a></td>
                   </tr>
                 `).join('')}
               </tbody>

@@ -630,18 +630,18 @@
         </div>
       </div>
       <div class="mode-row">
-        <label class="mode-card selected" id="modeEspressoCard">
-          <input type="radio" name="readingMode" value="espresso" checked>
+        <label class="mode-card selected" id="modeCoadoCard">
+          <input type="radio" name="readingMode" value="coado" checked>
           <span class="mode-badge">Recomendado</span>
-          <span class="mode-emoji">⚡</span>
-          <div class="mode-name"><em>Espresso</em></div>
-          <div class="mode-desc">Manchete + 1 frase do que importa. Leitura em ~5 a 6 min.</div>
-        </label>
-        <label class="mode-card" id="modeCoadoCard">
-          <input type="radio" name="readingMode" value="coado">
           <span class="mode-emoji">☕</span>
           <div class="mode-name"><em>Coado</em></div>
           <div class="mode-desc">Análise completa com contexto e dados. Leitura em ~10 a 12 min.</div>
+        </label>
+        <label class="mode-card" id="modeEspressoCard">
+          <input type="radio" name="readingMode" value="espresso">
+          <span class="mode-emoji">⚡</span>
+          <div class="mode-name"><em>Espresso</em></div>
+          <div class="mode-desc">Manchete + 1 frase do que importa. Leitura em ~5 a 6 min.</div>
         </label>
       </div>
     </div>
@@ -1123,7 +1123,7 @@
 
     // Captura modo de leitura escolhido
     const selectedMode = document.querySelector('input[name="readingMode"]:checked');
-    const emailMode = (selectedMode && selectedMode.value === 'coado') ? 'coado' : 'espresso';
+    const emailMode = (selectedMode && selectedMode.value === 'espresso') ? 'espresso' : 'coado';
 
     try {
       await callManage('update', {
@@ -1182,7 +1182,7 @@
   // ===== PRE-FILL: aplica dados do user nas etapas =====
   function applyUserData(user, topics, filtered) {
     // Modo de leitura
-    const mode = (user.email_mode === 'coado') ? 'coado' : 'espresso';
+    const mode = (user.email_mode === 'espresso') ? 'espresso' : 'coado';
     const modeInput = document.querySelector(`input[name="readingMode"][value="${mode}"]`);
     if (modeInput) modeInput.checked = true;
     // Badge do hero
