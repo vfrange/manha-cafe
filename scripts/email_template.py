@@ -857,24 +857,21 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     .feat-mob .feat-title {{ font-size:9.5px !important; letter-spacing:0.04em !important; line-height:1.15 !important; }}
     .feat-mob .feat-desc {{ font-size:10.5px !important; line-height:1.25 !important; }}
   }}
-  /* Dark mode — Apple Mail / iOS / clientes que respeitam prefers-color-scheme */
-  @media (prefers-color-scheme: dark) {{
-    .dark-bg {{ background:#1a1a1a !important; }}
-    .dark-bg-card {{ background:#2a2a2a !important; }}
-    .dark-text {{ color:#f0f0f0 !important; }}
-    .dark-text-soft {{ color:#c0c0c0 !important; }}
-    .dark-text-muted {{ color:#909090 !important; }}
-    .dark-border {{ border-color:#404040 !important; }}
-    .dark-mint {{ background:#2d5d4f !important; }}
-    .dark-coral {{ background:#7a3838 !important; }}
-    .light-only {{ display:none !important; }}
+/* Force light mode — email sempre renderiza claro independente do tema do device.
+     Estratégia adotada por NYT, Substack, Morning Brew, Axios.
+     Garante consistência cream + mint + navy + yellow em todos os clientes,
+     incluindo Gmail Android (que NÃO respeita prefers-color-scheme).
+     "Ver mensagem inteira" também renderiza igual ao desktop. */
+  :root {{
+    color-scheme: light only;
+    supported-color-schemes: light;
   }}
-  /* Outlook.com dark mode (data-ogsc) */
-  [data-ogsc] .dark-bg {{ background:#1a1a1a !important; }}
-  [data-ogsc] .dark-bg-card {{ background:#2a2a2a !important; }}
-  [data-ogsc] .dark-text {{ color:#f0f0f0 !important; }}
-  [data-ogsc] .dark-text-soft {{ color:#c0c0c0 !important; }}
-  [data-ogsc] .dark-text-muted {{ color:#909090 !important; }}
+  /* iOS Mail 13+ — força cores específicas, evita inversion automática */
+  u + .body .dark-text,
+  u + .body .dark-text-soft,
+  u + .body .dark-text-muted {{
+    color: inherit !important;
+  }}
   /* Imagem da notícia */
   .news-img {{ display:block; width:100%; max-width:560px; height:315px; object-fit:cover; border:0; border-radius:8px; }}
   .news-img-thumb {{ display:block; width:100%; max-width:280px; height:158px; object-fit:cover; border:0; border-radius:8px; margin:0 auto; }}
