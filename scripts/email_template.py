@@ -417,7 +417,7 @@ def _render_trending_section(trending, scope_label, email_mode="coado"):
         <tr><td style="padding:0 0 22px 0;">
           <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
             <td style="background:{COLORS['mint_dark']};padding:5px 12px;font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;color:{COLORS['mint']};">🔥 Em alta hoje</td>
-            <td style="padding-left:12px;font-family:{SERIF_FONT};font-style:italic;font-size:12px;color:{COLORS['ink_muted']};">{_esc(scope_label)}</td>
+            <!-- Removido: scope_label (Brasil + Mundo / 🇧🇷 + 🌍) — feedback de visual menos poluído -->
           </tr></table>
         </td></tr>
         {items_html}
@@ -454,9 +454,8 @@ def _render_news_sections(sections, email_mode="coado"):
     out = ""
     for idx, sec in enumerate(sections):
         slug = _slugify(sec.get("topic", f"tema-{idx}"))
+        # Removido por feedback: country_chip (🇧🇷 + 🌍) deixava visual poluído
         country_chip = ""
-        if sec.get("country_label"):
-            country_chip = f"""<span style="font-family:{SERIF_FONT};font-style:italic;font-size:11px;color:{COLORS['ink_muted']};margin-left:10px;">· {_esc(sec["country_label"])}</span>"""
 
         pause_btn = ""
         if sec.get("fb_pause_url"):
