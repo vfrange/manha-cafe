@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny-ps" viewBox="0 0 512 512">
+  <title>Recorte</title>
+  <!-- Fundo cream -->
+  <rect width="512" height="512" fill="#FEFBF0"/>
+  <!-- R navy desenhado como path -->
+  <!-- O R é construído com path geométrico ao invés de usar fonte -->
+  <!-- Dimensões: ~280px de altura, centralizado horizontalmente -->
+  <!-- Posição base: x=130, y=110 (canto superior esquerdo do R) -->
+  <!-- Largura R: ~220px, altura R: ~290px -->
+  <path d="M 130 110
+           L 130 400
+           L 195 400
+           L 195 295
+           L 240 295
+           L 295 400
+           L 365 400
+           L 305 285
+           Q 360 270 360 215
+           Q 360 110 270 110
+           Z
+           M 195 165
+           L 270 165
+           Q 295 165 295 200
+           Q 295 245 270 245
+           L 195 245
+           Z"
+        fill="#0A2540"
+        fill-rule="evenodd"/>
+  <!-- Ponto mint à direita, alinhado na baseline do R (y=400) -->
+  <circle cx="410" cy="380" r="22" fill="#10B981"/>
+</svg>
