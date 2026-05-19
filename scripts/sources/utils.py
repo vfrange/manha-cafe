@@ -25,7 +25,30 @@ _image_cache: Dict[str, Optional[str]] = {}
 HEAD_TIMEOUT = 3.0           # 3s pra HEAD check
 GET_TIMEOUT = 8.0            # 8s pra fetch HTML (mais cobertura de publishers lentos)
 MAX_CONCURRENT = 10          # max 10 conexões simultâneas
+# User-Agent FIXO pra HEAD checks (sites são tolerantes em HEAD).
 USER_AGENT = "Mozilla/5.0 (compatible; RecorteBot/1.0; +https://recorte.news)"
+
+# User-Agents REALISTAS rotativos pra fetch de HTML (escapa bot detection de UOL/G1/Globo).
+# Lista atualizada com browsers reais comuns em 2025.
+import random as _random
+_BROWSER_USER_AGENTS = [
+    # Chrome Windows
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+    # Chrome Mac
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    # Firefox
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:133.0) Gecko/20100101 Firefox/133.0",
+    # Safari Mac
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Safari/605.1.15",
+    # Edge
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0",
+]
+
+def _random_browser_ua():
+    """Retorna User-Agent realista aleatório pra fetch HTML (escapa bot detection)."""
+    return _random.choice(_BROWSER_USER_AGENTS)
 
 # Regex pra encontrar og:image / twitter:image em HTML
 OG_IMAGE_RE = re.compile(
@@ -34,6 +57,16 @@ OG_IMAGE_RE = re.compile(
 )
 OG_IMAGE_REVERSED_RE = re.compile(
     r'<meta\s+content\s*=\s*[\'"]([^\'"]+)[\'"]\s+(?:property|name)\s*=\s*[\'"](?:og:image|twitter:image)(?::\w+)?[\'"]',
+    re.IGNORECASE,
+)
+# Fallback 1: <meta itemprop="image" content="..."> (Schema.org)
+ITEMPROP_IMAGE_RE = re.compile(
+    r'<meta\s+itemprop\s*=\s*[\'"]image[\'"]\s+content\s*=\s*[\'"]([^\'"]+)[\'"]',
+    re.IGNORECASE,
+)
+# Fallback 2: <link rel="image_src" href="..."> (HTML antigo, Facebook-style)
+LINK_IMAGE_SRC_RE = re.compile(
+    r'<link\s+rel\s*=\s*[\'"]image_src[\'"]\s+href\s*=\s*[\'"]([^\'"]+)[\'"]',
     re.IGNORECASE,
 )
 
@@ -169,7 +202,15 @@ async def _fetch_og_image(session: aiohttp.ClientSession, url: str) -> Optional[
             url,
             allow_redirects=True,
             timeout=aiohttp.ClientTimeout(total=GET_TIMEOUT),
-            headers={"User-Agent": USER_AGENT, "Accept": "text/html"},
+            headers={
+                "User-Agent": _random_browser_ua(),
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+                "Accept-Encoding": "gzip, deflate, br",
+                "DNT": "1",
+                "Connection": "keep-alive",
+                "Upgrade-Insecure-Requests": "1",
+            },
         ) as resp:
             if resp.status >= 400:
                 _image_cache[url] = None
@@ -187,8 +228,14 @@ async def _fetch_og_image(session: aiohttp.ClientSession, url: str) -> Optional[
         _image_cache[url] = None
         return None
 
-    # Procura og:image ou twitter:image
-    match = OG_IMAGE_RE.search(html) or OG_IMAGE_REVERSED_RE.search(html)
+    # Procura og:image / twitter:image / itemprop=image / link rel=image_src
+    # Ordem: padrões mais comuns primeiro, fallbacks depois
+    match = (
+        OG_IMAGE_RE.search(html) or
+        OG_IMAGE_REVERSED_RE.search(html) or
+        ITEMPROP_IMAGE_RE.search(html) or
+        LINK_IMAGE_SRC_RE.search(html)
+    )
     if not match:
         _image_cache[url] = None
         return None
