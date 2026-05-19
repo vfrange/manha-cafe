@@ -7,10 +7,10 @@ name: Prepare Daily
 
 on:
   schedule:
-    - cron: '0 7 * * 1-5'    # 04:00 BRT
-    - cron: '30 7 * * 1-5'   # 04:30 BRT (fallback 1)
-    - cron: '0 8 * * 1-5'    # 05:00 BRT (fallback 2)
-    - cron: '30 8 * * 1-5'   # 05:30 BRT (fallback 3 — última chance antes do dispatch 6h)
+    - cron: '0 7 * * 1-6'    # 04:00 BRT (seg-sáb)
+    - cron: '30 7 * * 1-6'   # 04:30 BRT (fallback 1)
+    - cron: '0 8 * * 1-6'    # 05:00 BRT (fallback 2)
+    - cron: '30 8 * * 1-6'   # 05:30 BRT (fallback 3)
   workflow_dispatch:
 
 jobs:
