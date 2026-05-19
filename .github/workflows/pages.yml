@@ -49,9 +49,11 @@ jobs:
           cp public/unsubscribed.html dist/unsubscribed.html
           cp public/admin.html dist/admin.html
           cp public/arquivo.html dist/arquivo.html
-          # Open Graph (preview em WhatsApp/Twitter/etc)
+         # Open Graph (preview em WhatsApp/Twitter/etc)
           cp public/og-default.png dist/og-default.png
           cp public/og-default.svg dist/og-default.svg
+          # BIMI (logo do remetente em Apple Mail/Yahoo)
+          cp public/bimi-logo.svg dist/bimi-logo.svg
           # 404 fallback redireciona pro index
           echo '<!DOCTYPE html><meta http-equiv="refresh" content="0; url=/">' > dist/404.html
           # Log do que foi para deploy (visível nos Actions)
