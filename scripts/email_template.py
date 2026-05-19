@@ -799,8 +799,8 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
             author_html = f'<div style="font-family:{SANS_FONT};font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:{COLORS["mint_dark"]};margin-top:10px;">— {_esc(daily_quote_author)}</div>'
         quote_html = f"""
         <tr><td style="padding:0 36px 24px;" class="px-mob">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{COLORS['ink']};">
-            <tr><td style="padding:22px 26px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="{COLORS['ink']}" style="background:{COLORS['ink']};">
+            <tr><td bgcolor="{COLORS['ink']}" style="background:{COLORS['ink']};padding:22px 26px;">
               <div style="font-family:{SERIF_FONT};font-style:italic;font-weight:500;font-size:18px;line-height:1.4;color:{COLORS['mint']};letter-spacing:-0.01em;">
                 {_esc(daily_quote)}
               </div>
@@ -857,7 +857,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     .feat-mob .feat-title {{ font-size:9.5px !important; letter-spacing:0.04em !important; line-height:1.15 !important; }}
     .feat-mob .feat-desc {{ font-size:10.5px !important; line-height:1.25 !important; }}
   }}
-/* Force light mode — email sempre renderiza claro independente do tema do device.
+  /* Force light mode — email sempre renderiza claro independente do tema do device.
      Estratégia adotada por NYT, Substack, Morning Brew, Axios.
      Garante consistência cream + mint + navy + yellow em todos os clientes,
      incluindo Gmail Android (que NÃO respeita prefers-color-scheme).
@@ -866,27 +866,23 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     color-scheme: light only;
     supported-color-schemes: light;
   }}
-  /* iOS Mail 13+ — força cores específicas, evita inversion automática */
-  u + .body .dark-text,
-  u + .body .dark-text-soft,
-  u + .body .dark-text-muted {{
-    color: inherit !important;
-  }}
+  /* iOS Mail 13+: força cores a serem mantidas (evita inversion automática) */
+  u + .body a {{ color: inherit; }}
   /* Imagem da notícia */
   .news-img {{ display:block; width:100%; max-width:560px; height:315px; object-fit:cover; border:0; border-radius:8px; }}
   .news-img-thumb {{ display:block; width:100%; max-width:280px; height:158px; object-fit:cover; border:0; border-radius:8px; margin:0 auto; }}
 </style>
 </head>
-<body style="margin:0;padding:0;background:{COLORS['bg']};font-family:{SANS_FONT};-webkit-font-smoothing:antialiased;" class="dark-bg">
+<body bgcolor="{COLORS['bg']}" style="margin:0;padding:0;background:{COLORS['bg']};font-family:{SANS_FONT};-webkit-font-smoothing:antialiased;" class="body">
 
 <!-- preheader: visível no preview do inbox -->
 <div style="display:none;font-size:1px;color:{COLORS['bg']};line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
   {saudacao}, {_esc(first_name)}. {"Sua semana em " + intro_count + " — antes do café." if weekly_mode else "Hoje em " + intro_count + " só pra você — em 5 minutos."}
 </div>
 
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{COLORS['bg']};" class="dark-bg">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="{COLORS['bg']}" style="background:{COLORS['bg']};">
   <tr><td align="center" style="padding:24px 16px;">
-    <table role="presentation" class="container dark-bg" width="640" cellpadding="0" cellspacing="0" border="0" style="max-width:640px;background:{COLORS['bg']};">
+    <table role="presentation" class="container" width="640" cellpadding="0" cellspacing="0" border="0" bgcolor="{COLORS['bg']}" style="max-width:640px;background:{COLORS['bg']};">
 
       <!-- MASTHEAD verde-menta -->
       <tr><td bgcolor="{COLORS['mint']}" style="background:{COLORS['mint']};padding:26px 36px 22px;" class="px-mob">
@@ -952,7 +948,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
       {_render_tricolor_band()}
 
       <!-- SIGN OFF verde-menta -->
-      <tr><td style="background:{COLORS['mint']};padding:36px 36px 30px;text-align:center;" class="px-mob">
+      <tr><td bgcolor="{COLORS['mint']}" style="background:{COLORS['mint']};padding:36px 36px 30px;text-align:center;" class="px-mob">
         <div style="font-family:{SERIF_FONT};font-style:italic;font-size:19px;line-height:1.5;color:{COLORS['ink']};margin-bottom:20px;padding:0 20px;">
           <span style="color:{COLORS['mint_dark']};font-size:24px;font-weight:700;vertical-align:-8px;">“</span>A notícia certa, na hora certa, é o melhor café da manhã. ☕<span style="color:{COLORS['mint_dark']};font-size:24px;font-weight:700;vertical-align:-8px;">”</span>
         </div>
@@ -991,7 +987,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
       </td></tr>
 
       <!-- FOOTER -->
-      <tr><td style="background:{COLORS['bg_2']};padding:28px 36px;text-align:center;" class="px-mob dark-bg-card">
+      <tr><td bgcolor="{COLORS['bg_2']}" style="background:{COLORS['bg_2']};padding:28px 36px;text-align:center;" class="px-mob">
         <div style="font-family:{SANS_FONT};font-size:11px;color:{COLORS['ink_muted']};line-height:1.7;" class="dark-text-muted">
           Você está recebendo porque se cadastrou em <strong style="color:{COLORS['ink']};" class="dark-text">Recorte ✂</strong>.
           {('<br/><span style="font-family:' + MONO_FONT + ';font-size:10px;color:' + COLORS['ink_muted'] + ';opacity:0.7;letter-spacing:0.08em;">' + str(filtered_items_count) + ' filtro' + ('s' if filtered_items_count != 1 else '') + ' ativo' + ('s' if filtered_items_count != 1 else '') + ' · você no controle</span>') if filtered_items_count > 0 else ''}
