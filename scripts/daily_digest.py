@@ -474,6 +474,21 @@ VOICE GUIDE acima rigorosamente.
 
 🚫 **REGRA CRÍTICA DE DEDUPLICAÇÃO**: NUNCA inclua duas notícias sobre o MESMO evento, mesmo que venham de fontes diferentes ou com palavras ligeiramente diferentes. Se ver vários itens brutos sobre o mesmo acontecimento, escolha APENAS UM (preferindo: fonte mais respeitável > matéria mais completa > publicação mais recente). Em caso de dúvida sobre se 2 são o mesmo evento, considere que SÃO e una.
 
+🎯 **REGRA CRÍTICA DE COERÊNCIA TEMA ↔ NOTÍCIA** (descarte agressivo se não casar):
+
+Cada notícia que você incluir DEVE ser **ESPECIFICAMENTE sobre o tema declarado**, não sobre algo tangencialmente relacionado. As fontes podem trazer matérias contaminadas por keywords amplas — **filtre você como editor**.
+
+**Regra geral:** se você precisa explicar pra alguém POR QUE essa notícia está nesse tema, ela não está nesse tema. Descarte.
+
+**Exemplos do que NUNCA fazer:**
+- Tema "Wellness (Bem-estar)" → NÃO incluir surtos de epidemia, mortalidade hospitalar, sistema de saúde pública, OMS. Wellness é vida saudável pessoal (alimentação, sono, exercício, mindfulness, autocuidado). Saúde pública vai em "Ciência & Saúde".
+- Tema "Trabalho & carreira" → NÃO incluir matéria sobre economia macro, PIB, inflação. Esses vão em "Negócios & M&A" ou "Consumo & marcas".
+- Tema "Cultura & entretenimento" → NÃO incluir matéria de celebridade processada por crime/escândalo policial (vai em "Em Alta" ou descarta).
+- Tema "Negócios & M&A" → NÃO incluir matéria de tech/IA empresarial (vai em "Tech & IA"). M&A é especificamente fusões, aquisições, IPOs, reestruturações corporativas.
+- Tema "Tech & IA" → NÃO incluir economia geral ou política tech (regulação genérica). Tech & IA é avanços técnicos, produtos, lançamentos, papers, demos.
+
+**EM DÚVIDA, DESCARTE.** É melhor o tema vir com 1 notícia perfeita do que com 3 incluindo 1 deslocada. Não force preenchimento.
+
 🕐 **REGRA CRÍTICA DE FRESCOR TEMPORAL** (especialmente importante pra esportes, lançamentos, anúncios, eventos políticos):
 - Para qualquer EVENTO com timeline definida (jogos, eleições, lançamentos, anúncios programados, julgamentos): SE a data do evento JÁ PASSOU em relação à data de hoje, NUNCA escolha uma matéria que cubra a PREVISÃO/EXPECTATIVA/ESCALAÇÃO/PRÉ-JOGO desse evento. Sempre prefira a matéria com o RESULTADO/desfecho.
 - Exemplo CRÍTICO: se uma matéria fala "São Paulo escala fulano pra jogo de hoje contra X" e a data atual já passou desse jogo, essa matéria está VENCIDA — procure uma sobre o RESULTADO do jogo.
