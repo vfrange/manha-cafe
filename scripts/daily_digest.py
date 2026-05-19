@@ -53,20 +53,24 @@ MAX_TRENDING_OUT = 10
 # preenche o que falta até atingir o cap total da edição.
 
 # --- DAILY (~5 min Espresso / ~9 min Coado em users medianos) ---
-DAILY_TOTAL_CAP = 28              # cap absoluto de notícias na edição daily
+DAILY_TOTAL_CAP = 40              # cap absoluto de notícias na edição daily (com margem)
 DAILY_TRENDING_MIN = 3            # Em Alta nunca cai abaixo disso
 DAILY_TRENDING_MAX = 6            # Em Alta nunca passa disso (preserva foco nos temas)
 
 def daily_news_per_topic(topic_count: int) -> int:
-    """Escadinha do daily: quantas notícias por tema baseado em qtd de temas."""
+    """Escadinha do daily: quantas notícias por tema baseado em qtd de temas.
+    
+    Valores incluem margem +1 pra cobrir descarte de URLs Google News
+    não resolvidas (~25% de loss) e filtros pós-curagem.
+    """
     if topic_count <= 3:
-        return 5
+        return 6   # era 5 (+1 margem)
     elif topic_count <= 6:
-        return 4
+        return 5   # era 4 (+1 margem)
     elif topic_count <= 10:
-        return 3
+        return 4   # era 3 (+1 margem)
     else:  # 11+
-        return 2
+        return 3   # era 2 (+1 margem)
 
 def daily_trending_budget(topic_count: int) -> int:
     """Em Alta elástico no daily: preenche o que sobra do cap."""
@@ -983,7 +987,6 @@ def resolve_gnews_urls(sections, trending, max_workers=6):
 
     dropped_trending = 0
     if trending:
-        # trending é uma lista — não dá pra reatribuir do caller, mas dá pra mutar in-place
         before = len(trending)
         trending[:] = [item for item in trending
                        if "news.google.com" not in (item.get("link", "") or "")]
@@ -1347,6 +1350,14 @@ def process_user(user, now_brt, weekly=False):
     # 2.7) RESOLVE URLs do Google News pra URLs reais dos publishers
     # Aplicado SÓ nas notícias finais (~30) — não nas 200+ brutas — pra economizar tempo.
     resolve_gnews_urls(sections, trending)
+
+    # 2.8) FIX B: remove seções que ficaram vazias após qualquer filtragem
+    # (paranoia: garante que tema em branco nunca renderiza)
+    before_count = len(sections)
+    sections = [s for s in sections if s.get("noticias")]
+    dropped_empty = before_count - len(sections)
+    if dropped_empty > 0:
+        log(f"  🧹 removidos {dropped_empty} tema(s) sem notícias")
 
     # 3) GERA email_items + URLs de feedback
     sections = add_feedback_links(uid, sections)
