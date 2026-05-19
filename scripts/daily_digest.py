@@ -111,8 +111,56 @@ BRT = timezone(timedelta(hours=-3))
 def log(msg, **kv):
     extra = " ".join(f"{k}={v}" for k, v in kv.items())
     print(f"[{datetime.now(BRT).strftime('%H:%M:%S')}] {msg} {extra}".strip(), flush=True)
+# ============================================================================
+# JANELA DE FRESCOR TEMPORAL — descarte HARD de notícias velhas
+# ============================================================================
+# Filtro Python que roda DEPOIS de fetch_all_sources e ANTES do Claude curar.
+# Garante que notícia velha não chega no email, INDEPENDENTE da fonte/agregador.
+#
+# Janela dinâmica por dia da semana (BRT):
+#   - Segunda-feira (daily): 48h — cobre sábado tarde + domingo + segunda madrugada
+#     (domingo tem weekly, mas pode ter notícia importante de sábado)
+#   - Terça a sábado (daily): 30h — notícias do dia anterior + madrugada de hoje
+#   - Domingo (weekly): 168h = 7 dias (retrospectiva semanal)
+def get_stale_window_hours(weekly: bool, now_brt) -> int:
+    """Retorna a janela em horas pra qual notícias mais velhas são descartadas."""
+    if weekly:
+        return 168  # 7 dias
+    # weekday(): segunda=0, domingo=6
+    if now_brt.weekday() == 0:  # segunda
+        return 48
+    return 30
+def _filter_stale_news(news_list, max_age_hours):
+    """Remove notícias mais velhas que max_age_hours em relação a agora.
+    Notícias sem published_at são MANTIDAS (defensivo — não punir fonte ruim).
+    Retorna (lista filtrada, total descartado).
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=max_age_hours)
+    kept = []
+    dropped = 0
+    for n in news_list:
+        pub_str = n.get("published_at") or n.get("published") or ""
+        if not pub_str:
+            # Sem data: mantém (Claude vai usar regra de frescor secundária)
+            kept.append(n)
+            continue
+        try:
+            # Tenta vários formatos comuns
+            pub_dt = datetime.fromisoformat(pub_str.replace("Z", "+00:00"))
+            if pub_dt.tzinfo is None:
+                pub_dt = pub_dt.replace(tzinfo=timezone.utc)
+            if pub_dt < cutoff:
+                dropped += 1
+                continue
+        except Exception:
+            # Data não-parseável: mantém (defensivo)
+            kept.append(n)
+            continue
+        kept.append(n)
+    return kept, dropped
 # ============ MULTI-SOURCE FETCH ============
-def fetch_all_sources(query, country, category=None, label=None, source_type="curated", weekly=False):
+def fetch_all_sources(query, country, category=None, label=None, source_type="curated",
+                      weekly=False, max_age_hours=None):
     """
     Roda todas as fontes em paralelo. Retorna lista combinada de notícias brutas.
     Para temas BR, prioriza RSS BR + Google News BR + Reddit.
@@ -121,6 +169,9 @@ def fetch_all_sources(query, country, category=None, label=None, source_type="cu
     Args:
         weekly: se True, busca notícias dos últimos 7 dias (Recorte da Semana).
                 Senão, busca padrão (últimas 24-48h).
+        max_age_hours: filtro HARD de frescor — descarta notícias mais velhas que isso.
+                       Se None, ignora (mas recomendado SEMPRE passar pra evitar
+                       agregadores re-indexarem notícia antiga).
     """
     is_br = country == "BR"
     is_global = country == "GLOBAL"
@@ -174,6 +225,14 @@ def fetch_all_sources(query, country, category=None, label=None, source_type="cu
         if key and key not in seen:
             seen.add(key)
             deduped.append(r)
+    # FILTRO TEMPORAL HARD: descarta notícias > max_age_hours (default daily 30h / segunda 48h)
+    # Roda DEPOIS do dedup pra economizar trabalho.
+    # Independente da fonte — pega agregadores tipo OneFootball que re-indexam matérias antigas.
+    if max_age_hours is not None:
+        before = len(deduped)
+        deduped, stale_count = _filter_stale_news(deduped, max_age_hours=max_age_hours)
+        if stale_count > 0:
+            log(f"  🕐 frescor ({max_age_hours}h): descartadas {stale_count}/{before} notícia(s) velha(s)")
     return deduped
 def fetch_trending(country, weekly=False):
     """Combina trends: Google News Top Stories + Reddit + Bluesky + YouTube Trending."""
@@ -358,6 +417,8 @@ Cada notícia que você incluir DEVE ser **ESPECIFICAMENTE sobre o tema declarad
 - Tema "Tech & IA" → NÃO incluir economia geral ou política tech.
 **EM DÚVIDA, DESCARTE.** É melhor o tema vir com 1 notícia perfeita do que com 3 incluindo 1 deslocada. Não force preenchimento.
 🕐 **REGRA CRÍTICA DE FRESCOR TEMPORAL**:
+- **Para edições daily**: NUNCA inclua notícias com `publicado_em` mais antigo que **48 horas** em relação à data atual (que está no user message). Edição diária = notícias de HOJE e do DIA ANTERIOR. Não 3 dias atrás. Não semana passada.
+- **CUIDADO COM AGREGADORES** (OneFootball, Flipboard, Google News com re-indexação, Yahoo Sports, etc): eles RE-INDEXAM notícias antigas com data de indexação recente. Se ver matéria sobre evento que SABIDAMENTE aconteceu há vários dias (ex: "Roger Machado deixa o São Paulo" sendo que isso foi há 1+ semana), DESCARTE — está velha mesmo que o `publicado_em` pareça novo. Use seu conhecimento do mundo.
 - Para qualquer EVENTO com timeline definida: SE a data do evento JÁ PASSOU, NUNCA escolha uma matéria que cubra a PREVISÃO/EXPECTATIVA/ESCALAÇÃO/PRÉ-JOGO. Sempre prefira a matéria com o RESULTADO/desfecho.
 - Quando 2 matérias falam do mesmo evento (uma "antes", outra "depois"): SEMPRE escolha a "depois".
 - Se TODAS as matérias forem previsões de eventos já passados, MELHOR DESCARTAR a categoria.
@@ -929,6 +990,9 @@ def process_user(user, now_brt, weekly=False):
     else:
         news_per_topic = daily_news_per_topic(topic_count_for_scaling)
     is_welcome = not user.get("welcome_sent")
+    # Janela de frescor: segunda-feira 48h, demais dias 30h, weekly 168h
+    stale_window_h = get_stale_window_hours(weekly, now_brt)
+    log(f"  📅 janela frescor: {stale_window_h}h ({'weekly' if weekly else ('segunda' if now_brt.weekday() == 0 else 'daily')})")
     by_label = {}
     for t in topics:
         if is_topic_paused(t["label"], paused, datetime.now(timezone.utc)):
@@ -942,6 +1006,7 @@ def process_user(user, now_brt, weekly=False):
             label=t["label"],
             source_type=t.get("source", "curated"),
             weekly=weekly,
+            max_age_hours=stale_window_h,
         )
         log(f"  {t['label']} ({country}): {len(news)} brutas")
         if not news:
