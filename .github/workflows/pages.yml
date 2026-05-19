@@ -1,12 +1,10 @@
 name: Deploy Cadastro to GitHub Pages
-
 # Faz deploy automático do public/cadastro.html como index.html no GitHub Pages
 # a cada push na main (só quando algo em public/ mudou).
 #
 # IMPORTANTE: lista explícita do que vai pro ar.
 # Arquivos como brandbook.html e instagram-kit.html ficam fora — são ferramentas
 # locais de uso interno, não devem ser expostos publicamente.
-
 on:
   push:
     branches: [main]
@@ -49,7 +47,7 @@ jobs:
           cp public/unsubscribed.html dist/unsubscribed.html
           cp public/admin.html dist/admin.html
           cp public/arquivo.html dist/arquivo.html
-         # Open Graph (preview em WhatsApp/Twitter/etc)
+          # Open Graph (preview em WhatsApp/Twitter/etc)
           cp public/og-default.png dist/og-default.png
           cp public/og-default.svg dist/og-default.svg
           # BIMI (logo do remetente em Apple Mail/Yahoo)
