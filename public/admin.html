@@ -129,7 +129,7 @@
     try {
       const [usersR, editionsR, eventsR, linksR] = await Promise.all([
         sb.from('users').select('id, active, welcome_sent, created_at', { count: 'exact', head: false }),
-        sb.from('editions_public').select('id, kind, scheduled_for, sent_at, view_count', { count: 'exact', head: false }).order('sent_at', { ascending: false, nullsFirst: false }).limit(30),
+        sb.from('editions_admin').select('id, kind, scheduled_for, sent_at, view_count', { count: 'exact', head: false }).order('sent_at', { ascending: false, nullsFirst: false }).limit(30),
         sb.from('email_events_public').select('event_type, created_at, edition_id, link', { count: 'exact', head: false }).order('created_at', { ascending: false }).limit(2000),
         sb.from('link_clicks_summary').select('target_url, source, topic_label, click_count, last_clicked_at').order('click_count', { ascending: false }).limit(50),
       ]);
