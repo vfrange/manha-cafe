@@ -152,7 +152,7 @@
 
       // Unique opens: por edition_id
       const uniqueOpensByEdition = new Set(events.filter(e => e.event_type === 'email.opened').map(e => e.edition_id).filter(Boolean));
-      const openRate = sentEvents > 0 ? (uniqueOpensByEdition.size / sentEvents * 100) : 0;
+      const openRate = editionsSent > 0 ? (uniqueOpensByEdition.size / editionsSent * 100) : 0;
 
       // Contagem de opens por edição (vem de email_events do Resend webhook)
       const opensByEd = {};
@@ -173,8 +173,8 @@
 
       // Total de cliques REAIS pra o card "Click rate" do topo
       const totalRealClicks = Object.values(clicksByEd).reduce((a, b) => a + b, 0);
-      const clickRate = sentEvents > 0 ? (totalRealClicks / sentEvents * 100) : 0;
-      const bounceRate = sentEvents > 0 ? ((bouncedEvents + complaintEvents) / sentEvents * 100) : 0;
+      const clickRate = editionsSent > 0 ? (totalRealClicks / editionsSent * 100) : 0;
+      const bounceRate = editionsSent > 0 ? ((bouncedEvents + complaintEvents) / editionsSent * 100) : 0;
 
       const html = `
         <div class="grid grid-4">
@@ -186,7 +186,7 @@
           <div class="card">
             <div class="stat-label">Open rate (30d)</div>
             <div class="stat-value">${openRate.toFixed(1)}%</div>
-            <div class="stat-pct ${openRate < 30 ? 'stat-bad' : ''}">${uniqueOpensByEdition.size} opens únicos · ${sentEvents} envios</div>
+            <div class="stat-pct ${openRate < 30 ? 'stat-bad' : ''}">${uniqueOpensByEdition.size} opens únicos · ${editionsSent} edições</div>
           </div>
           <div class="card">
             <div class="stat-label">Click rate</div>
