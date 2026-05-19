@@ -836,8 +836,8 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
 <html xmlns="http://www.w3.org/1999/xhtml" lang="pt-BR"><head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="color-scheme" content="light dark">
-<meta name="supported-color-schemes" content="light dark">
+<meta name="color-scheme" content="light only">
+<meta name="supported-color-schemes" content="light">
 <title>Recorte ✂ · {date_short}</title>
 {web_fonts_link}
 <!--[if mso]><style type="text/css">body, table, td {{font-family: Georgia, 'Times New Roman', serif !important;}} .mso-sans {{font-family: Arial, Helvetica, sans-serif !important;}}</style><![endif]-->
