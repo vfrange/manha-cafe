@@ -889,7 +889,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     <table role="presentation" class="container dark-bg" width="640" cellpadding="0" cellspacing="0" border="0" style="max-width:640px;background:{COLORS['bg']};">
 
       <!-- MASTHEAD verde-menta -->
-      <tr><td style="background:{COLORS['mint']};padding:26px 36px 22px;" class="px-mob dark-mint">
+      <tr><td bgcolor="{COLORS['mint']}" style="background:{COLORS['mint']};padding:26px 36px 22px;" class="px-mob">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
           <td valign="middle">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
