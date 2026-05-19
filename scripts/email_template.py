@@ -464,12 +464,17 @@ def _render_news_sections(sections, email_mode="coado"):
             </td>"""
 
         noticias_html = ""
-        rendered_count = 0  # quantas notícias já renderizadas (a 1ª válida recebe imagem)
+        rendered_count = 0
+        hero_taken = False  # primeira notícia COM imagem recebe hero (não a 1ª do tema)
         for n in sec["noticias"]:
             # Defensivo: pula itens sem campos mínimos (Claude às vezes devolve item incompleto)
             if not n.get("manchete") or not n.get("resumo"):
                 continue
-            is_first_news = (rendered_count == 0)
+            # is_hero = primeira notícia COM imagem (não a 1ª do tema)
+            # Se a 1ª não tem img, a 2ª (que tem) vira hero
+            is_hero = (not hero_taken) and bool(n.get("img_url"))
+            if is_hero:
+                hero_taken = True
             rendered_count += 1
 
             is_espresso = (email_mode == "espresso")
@@ -539,7 +544,7 @@ def _render_news_sections(sections, email_mode="coado"):
             noticias_html += f"""
             <tr><td style="padding:0 0 32px 0;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                {_render_news_image(n.get('img_url'), n.get('manchete',''), topic_id=sec.get('topic_id') or sec.get('topic'), size_mode='hero') if is_first_news else (_render_news_image(n.get('img_url'), n.get('manchete',''), topic_id=sec.get('topic_id') or sec.get('topic'), size_mode='thumb') if n.get('img_url') else '')}
+                {_render_news_image(n.get('img_url'), n.get('manchete',''), topic_id=sec.get('topic_id') or sec.get('topic'), size_mode='hero') if is_hero else (_render_news_image(n.get('img_url'), n.get('manchete',''), topic_id=sec.get('topic_id') or sec.get('topic'), size_mode='thumb') if n.get('img_url') else '')}
                 <tr><td style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:{'22' if is_espresso else '26'}px;line-height:1.18;color:{COLORS['ink']};letter-spacing:-0.02em;padding-bottom:{'8' if is_espresso else '14'}px;" class="dark-text">{_esc(n.get('manchete',''))}</td></tr>
                 <tr><td style="font-family:{SANS_FONT};font-size:{'14' if is_espresso else '16'}px;line-height:1.6;color:{COLORS['ink_soft']};padding-bottom:{'10' if is_espresso else '16'}px;" class="dark-text-soft">{_esc(resumo_display)}</td></tr>
                 {fatos_html}

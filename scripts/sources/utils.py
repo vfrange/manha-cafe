@@ -23,7 +23,7 @@ _image_cache: Dict[str, Optional[str]] = {}
 
 # Limites
 HEAD_TIMEOUT = 3.0           # 3s pra HEAD check
-GET_TIMEOUT = 5.0            # 5s pra fetch HTML
+GET_TIMEOUT = 8.0            # 8s pra fetch HTML (mais cobertura de publishers lentos)
 MAX_CONCURRENT = 10          # max 10 conexões simultâneas
 USER_AGENT = "Mozilla/5.0 (compatible; RecorteBot/1.0; +https://recorte.news)"
 

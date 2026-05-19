@@ -53,24 +53,24 @@ MAX_TRENDING_OUT = 10
 # preenche o que falta até atingir o cap total da edição.
 
 # --- DAILY (~5 min Espresso / ~9 min Coado em users medianos) ---
-DAILY_TOTAL_CAP = 40              # cap absoluto de notícias na edição daily (com margem)
+DAILY_TOTAL_CAP = 28              # cap absoluto de notícias na edição daily
 DAILY_TRENDING_MIN = 3            # Em Alta nunca cai abaixo disso
 DAILY_TRENDING_MAX = 6            # Em Alta nunca passa disso (preserva foco nos temas)
 
 def daily_news_per_topic(topic_count: int) -> int:
     """Escadinha do daily: quantas notícias por tema baseado em qtd de temas.
     
-    Valores incluem margem +1 pra cobrir descarte de URLs Google News
-    não resolvidas (~25% de loss) e filtros pós-curagem.
+    Sem margem — confiamos no resolve_gnews_pre_curate() que valida URLs
+    ANTES do Claude curar, garantindo que o que ele curar vai funcionar.
     """
     if topic_count <= 3:
-        return 6   # era 5 (+1 margem)
+        return 5
     elif topic_count <= 6:
-        return 5   # era 4 (+1 margem)
+        return 4
     elif topic_count <= 10:
-        return 4   # era 3 (+1 margem)
+        return 3
     else:  # 11+
-        return 3   # era 2 (+1 margem)
+        return 2
 
 def daily_trending_budget(topic_count: int) -> int:
     """Em Alta elástico no daily: preenche o que sobra do cap."""
@@ -1274,6 +1274,50 @@ def process_user(user, now_brt, weekly=False):
                 log(f"  🔗 {group['label']}: removidas {removed}/{original_count} URLs inválidas (não-GNews)")
     except Exception as e:
         log(f"  ⚠ URL validation falhou (não bloqueia): {e}")
+
+    # RESOLVE GNEWS PRE-CURATE: decodifica URLs do Google News ANTES do Claude curar.
+    # Assim Claude vê só URLs reais dos publishers — o que ele curar VAI funcionar.
+    # Evita descartar notícias depois (que deixava temas em branco) sem aumentar custo Claude.
+    # Custo: ~30-60s extras (paralelo, 6 workers, timeout 4s/URL).
+    try:
+        # Limita ao máximo de URLs que vão pro Claude (MAX_NEWS_INPUT_PER_TOPIC=6)
+        # Pra não gastar tempo resolvendo URLs que não serão usadas.
+        gnews_targets = []
+        for group in topics_with_news:
+            max_input = 12 if weekly else MAX_NEWS_INPUT_PER_TOPIC
+            for n in group["news"][:max_input]:
+                if "news.google.com" in (n.get("link") or ""):
+                    gnews_targets.append(n)
+
+        if gnews_targets:
+            log(f"  🔓 pré-decodificando {len(gnews_targets)} URL(s) Google News antes do Claude curar...")
+
+            def _resolve_pre(item):
+                url = item.get("link", "")
+                new_url = _try_decode_gnews_url(url)
+                if new_url != url:
+                    item["link"] = new_url
+                    return True
+                return False
+
+            resolved_pre = 0
+            with ThreadPoolExecutor(max_workers=6) as ex:
+                results = list(ex.map(_resolve_pre, gnews_targets))
+                resolved_pre = sum(1 for r in results if r)
+            log(f"  ✓ {resolved_pre}/{len(gnews_targets)} URLs Google News decodificadas pré-curate")
+
+            # Remove dos temas as notícias que ficaram com wrapper (não decodificou)
+            # Como agora SÓ URLs reais vão pro Claude, ele cura sabendo que vão funcionar.
+            removed_pre = 0
+            for group in topics_with_news:
+                before = len(group["news"])
+                group["news"] = [n for n in group["news"]
+                                 if "news.google.com" not in (n.get("link") or "")]
+                removed_pre += before - len(group["news"])
+            if removed_pre > 0:
+                log(f"  🚫 removidas {removed_pre} notícia(s) com wrapper Gnews não decodificado (antes do Claude)")
+    except Exception as e:
+        log(f"  ⚠ resolve gnews pré-curate falhou (não bloqueia): {e}")
 
     sections = []
     if topics_with_news:
