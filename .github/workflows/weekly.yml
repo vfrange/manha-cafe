@@ -2,7 +2,7 @@ name: Weekly Profile Consolidation
 
 on:
   schedule:
-    - cron: '0 1 * * 0'  # sábado 22h BRT = domingo 01h UTC (antes do envio domingo 9h)
+    - cron: '53 0 * * 0'    # 21:53 BRT sábado (UTC=domingo) — primário quebrado
   workflow_dispatch:
 
 jobs:
