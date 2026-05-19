@@ -152,6 +152,18 @@
       // Unique opens: por edition_id
       const uniqueOpensByEdition = new Set(events.filter(e => e.event_type === 'email.opened').map(e => e.edition_id).filter(Boolean));
       const openRate = sentEvents > 0 ? (uniqueOpensByEdition.size / sentEvents * 100) : 0;
+
+      // Contagem de opens E cliques por edição (pra coluna na tabela)
+      const opensByEd = {};
+      const clicksByEd = {};
+      events.forEach(ev => {
+        if (!ev.edition_id) return;
+        if (ev.event_type === 'email.opened') {
+          opensByEd[ev.edition_id] = (opensByEd[ev.edition_id] || 0) + 1;
+        } else if (ev.event_type === 'email.clicked') {
+          clicksByEd[ev.edition_id] = (clicksByEd[ev.edition_id] || 0) + 1;
+        }
+      });
       const clickRate = sentEvents > 0 ? (clickedEvents / sentEvents * 100) : 0;
       const bounceRate = sentEvents > 0 ? ((bouncedEvents + complaintEvents) / sentEvents * 100) : 0;
 
@@ -185,7 +197,7 @@
             ${editions.length === 0 ? '<div class="empty-msg">Nenhuma edição registrada ainda.</div>' : `
             <table>
               <thead>
-                <tr><th>Data</th><th>Tipo</th><th>Views</th><th>Ver</th></tr>
+                <tr><th>Data</th><th>Tipo</th><th>Views</th><th>Opens</th><th>Cliques</th><th>Ver</th></tr>
               </thead>
               <tbody>
                 ${editions.slice(0, 15).map(e => `
@@ -193,6 +205,8 @@
                     <td>${e.sent_at ? new Date(e.sent_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'medium' }) : (e.scheduled_for || '—')}</td>
                     <td><span class="badge ${e.kind === 'welcome' ? 'badge-warn' : 'badge-success'}">${e.kind}</span></td>
                     <td>${e.view_count || 0}</td>
+                    <td>${opensByEd[e.id] || 0}</td>
+                    <td>${clicksByEd[e.id] || 0}</td>
                     <td><a href="https://jegvgviwbkbrmuhcivle.supabase.co/functions/v1/edition/${e.id}" target="_blank">↗ abrir</a></td>
                   </tr>
                 `).join('')}
