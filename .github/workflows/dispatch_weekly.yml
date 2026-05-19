@@ -4,10 +4,10 @@ name: Dispatch Weekly
 
 on:
   schedule:
-    - cron: '0 11 * * 0'   # 08:00 BRT
-    - cron: '5 11 * * 0'   # 08:05 BRT (fallback 1)
-    - cron: '10 11 * * 0'  # 08:10 BRT (fallback 2)
-    - cron: '20 11 * * 0'  # 08:20 BRT (fallback 3)
+    - cron: '0 11 * * 0'    # 08:00 BRT domingo — primário
+    - cron: '5 11 * * 0'    # 08:05 BRT (fallback 1)
+    - cron: '10 11 * * 0'   # 08:10 BRT (fallback 2)
+    - cron: '20 11 * * 0'   # 08:20 BRT (fallback 3)
   workflow_dispatch:
 
 jobs:
