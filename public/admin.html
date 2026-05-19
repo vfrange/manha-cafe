@@ -127,11 +127,12 @@
     document.getElementById('content').innerHTML = '<div class="loading">Carregando métricas...</div>';
 
     try {
-      const [usersR, editionsR, eventsR, linksR] = await Promise.all([
+      const [usersR, editionsR, eventsR, linksR, clicksByEdR] = await Promise.all([
         sb.from('users').select('id, active, welcome_sent, created_at', { count: 'exact', head: false }),
         sb.from('editions_admin').select('id, kind, scheduled_for, sent_at, view_count', { count: 'exact', head: false }).order('sent_at', { ascending: false, nullsFirst: false }).limit(30),
         sb.from('email_events_public').select('event_type, created_at, edition_id, link', { count: 'exact', head: false }).order('created_at', { ascending: false }).limit(2000),
         sb.from('link_clicks_summary').select('target_url, source, topic_label, click_count, last_clicked_at').order('click_count', { ascending: false }).limit(50),
+        sb.from('link_clicks').select('edition_id, click_count').not('edition_id', 'is', null).gt('click_count', 0),
       ]);
 
       const users = usersR.data || [];
@@ -153,18 +154,27 @@
       const uniqueOpensByEdition = new Set(events.filter(e => e.event_type === 'email.opened').map(e => e.edition_id).filter(Boolean));
       const openRate = sentEvents > 0 ? (uniqueOpensByEdition.size / sentEvents * 100) : 0;
 
-      // Contagem de opens E cliques por edição (pra coluna na tabela)
+      // Contagem de opens por edição (vem de email_events do Resend webhook)
       const opensByEd = {};
-      const clicksByEd = {};
       events.forEach(ev => {
         if (!ev.edition_id) return;
         if (ev.event_type === 'email.opened') {
           opensByEd[ev.edition_id] = (opensByEd[ev.edition_id] || 0) + 1;
-        } else if (ev.event_type === 'email.clicked') {
-          clicksByEd[ev.edition_id] = (clicksByEd[ev.edition_id] || 0) + 1;
         }
       });
-      const clickRate = sentEvents > 0 ? (clickedEvents / sentEvents * 100) : 0;
+
+      // Contagem de cliques por edição (vem de link_clicks do Worker — clique REAL)
+      // Soma click_count por edition_id (não conta linhas — cada link na edição é 1 linha
+      // mas pode ter sido clicado várias vezes)
+      const clicksByEd = {};
+      (clicksByEdR.data || []).forEach(row => {
+        if (!row.edition_id) return;
+        clicksByEd[row.edition_id] = (clicksByEd[row.edition_id] || 0) + (row.click_count || 0);
+      });
+
+      // Total de cliques REAIS pra o card "Click rate" do topo
+      const totalRealClicks = Object.values(clicksByEd).reduce((a, b) => a + b, 0);
+      const clickRate = sentEvents > 0 ? (totalRealClicks / sentEvents * 100) : 0;
       const bounceRate = sentEvents > 0 ? ((bouncedEvents + complaintEvents) / sentEvents * 100) : 0;
 
       const html = `
@@ -182,7 +192,7 @@
           <div class="card">
             <div class="stat-label">Click rate</div>
             <div class="stat-value">${clickRate.toFixed(1)}%</div>
-            <div class="stat-pct">${clickedEvents} cliques rastreados</div>
+            <div class="stat-pct">${totalRealClicks} cliques reais</div>
           </div>
           <div class="card">
             <div class="stat-label">Bounce / complaint</div>
