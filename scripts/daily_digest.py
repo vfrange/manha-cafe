@@ -874,7 +874,14 @@ Regras do recap:
 - NÃO use bullets. NÃO use markdown. NÃO repita "hoje". UM parágrafo corrido.
 - Use segunda pessoa quando for natural ("você reparou que...", "vale prestar atenção em...").
 
-**TAREFA 2 — QUOTE**: Pinça UMA frase forte ou citação marcante de alguma das manchetes/notícias do dia. Pode ser declaração de pessoa pública, dado impressionante, ou observação editorial sua. **Máximo 18 palavras**. Use aspas curvas “”. Deve ter caráter, personalidade.
+**TAREFA 2 — QUOTE**: Pinça UMA frase forte ou citação marcante de alguma das manchetes/notícias do dia. **Máximo 18 palavras**. Use aspas curvas “”.
+
+**REGRAS DA QUOTE (importante seguir TODAS):**
+- VARIE A ÁREA: NÃO escolha sempre tech/IA. Considere TODAS as áreas — cultura, esporte, ciência, política, economia, saúde, comportamento. Se você está em dúvida entre uma tech e uma não-tech, escolha a NÃO-tech.
+- PREFIRA citação de pessoa (declaração, posicionamento, frase emblemática) sobre dado numérico. Quote humana > quote de número.
+- EVITE quotes "óbvias" tipo "X cresceu Y%" — busque frase com OPINIÃO, ÂNGULO ou IRONIA.
+- Deve ter CARÁTER, personalidade. Não pode ser dado seco.
+- Se a melhor frase do dia for de tech/IA, tudo bem usar — mas não DEFAULTE pra ela.
 
 Manchetes de hoje:
 {json.dumps(summary_input, ensure_ascii=False, indent=2)}
