@@ -820,11 +820,11 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     # Texto pré-preenchido (url-encoded). WhatsApp/X aceitam %20 e similares.
     from urllib.parse import quote as _q
     if weekly_mode:
-        share_msg = f"📰 Meu Recorte da semana — notícias curadas pra mim. Vale conhecer:"
+        share_msg = f"✂ Minha semana, recortada: 7 dias do mundo lidos pra mim, numa edição única de domingo. É o Recorte:"
     elif is_welcome:
-        share_msg = f"📰 Acabei de assinar o Recorte ✂ — cada manhã tem um jornal feito pra mim. Vale conhecer:"
+        share_msg = f"✂ Olha que incrível: toda manhã, antes do café, chega um jornal feito SÓ pra mim. Ele cura por tema que eu seleciono. É o Recorte:"
     else:
-        share_msg = f"📰 Meu Recorte de hoje — notícias curadas pra mim. Vale conhecer:"
+        share_msg = f"✂ Olha o que recebi hoje: alguém leu as notícias do mundo, recortou pelos meus interesses, e deixou na minha caixa antes das 6h. Chega de ficar rolando o feed. É o Recorte:"
     share_wa_text = _q(f"{share_msg} {share_url}")
     share_x_text = _q(f"{share_msg} {share_url}")
 
