@@ -132,7 +132,7 @@
         sb.from('editions_admin').select('id, kind, scheduled_for, sent_at, view_count', { count: 'exact', head: false }).order('sent_at', { ascending: false, nullsFirst: false }).limit(30),
         sb.from('email_events_public').select('event_type, created_at, edition_id, link', { count: 'exact', head: false }).order('created_at', { ascending: false }).limit(2000),
         sb.from('link_clicks_summary').select('target_url, source, topic_label, click_count, last_clicked_at').order('click_count', { ascending: false }).limit(50),
-        sb.from('link_clicks').select('edition_id, click_count').not('edition_id', 'is', null).gt('click_count', 0),
+        sb.from('link_clicks_by_edition').select('edition_id, total_clicks'),
       ]);
 
       const users = usersR.data || [];
@@ -163,13 +163,12 @@
         }
       });
 
-      // Contagem de cliques por edição (vem de link_clicks do Worker — clique REAL)
-      // Soma click_count por edition_id (não conta linhas — cada link na edição é 1 linha
-      // mas pode ter sido clicado várias vezes)
+      // Contagem de cliques por edição (vem da view link_clicks_by_edition — clique REAL via Worker)
+      // A view já agrega: 1 linha por edition_id com total_clicks somado
       const clicksByEd = {};
       (clicksByEdR.data || []).forEach(row => {
         if (!row.edition_id) return;
-        clicksByEd[row.edition_id] = (clicksByEd[row.edition_id] || 0) + (row.click_count || 0);
+        clicksByEd[row.edition_id] = row.total_clicks || 0;
       });
 
       // Total de cliques REAIS pra o card "Click rate" do topo
