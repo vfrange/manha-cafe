@@ -1,16 +1,13 @@
 name: Prepare Weekly
 
-# Domingo: prepara o Recorte da Semana para disparar às 8h BRT.
-# Fallbacks até 7:30 BRT (30 min antes do dispatch).
+# Sábado: prepara o Recorte da Semana pra disparar às 8h BRT.
 
 on:
   schedule:
-    - cron: '0 8 * * 0'    # 05:00 BRT
-    - cron: '30 8 * * 0'   # 05:30 BRT (fallback 1)
-    - cron: '0 9 * * 0'    # 06:00 BRT (fallback 2)
-    - cron: '30 9 * * 0'   # 06:30 BRT (fallback 3)
-    - cron: '0 10 * * 0'   # 07:00 BRT (fallback 4)
-    - cron: '30 10 * * 0'  # 07:30 BRT (fallback 5 — última chance antes do dispatch 8h)
+    - cron: '0 9 * * 6'    # 06:00 BRT
+    - cron: '30 9 * * 6'   # 06:30 BRT (fallback 1)
+    - cron: '0 10 * * 6'   # 07:00 BRT (fallback 2)
+    - cron: '30 10 * * 6'  # 07:30 BRT (fallback 3)
   workflow_dispatch:
 
 jobs:
@@ -36,6 +33,7 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           FEEDBACK_SECRET: ${{ secrets.FEEDBACK_SECRET }}
           FEEDBACK_BASE_URL: ${{ secrets.FEEDBACK_BASE_URL }}
+          CLICK_BASE_URL: ${{ secrets.CLICK_BASE_URL }}
           FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
           MANAGE_URL: ${{ secrets.MANAGE_URL }}
           PARALLEL_WORKERS: '5'
