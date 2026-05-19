@@ -54,7 +54,7 @@ MAX_TRENDING_OUT = 10
 
 # --- DAILY (~5 min Espresso / ~9 min Coado em users medianos) ---
 DAILY_TOTAL_CAP = 28              # cap absoluto de notícias na edição daily
-DAILY_TRENDING_MIN = 3            # Em Alta nunca cai abaixo disso
+DAILY_TRENDING_MIN = 5            # Em Alta nunca cai abaixo disso (mais relevância em destaque)
 DAILY_TRENDING_MAX = 6            # Em Alta nunca passa disso (preserva foco nos temas)
 
 def daily_news_per_topic(topic_count: int) -> int:
@@ -1280,12 +1280,13 @@ def process_user(user, now_brt, weekly=False):
     # Evita descartar notícias depois (que deixava temas em branco) sem aumentar custo Claude.
     # Custo: ~30-60s extras (paralelo, 6 workers, timeout 4s/URL).
     try:
-        # Limita ao máximo de URLs que vão pro Claude (MAX_NEWS_INPUT_PER_TOPIC=6)
-        # Pra não gastar tempo resolvendo URLs que não serão usadas.
+        # Decodifica TODAS as URLs Google News do tema (não só as primeiras 6).
+        # Assim, mesmo se algumas das primeiras 6 falharem, as próximas substitutas
+        # já estão decodificadas e prontas pra Claude curar.
+        # Trade-off: ~30-40s extras (vs 21s antes), mas evita perda de notícias boas.
         gnews_targets = []
         for group in topics_with_news:
-            max_input = 12 if weekly else MAX_NEWS_INPUT_PER_TOPIC
-            for n in group["news"][:max_input]:
+            for n in group["news"]:
                 if "news.google.com" in (n.get("link") or ""):
                     gnews_targets.append(n)
 

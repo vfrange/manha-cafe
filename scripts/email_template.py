@@ -403,7 +403,7 @@ def _render_trending_section(trending, scope_label, email_mode="coado"):
         items_html += f"""
         <tr><td style="padding:0 0 28px 0;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-            {_render_news_image(item.get('img_url'), manchete, topic_id='trending') if idx == 0 else ''}
+            {_render_news_image(item.get('img_url'), manchete, topic_id='trending') if item.get('img_url') else ''}
             <tr><td>{buscas_html}<div style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:22px;line-height:1.22;color:{COLORS['ink']};letter-spacing:-0.015em;margin-bottom:10px;" class="dark-text">{manchete}</div></td></tr>
             <tr><td style="font-family:{SANS_FONT};font-size:15px;line-height:1.55;color:{COLORS['ink_soft']};padding-bottom:14px;" class="dark-text-soft">{resumo}</td></tr>
             {fatos_html}
@@ -465,16 +465,13 @@ def _render_news_sections(sections, email_mode="coado"):
 
         noticias_html = ""
         rendered_count = 0
-        hero_taken = False  # primeira notícia COM imagem recebe hero (não a 1ª do tema)
+        # TODAS as notícias COM imagem renderizam no MESMO tamanho (hero 560×315, mobile 200px).
+        # Tamanho único — desktop e mobile. Notícias sem imagem: slot colapsa silenciosamente.
         for n in sec["noticias"]:
             # Defensivo: pula itens sem campos mínimos (Claude às vezes devolve item incompleto)
             if not n.get("manchete") or not n.get("resumo"):
                 continue
-            # is_hero = primeira notícia COM imagem (não a 1ª do tema)
-            # Se a 1ª não tem img, a 2ª (que tem) vira hero
-            is_hero = (not hero_taken) and bool(n.get("img_url"))
-            if is_hero:
-                hero_taken = True
+            has_image = bool(n.get("img_url"))
             rendered_count += 1
 
             is_espresso = (email_mode == "espresso")
@@ -544,7 +541,7 @@ def _render_news_sections(sections, email_mode="coado"):
             noticias_html += f"""
             <tr><td style="padding:0 0 32px 0;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                {_render_news_image(n.get('img_url'), n.get('manchete',''), topic_id=sec.get('topic_id') or sec.get('topic'), size_mode='hero') if is_hero else (_render_news_image(n.get('img_url'), n.get('manchete',''), topic_id=sec.get('topic_id') or sec.get('topic'), size_mode='thumb') if n.get('img_url') else '')}
+                {_render_news_image(n.get('img_url'), n.get('manchete',''), topic_id=sec.get('topic_id') or sec.get('topic'), size_mode='hero') if has_image else ''}
                 <tr><td style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:{'22' if is_espresso else '26'}px;line-height:1.18;color:{COLORS['ink']};letter-spacing:-0.02em;padding-bottom:{'8' if is_espresso else '14'}px;" class="dark-text">{_esc(n.get('manchete',''))}</td></tr>
                 <tr><td style="font-family:{SANS_FONT};font-size:{'14' if is_espresso else '16'}px;line-height:1.6;color:{COLORS['ink_soft']};padding-bottom:{'10' if is_espresso else '16'}px;" class="dark-text-soft">{_esc(resumo_display)}</td></tr>
                 {fatos_html}
