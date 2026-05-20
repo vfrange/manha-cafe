@@ -1,19 +1,6 @@
 """
 Renderiza o HTML do email diário do Recorte ✂.
 V4: identidade visual verde-menta dominante + Fraunces + Mulish.
-
-Paleta:
-- Verde-menta #6EE7B7 (masthead + signoff)
-- Amarelo #FFD60A (TTS player + highlights)
-- Marinho #0A2540 (texto principal + detalhes)
-- Verde-esmeralda #10B981 (chips de coverage + accents)
-- Verde-floresta #047857 (números + texto verde escuro)
-- Verde-menta lavado #D1FAE5 (fundo "Por que importa")
-- Creme #FFFAF0 (background base)
-
-Compatibilidade: HTML tabelar + inline styles + fallback de fontes pra Gmail,
-Outlook, Apple Mail, iOS Mail. Fraunces e Mulish via Google Fonts (renderizam
-em Gmail web, Apple Mail, Outlook web; fallback Georgia/Helvetica em Android).
 """
 
 import html as html_lib
@@ -21,12 +8,7 @@ import re
 import unicodedata
 
 
-# ============================================================================
-# ÍCONES POR TEMA — SVGs minimalistas linha (16x16, herdam cor via currentColor)
-# Inline no HTML, sem fetch externo. Funcionam em todos clientes de email.
-# ============================================================================
 def _svg(path_d):
-    """Wraps um <path> em SVG 16x16 monocromático."""
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" '
         'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" '
@@ -34,68 +16,46 @@ def _svg(path_d):
     )
 
 TOPIC_ICONS = {
-    # Economia — gráfico de barras crescente
     "economia": _svg('<path d="M3 21V11M9 21V7M15 21V13M21 21V4"/><line x1="3" y1="21" x2="21" y2="21"/>'),
-    # Mercados financeiros — candle / setas mercado
     "mercado":  _svg('<polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/>'),
-    # Tech & IA — chip
     "tech":     _svg('<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="2" x2="9" y2="4"/><line x1="15" y1="2" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="22"/><line x1="15" y1="20" x2="15" y2="22"/><line x1="2" y1="9" x2="4" y2="9"/><line x1="2" y1="15" x2="4" y2="15"/><line x1="20" y1="9" x2="22" y2="9"/><line x1="20" y1="15" x2="22" y2="15"/>'),
-    # Geopolítica — globo
     "geopol":   _svg('<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10z"/>'),
-    # Política — coluna/capitólio (3 pilares)
     "polit":    _svg('<line x1="3" y1="22" x2="21" y2="22"/><line x1="3" y1="18" x2="21" y2="18"/><line x1="6" y1="18" x2="6" y2="6"/><line x1="12" y1="18" x2="12" y2="6"/><line x1="18" y1="18" x2="18" y2="6"/><polyline points="3 6 12 2 21 6"/>'),
-    # Governo (alias)
     "governo":  _svg('<line x1="3" y1="22" x2="21" y2="22"/><line x1="3" y1="18" x2="21" y2="18"/><line x1="6" y1="18" x2="6" y2="6"/><line x1="12" y1="18" x2="12" y2="6"/><line x1="18" y1="18" x2="18" y2="6"/><polyline points="3 6 12 2 21 6"/>'),
-    # Food service — hambúrguer
     "food":     _svg('<path d="M3 11h18a0 0 0 0 1 0 0 7 7 0 0 1-7 7h-4a7 7 0 0 1-7-7"/><path d="M21 8H3a9 9 0 0 1 9-6 9 9 0 0 1 9 6z"/><line x1="6" y1="15" x2="6.01" y2="15"/><line x1="10" y1="15" x2="10.01" y2="15"/><line x1="14" y1="15" x2="14.01" y2="15"/>'),
-    # Hambúrguer (alias)
     "hamburg":  _svg('<path d="M3 11h18a0 0 0 0 1 0 0 7 7 0 0 1-7 7h-4a7 7 0 0 1-7-7"/><path d="M21 8H3a9 9 0 0 1 9-6 9 9 0 0 1 9 6z"/><line x1="6" y1="15" x2="6.01" y2="15"/><line x1="10" y1="15" x2="10.01" y2="15"/><line x1="14" y1="15" x2="14.01" y2="15"/>'),
-    # Varejo (alias food service)
     "varejo":   _svg('<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>'),
-    # Negócios & M&A — handshake / fusão
     "negocio":  _svg('<path d="M11 17l-5-5 5-5"/><path d="M13 7l5 5-5 5"/><line x1="6" y1="12" x2="18" y2="12"/>'),
     "fusoes":   _svg('<path d="M11 17l-5-5 5-5"/><path d="M13 7l5 5-5 5"/><line x1="6" y1="12" x2="18" y2="12"/>'),
-    # Imobiliário — casa
     "imob":     _svg('<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>'),
-    # Esportes — bola futebol
     "esport":   _svg('<circle cx="12" cy="12" r="10"/><path d="M12 2L9 7l6 0z"/><path d="M22 12l-5-3 0 6z"/><path d="M12 22l3-5-6 0z"/><path d="M2 12l5 3 0-6z"/>'),
-    # SPFC / São Paulo Futebol Clube / Seleção (alias)
     "futebol":  _svg('<circle cx="12" cy="12" r="10"/><path d="M12 2L9 7l6 0z"/><path d="M22 12l-5-3 0 6z"/><path d="M12 22l3-5-6 0z"/><path d="M2 12l5 3 0-6z"/>'),
     "spfc":     _svg('<circle cx="12" cy="12" r="10"/><path d="M12 2L9 7l6 0z"/><path d="M22 12l-5-3 0 6z"/><path d="M12 22l3-5-6 0z"/><path d="M2 12l5 3 0-6z"/>'),
     "selecao":  _svg('<circle cx="12" cy="12" r="10"/><path d="M12 2L9 7l6 0z"/><path d="M22 12l-5-3 0 6z"/><path d="M12 22l3-5-6 0z"/><path d="M2 12l5 3 0-6z"/>'),
     "copa":     _svg('<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>'),
-    # Cultura & entretenimento — claquete
     "cultura":  _svg('<polygon points="3 8 21 8 21 20 3 20 3 8"/><polyline points="3 8 5 4 9 4 7 8 11 8 9 4 13 4 11 8 15 8 13 4 17 4 15 8 19 8 17 4 21 4"/>'),
     "entretenimento": _svg('<polygon points="3 8 21 8 21 20 3 20 3 8"/><polyline points="3 8 5 4 9 4 7 8 11 8 9 4 13 4 11 8 15 8 13 4 17 4 15 8 19 8 17 4 21 4"/>'),
-    # Ciência & saúde — DNA helix simplificado
     "ciencia":  _svg('<path d="M4 3h16"/><path d="M4 21h16"/><path d="M4 8c4 3 12 3 16 0"/><path d="M4 16c4-3 12-3 16 0"/>'),
     "saude":    _svg('<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>'),
     "pesquisa": _svg('<path d="M4 3h16"/><path d="M4 21h16"/><path d="M4 8c4 3 12 3 16 0"/><path d="M4 16c4-3 12-3 16 0"/>'),
-    # Sustentabilidade & ESG — folha
     "sustent":  _svg('<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19.2 2.96c.8 3.69 1.32 7.07.36 11.36-1.04 4.69-4.55 7.06-8.56 5.68z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/>'),
     "esg":      _svg('<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19.2 2.96c.8 3.69 1.32 7.07.36 11.36-1.04 4.69-4.55 7.06-8.56 5.68z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/>'),
     "clima":    _svg('<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19.2 2.96c.8 3.69 1.32 7.07.36 11.36-1.04 4.69-4.55 7.06-8.56 5.68z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/>'),
-    # Auto & mobilidade — carro
     "auto":     _svg('<path d="M16 3h-8a2 2 0 0 0-2 2v5h12V5a2 2 0 0 0-2-2z"/><path d="M3 14v3a1 1 0 0 0 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M19 17h2a1 1 0 0 0 1-1v-3l-2-3h-4"/>'),
     "mobilidade": _svg('<path d="M16 3h-8a2 2 0 0 0-2 2v5h12V5a2 2 0 0 0-2-2z"/><path d="M3 14v3a1 1 0 0 0 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M19 17h2a1 1 0 0 0 1-1v-3l-2-3h-4"/>'),
-    # Educação — capelo
     "educacao": _svg('<path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>'),
     "ensino":   _svg('<path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>'),
-    # Trabalho & carreira — maleta
     "trabalho": _svg('<rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>'),
     "carreira": _svg('<rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>'),
     "rh":       _svg('<rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>'),
     "startup":  _svg('<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>'),
     "starups":  _svg('<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>'),
-    # Consumo & marcas — sacola de compras
     "consumo":  _svg('<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>'),
     "marcas":   _svg('<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>'),
     "marketing":_svg('<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>'),
-    # Curiosidades — lâmpada
     "curiosidade": _svg('<path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/>'),
 }
 
-# Default = tesoura (símbolo da marca pra temas personalizados sem match)
 DEFAULT_TOPIC_ICON = _svg(
     '<circle cx="6" cy="6" r="3"/>'
     '<circle cx="6" cy="18" r="3"/>'
@@ -106,11 +66,9 @@ DEFAULT_TOPIC_ICON = _svg(
 
 
 def _get_topic_icon(label):
-    """Acha o ícone do tema. Match parcial em lowercase. Default = tesoura."""
     if not label:
         return DEFAULT_TOPIC_ICON
     label_norm = label.lower().strip()
-    # Remove acentos
     label_norm = "".join(c for c in unicodedata.normalize("NFKD", label_norm)
                         if not unicodedata.combining(c))
     for key, svg in TOPIC_ICONS.items():
@@ -119,31 +77,22 @@ def _get_topic_icon(label):
     return DEFAULT_TOPIC_ICON
 
 
-# ============================================================================
-# PALETA
-# ============================================================================
 COLORS = {
-    "mint":          "#6EE7B7",  # verde-menta dominante
-    "mint_bg_light": "#D1FAE5",  # verde lavado pra fundos
-    "mint_deep":     "#10B981",  # verde-esmeralda saturado (chip, borda)
-    "mint_dark":     "#047857",  # verde-floresta (números, texto verde)
-    "yellow":        "#FFD60A",  # amarelo accent quente
-    "yellow_bg":     "#FFF5BD",  # amarelo lavado pra highlights
-    "ink":           "#0A2540",  # marinho — texto principal
-    "ink_soft":      "#4A5568",  # cinza-azulado pra texto secundário
-    "ink_muted":     "#8A95A8",  # cinza claro pra meta
-    "bg":            "#FFFAF0",  # creme base
-    "bg_2":          "#F4F1EA",  # creme escuro pra sections
-    "line":          "#E8E1D0",  # hairline creme
-    "red":           "#BE1622",  # vermelho — "menos como essa"
+    "mint":          "#6EE7B7",
+    "mint_bg_light": "#D1FAE5",
+    "mint_deep":     "#10B981",
+    "mint_dark":     "#047857",
+    "yellow":        "#FFD60A",
+    "yellow_bg":     "#FFF5BD",
+    "ink":           "#0A2540",
+    "ink_soft":      "#4A5568",
+    "ink_muted":     "#8A95A8",
+    "bg":            "#FFFAF0",
+    "bg_2":          "#F4F1EA",
+    "line":          "#E8E1D0",
+    "red":           "#BE1622",
 }
 
-# Stack tipográfica do Recorte v1 — sistema híbrido
-# - Switzer (display): hero, headings, logo, números, microcopy
-# - General Sans (body): leitura, forms, parágrafos
-# - Gambarino (italic): acentos editoriais, saudação, manchetes editoriais
-# Fontshare CDN: ITF (Indian Type Foundry), gratuita pra uso comercial.
-# Email clients que NÃO carregam web fonts caem nos fallbacks (Georgia / system sans).
 SERIF_FONT = "'Gambarino', Georgia, 'Times New Roman', serif"
 SANS_FONT = "'General Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
 SANS_DISPLAY = "'Switzer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
@@ -155,32 +104,18 @@ def _esc(s):
 
 
 def _safe_url(url, fallback="#"):
-    """Valida que o URL usa schema permitido (http/https/mailto).
-
-    Protege contra:
-    - javascript: URIs (XSS via href/src)
-    - data: URIs (data exfiltration, ataque embarcado)
-    - file:, vbscript:, etc.
-
-    Returns: URL HTML-escaped, ou fallback se schema inválido.
-    """
     if not url or not isinstance(url, str):
         return fallback
     url_clean = url.strip()
     if not url_clean:
         return fallback
-    # Whitelist explícita de schemas
     allowed_prefixes = ('http://', 'https://', 'mailto:')
     if not any(url_clean.lower().startswith(p) for p in allowed_prefixes):
         return fallback
     return html_lib.escape(url_clean)
 
 
-# ============================================================================
-# FAIXA TRICOLOR — elemento de marca recorrente
-# ============================================================================
 def _render_tricolor_band():
-    """Faixa horizontal verde-esmeralda + amarelo + marinho de 4px."""
     return f"""<tr><td height="4" style="line-height:0;font-size:0;padding:0;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
         <td width="33%" height="4" bgcolor="{COLORS['mint_deep']}" style="background:{COLORS['mint_deep']};line-height:0;font-size:0;">&nbsp;</td>
@@ -190,38 +125,22 @@ def _render_tricolor_band():
     </td></tr>"""
 
 
-# ============================================================================
-# WELCOME BLOCK — aparece SÓ no primeiro email do user
-# ============================================================================
 def _render_welcome_block():
-    """
-    Bloco de boas-vindas no topo do welcome email. Após o tricolor band,
-    antes do hero do daily. So usado se is_welcome=True em render_email.
-    """
     yellow_bg = COLORS.get("yellow_bg", "#FFF5BD")
     mint_bg = COLORS.get("mint_bg_light", "#D1FAE5")
     return f"""<tr><td style="padding:32px 36px 0;" class="px-mob">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{yellow_bg};background:linear-gradient(135deg,{yellow_bg} 0%,{mint_bg} 100%);border:2px solid {COLORS['ink']};box-shadow:6px 6px 0 {COLORS['ink']};">
     <tr><td style="padding:36px 32px;" class="px-mob">
-
-      <!-- Badge -->
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:18px;"><tr>
         <td style="background:{COLORS['ink']};border:1.5px solid {COLORS['ink']};padding:5px 12px;font-family:{SANS_FONT};font-size:10px;font-weight:800;letter-spacing:0.22em;text-transform:uppercase;color:{COLORS['mint']};"><span style="color:{COLORS['mint']};">✂︎</span> Sua primeira edição</td>
       </tr></table>
-
-      <!-- Headline -->
-      <h1 style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:38px;line-height:1.05;letter-spacing:-0.03em;color:{COLORS['ink']};margin:0 0 14px 0;">
+      <h1 style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:38px;line-height:1.05;letter-spacing:-0.03em;color:{COLORS['ink']};margin:0 0 14px 0;">
         Você acabou de <em style="font-style:italic;font-weight:700;color:{COLORS['mint_dark']};">cortar</em><br/>
         <span style="background:linear-gradient(180deg,transparent 65%,{COLORS['yellow']} 65%);padding:0 3px;">o ruído.</span>
       </h1>
-
-      <!-- Intro -->
-      <p style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:18px;line-height:1.5;color:{COLORS['ink_soft']};margin:0 0 24px 0;">
+      <p style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:18px;line-height:1.5;color:{COLORS['ink_soft']};margin:0 0 24px 0;">
         Daqui pra frente, notícia é feita <strong style="color:{COLORS['ink']};font-weight:700;">pra você</strong>. Não pra "todo mundo".
       </p>
-
-      <!-- 3 Features (table-based pra compatibilidade Outlook) -->
-      <!-- Textos balanceados (3-5 palavras) + min-height pra alturas iguais cross-client -->
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;table-layout:fixed;">
         <tr>
           <td width="32%" height="118" style="background:#fff;border:1.5px solid {COLORS['ink']};padding:18px 12px;text-align:center;vertical-align:top;mso-line-height-rule:exactly;min-height:118px;" class="feat-mob">
@@ -243,17 +162,12 @@ def _render_welcome_block():
           </td>
         </tr>
       </table>
-
-      <!-- Manifesto compacto -->
       <div style="border-top:1px solid {COLORS['ink']};padding-top:18px;font-family:{SERIF_FONT};font-style:italic;font-size:15px;line-height:1.55;color:{COLORS['ink_soft']};">
         Cada manhã, a gente lê o mundo, cruza com os <strong style="font-style:normal;color:{COLORS['ink']};font-weight:700;">seus temas</strong>, tira o que você filtrou, e monta uma edição que só existe pra <strong style="font-style:normal;color:{COLORS['ink']};font-weight:700;">um leitor</strong> — você.
       </div>
-
     </td></tr>
   </table>
 </td></tr>
-
-<!-- Linha de corte entre welcome e daily - tesoura centralizada SOBRE a linha tracejada -->
 <tr><td style="padding:24px 36px;" class="px-mob">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;">
     <tr>
@@ -269,42 +183,13 @@ def _render_welcome_block():
 </td></tr>"""
 
 
-# ============================================================================
-# TRENDING SECTION
-# ============================================================================
 def _render_news_image(img_url, alt_text, topic_id=None, size_mode="hero"):
-    """Renderiza imagem da notícia OU NADA, com altura FIXA por size_mode.
-
-    Args:
-        size_mode: "hero" (560×315, primeira do tema) ou "thumb" (280×158, demais)
-
-    Filosofia minimalista: imagem ou existe e carrega, ou o slot some
-    silenciosamente. Sem fallback visual (card mint, SVG, emoji grande).
-    Sem placeholder do tipo "?" chamativo.
-
-    Altura FIXA por size_mode (object-fit:cover faz crop centralizado):
-    - hero  → 560×315 (16:9 cinematic), mobile 200px via class .news-img
-    - thumb → 280×158 (16:9 menor), centralizado, mobile 140px via .news-img-thumb
-
-    Quando imagem carrega: crop cinematic centralizado, altura previsível.
-    Quando imagem quebra: slot colapsa (alt vazio, sem ícone broken image).
-    Quando img_url=None/inválida: retorna string vazia.
-
-    Compatibilidade:
-    - Gmail web/iOS/Android ✓
-    - Apple Mail (Mail Privacy Protection): se MPP bloqueia, slot colapsa
-    - Outlook 365 web/desktop ✓ (object-fit:cover suportado)
-    """
-    # Validação rigorosa de URL — só http(s) permitido
     if not img_url or not isinstance(img_url, str):
         return ""
-
     img_url_clean = img_url.strip()
     if not (img_url_clean.lower().startswith('http://') or
             img_url_clean.lower().startswith('https://')):
         return ""
-
-    # Dimensões por modo
     if size_mode == "thumb":
         width = 280
         height = 158
@@ -312,17 +197,14 @@ def _render_news_image(img_url, alt_text, topic_id=None, size_mode="hero"):
         td_style = "padding:0 0 12px 0;font-size:0;line-height:0;text-align:center;"
         table_align = 'align="center"'
         table_width = str(width)
-    else:  # hero (default)
+    else:
         width = 560
         height = 315
         img_class = "news-img"
         td_style = "padding:0 0 12px 0;font-size:0;line-height:0;"
         table_align = ""
         table_width = "100%"
-
     img_url_esc = _esc(img_url_clean)
-    # alt="" suprime o "?" e o ícone de broken image em vários clientes.
-    # height inline + object-fit:cover via class CSS (definidas no <style>).
     return f"""
     <tr><td style="{td_style}">
       <table role="presentation" width="{table_width}" cellpadding="0" cellspacing="0" border="0" {table_align}>
@@ -338,15 +220,12 @@ def _render_news_image(img_url, alt_text, topic_id=None, size_mode="hero"):
 def _render_trending_section(trending, scope_label, email_mode="coado"):
     if not trending:
         return ""
-
     items_html = ""
     for idx, item in enumerate(trending):
-        # Suporta formato NOVO (manchete/resumo/fatos_chave) e formato VELHO (termo/contexto)
         manchete = _esc(item.get("manchete") or item.get("termo", ""))
         resumo_raw = item.get("resumo") or item.get("contexto", "")
         if not manchete or not resumo_raw:
             continue
-
         is_espresso = (email_mode == "espresso")
         if is_espresso:
             import re as _re
@@ -357,21 +236,15 @@ def _render_trending_section(trending, scope_label, email_mode="coado"):
         else:
             resumo_show = resumo_raw
         resumo = _esc(resumo_show)
-
         fatos = item.get("fatos_chave") or []
         if is_espresso:
-            fatos = []  # esconde fatos no modo espresso
-
+            fatos = []
         link = item.get("link", "")
         fonte = item.get("fonte", "")
         buscas = item.get("buscas", "")
-
-        # Chip de "↑ X buscas" se vier
         buscas_html = ""
         if buscas:
             buscas_html = f'<span style="display:inline-block;background:{COLORS["mint"]};color:{COLORS["ink"]};font-family:{SANS_FONT};font-weight:800;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;padding:2px 8px;margin-bottom:10px;">↑ {_esc(buscas)}</span><br/>'
-
-        # Fatos-chave
         fatos_html = ""
         if isinstance(fatos, list) and fatos:
             bullets = "".join(
@@ -385,39 +258,33 @@ def _render_trending_section(trending, scope_label, email_mode="coado"):
                 {bullets}
               </table>
             </td></tr>'''
-
-        # Chip de idioma
         lang_chip = ""
         lang = (item.get("lang") or "").lower()
         lang_map = {"en":"🇺🇸 EN","fr":"🇫🇷 FR","de":"🇩🇪 DE","es":"🇪🇸 ES","it":"🇮🇹 IT","ja":"🇯🇵 JA","zh":"🇨🇳 ZH","ko":"🇰🇷 KO"}
         if lang in lang_map:
             lang_chip = f'<span style="display:inline-block;background:{COLORS["bg_2"]};color:{COLORS["ink_muted"]};font-family:{SANS_FONT};font-weight:700;font-size:10px;letter-spacing:0.06em;padding:2px 7px;margin-left:8px;border:1px solid {COLORS["line"]};">{lang_map[lang]}</span>'
-
         link_html = ""
         if link:
             fonte_suffix = ""
             if fonte:
                 fonte_suffix = f'<span style="color:{COLORS["ink"]};font-weight:800;">&nbsp;·&nbsp;{_esc(fonte)}</span>'
             link_html = f'<tr><td style="font-family:{SANS_FONT};font-size:12px;color:{COLORS["ink_muted"]};padding-bottom:8px;"><a href="{_safe_url(link)}" style="color:{COLORS["ink"]};text-decoration:none;font-weight:800;border-bottom:2.5px solid {COLORS["mint_deep"]};padding-bottom:1px;margin-right:6px;">Ler matéria →</a>{fonte_suffix}{lang_chip}</td></tr>'
-
         items_html += f"""
         <tr><td style="padding:0 0 28px 0;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
             {_render_news_image(item.get('img_url'), manchete, topic_id='trending') if item.get('img_url') else ''}
-            <tr><td>{buscas_html}<div style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:22px;line-height:1.22;color:{COLORS['ink']};letter-spacing:-0.015em;margin-bottom:10px;" class="dark-text">{manchete}</div></td></tr>
+            <tr><td>{buscas_html}<div style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:22px;line-height:1.22;color:{COLORS['ink']};letter-spacing:-0.015em;margin-bottom:10px;" class="dark-text">{manchete}</div></td></tr>
             <tr><td style="font-family:{SANS_FONT};font-size:15px;line-height:1.55;color:{COLORS['ink_soft']};padding-bottom:14px;" class="dark-text-soft">{resumo}</td></tr>
             {fatos_html}
             {link_html}
           </table>
         </td></tr>"""
-
     return f"""
     <tr><td style="padding:32px 36px 8px 36px;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:8px;border-bottom:4px solid {COLORS['bg_2']};">
         <tr><td style="padding:0 0 22px 0;">
           <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
             <td style="background:{COLORS['mint_dark']};padding:5px 12px;font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;color:{COLORS['mint']};">🔥 Em alta hoje</td>
-            <!-- Removido: scope_label (Brasil + Mundo / 🇧🇷 + 🌍) — feedback de visual menos poluído -->
           </tr></table>
         </td></tr>
         {items_html}
@@ -426,7 +293,6 @@ def _render_trending_section(trending, scope_label, email_mode="coado"):
 
 
 def _render_daily_recap(recap_text):
-    """Bloco 'Seu dia em 60 segundos' — entre hero e Em Alta."""
     if not recap_text or not recap_text.strip():
         return ""
     return f"""
@@ -440,11 +306,7 @@ def _render_daily_recap(recap_text):
     </td></tr>"""
 
 
-# ============================================================================
-# NEWS SECTIONS
-# ============================================================================
 def _slugify(text):
-    """Slug simples pra usar como id de âncora."""
     s = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
     s = re.sub(r"[^a-zA-Z0-9]+", "-", s).strip("-").lower()
     return s or "tema"
@@ -453,8 +315,23 @@ def _slugify(text):
 def _render_news_sections(sections, email_mode="coado"):
     out = ""
     for idx, sec in enumerate(sections):
+        # ====================================================================
+        # GUARD: pula temas SEM NENHUMA notícia válida (com manchete + resumo).
+        # ====================================================================
+        # Sem isso, o cabeçalho do tema (nome, ícone, separador tesoura) ainda
+        # renderiza mesmo com 0 notícias renderizáveis, deixando "esqueleto vazio".
+        # Fix do bug 20/05/2026: temas SPFC e Tech & IA aparecendo vazios no email
+        # (causa: todas as notícias do tema foram puladas no for interno por falta
+        # de manchete/resumo, mas o cabeçalho do tema seguia sendo renderizado).
+        valid_news = [
+            n for n in sec.get("noticias", [])
+            if n.get("manchete") and n.get("resumo")
+        ]
+        if not valid_news:
+            continue
+        # ====================================================================
+
         slug = _slugify(sec.get("topic", f"tema-{idx}"))
-        # Removido por feedback: country_chip (🇧🇷 + 🌍) deixava visual poluído
         country_chip = ""
 
         pause_btn = ""
@@ -465,21 +342,14 @@ def _render_news_sections(sections, email_mode="coado"):
 
         noticias_html = ""
         rendered_count = 0
-        # TODAS as notícias COM imagem renderizam no MESMO tamanho (hero 560×315, mobile 200px).
-        # Tamanho único — desktop e mobile. Notícias sem imagem: slot colapsa silenciosamente.
         for n in sec["noticias"]:
-            # Defensivo: pula itens sem campos mínimos (Claude às vezes devolve item incompleto)
             if not n.get("manchete") or not n.get("resumo"):
                 continue
             has_image = bool(n.get("img_url"))
             rendered_count += 1
-
             is_espresso = (email_mode == "espresso")
-
-            # Resumo: completo no coado, 1ª frase no espresso
             resumo_full = n.get("resumo", "").strip()
             if is_espresso:
-                # Pega 1ª frase (ou primeiros ~120 chars se não tiver pontuação)
                 import re as _re
                 m = _re.split(r'(?<=[.!?])\s+', resumo_full, maxsplit=1)
                 resumo_display = m[0] if m else resumo_full
@@ -487,8 +357,6 @@ def _render_news_sections(sections, email_mode="coado"):
                     resumo_display = resumo_display[:177].rstrip() + "..."
             else:
                 resumo_display = resumo_full
-
-            # Fatos-chave (bullets) — só no Café Coado
             fatos_html = ""
             if not is_espresso and n.get("fatos_chave"):
                 fatos = n["fatos_chave"] if isinstance(n["fatos_chave"], list) else []
@@ -504,8 +372,6 @@ def _render_news_sections(sections, email_mode="coado"):
                         {bullets}
                       </table>
                     </td></tr>"""
-
-            # Feedback +/-
             fb_btns = ""
             if n.get("fb_more_url") and n.get("fb_less_url"):
                 fb_btns = f"""<tr><td style="padding-top:14px;border-top:1px solid {COLORS['line']};font-family:{SANS_FONT};font-size:11px;font-weight:700;">
@@ -513,8 +379,6 @@ def _render_news_sections(sections, email_mode="coado"):
                   &nbsp;&nbsp;
                   <a href="{_safe_url(n['fb_less_url'])}" style="color:{COLORS['red']};text-decoration:none;">— menos como essa</a>
                 </td></tr>"""
-
-            # Chip de viés político (apenas em notícias políticas)
             bias_chips = ""
             pol_bias = (n.get("pol_bias") or "").lower().strip()
             POL_LABELS = {
@@ -526,8 +390,6 @@ def _render_news_sections(sections, email_mode="coado"):
             if pol_bias in POL_LABELS:
                 label, txt_color = POL_LABELS[pol_bias]
                 bias_chips = f'<span style="display:inline-block;background:{COLORS["bg_2"]};border:1px solid {COLORS["line"]};color:{txt_color};font-family:{SANS_FONT};font-weight:800;font-size:10px;letter-spacing:0.04em;padding:3px 9px;margin-right:6px;">⚖ {label}</span>'
-
-            # Chip de idioma — só aparece se NÃO for PT (default assumido)
             lang_chip = ""
             lang = (n.get("lang") or "").lower()
             lang_map = {
@@ -537,12 +399,11 @@ def _render_news_sections(sections, email_mode="coado"):
             }
             if lang in lang_map:
                 lang_chip = f'<span style="display:inline-block;background:{COLORS["bg_2"]};color:{COLORS["ink_muted"]};font-family:{SANS_FONT};font-weight:700;font-size:10px;letter-spacing:0.06em;padding:2px 7px;margin-left:8px;border:1px solid {COLORS["line"]};">{lang_map[lang]}</span>'
-
             noticias_html += f"""
             <tr><td style="padding:0 0 32px 0;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 {_render_news_image(n.get('img_url'), n.get('manchete',''), topic_id=sec.get('topic_id') or sec.get('topic'), size_mode='hero') if has_image else ''}
-                <tr><td style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:{'22' if is_espresso else '26'}px;line-height:1.18;color:{COLORS['ink']};letter-spacing:-0.02em;padding-bottom:{'8' if is_espresso else '14'}px;" class="dark-text">{_esc(n.get('manchete',''))}</td></tr>
+                <tr><td style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:{'22' if is_espresso else '26'}px;line-height:1.18;color:{COLORS['ink']};letter-spacing:-0.02em;padding-bottom:{'8' if is_espresso else '14'}px;" class="dark-text">{_esc(n.get('manchete',''))}</td></tr>
                 <tr><td style="font-family:{SANS_FONT};font-size:{'14' if is_espresso else '16'}px;line-height:1.6;color:{COLORS['ink_soft']};padding-bottom:{'10' if is_espresso else '16'}px;" class="dark-text-soft">{_esc(resumo_display)}</td></tr>
                 {fatos_html}
                 <tr><td style="font-family:{SANS_FONT};font-size:12px;color:{COLORS['ink_muted']};padding-bottom:8px;" class="dark-text-muted">
@@ -555,11 +416,16 @@ def _render_news_sections(sections, email_mode="coado"):
               </table>
             </td></tr>"""
 
+        # Defensivo extra: se mesmo após o for nada foi renderizado, pula o tema.
+        # (não deveria acontecer porque temos o guard `valid_news` no topo, mas
+        # garantia dupla pra evitar "esqueleto vazio" sob qualquer circunstância.)
+        if rendered_count == 0:
+            continue
+
         out += f"""
         <tr><td style="padding:0 36px;" id="tema-{slug}">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:8px;border-bottom:4px solid {COLORS['bg_2']};">
             <tr><td style="padding:28px 0 4px 0;">
-              <!-- Linha de corte tracejada + tesoura — separador editorial entre capítulos -->
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;">
                 <tr>
                   <td valign="middle" style="padding-top:15px;line-height:0;font-size:0;">
@@ -591,14 +457,8 @@ def _render_news_sections(sections, email_mode="coado"):
 
 
 def _render_toc(trending, sections, position="top"):
-    """
-    Índice navegável. position='top' (estilo destaque verde-menta) ou 'bottom' (compacto, marinho).
-    Top: chips brancos com contagem.
-    Bottom: chips translúcidos sobre marinho.
-    """
     if not trending and not sections:
         return ""
-
     if position == "top":
         return _render_toc_top(trending, sections)
     return _render_toc_bottom(trending, sections)
@@ -624,7 +484,6 @@ def _render_toc_top(trending, sections):
             f'text-transform:uppercase;margin:3px 5px 3px 0;border:2px solid {COLORS["ink"]};">'
             f'{_esc(label)}{count_html}</a>'
         )
-
     chips_html = "".join(chips)
     return f"""
         <tr><td style="padding:0 36px 28px 36px;" id="topo">
@@ -638,7 +497,6 @@ def _render_toc_top(trending, sections):
 
 
 def _render_toc_bottom(trending, sections):
-    """TOC compacto no rodapé, fundo marinho, chips translúcidos."""
     chips = []
     if trending:
         chips.append(
@@ -656,7 +514,6 @@ def _render_toc_bottom(trending, sections):
             f'text-transform:uppercase;margin:3px 4px 3px 0;border:1.5px solid rgba(255,255,255,0.4);">'
             f'{_esc(label)}</a>'
         )
-
     chips_html = "".join(chips)
     return f"""
         <tr><td style="padding:0 36px 28px 36px;">
@@ -669,9 +526,6 @@ def _render_toc_bottom(trending, sections):
         </td></tr>"""
 
 
-# ============================================================================
-# MAIN RENDER
-# ============================================================================
 def render_email(user_name, date_obj, trending=None, trending_label="",
                  sections=None, manage_url="#", tts_url=None, tts_duration=None,
                  user_id=None, daily_recap=None,
@@ -682,25 +536,20 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
                  unsub_url="#",
                  edition_id=None,
                  share_base_url="https://recorte.news/r"):
-    """
-    Renderiza o HTML completo do email diário.
-
-    Args:
-        user_name: nome do usuário (usa primeiro nome na saudação)
-        date_obj: datetime do envio (em BRT, do servidor)
-        user_tz: timezone IANA do user (ex: "America/Sao_Paulo"). Usado pra saudação no welcome.
-        saudacao_mode: "auto" (calcula pela hora local do user) | "manha" | "domingo" | "sabado" (alias) | "neutro"
-        filtered_items_count: número de filtros do user pra exibir no rodapé
-        is_welcome: se True, injeta bloco de boas-vindas no topo (antes do hero do daily).
-                    Esse bloco aparece SÓ no primeiro email do user.
-        unsub_url: URL assinada pra cancelar inscrição (1-click). Vai no footer + header List-Unsubscribe.
-        edition_id: UUID da edição (alimenta share buttons /r/{id} no rodapé).
-                    Se None, share buttons apontam pra recorte.news (home).
-        share_base_url: base URL pro web preview público (default https://recorte.news/r).
-        ...
-    """
     trending = trending or []
     sections = sections or []
+
+    # ====================================================================
+    # DEFENSIVO: filtra sections sem nenhuma notícia válida ANTES do render.
+    # Camada de segurança caso prepare_daily.py / daily_digest.py deixem
+    # passar tema com noticias=[] ou só com itens incompletos.
+    # ====================================================================
+    sections = [
+        s for s in sections
+        if any(n.get("manchete") and n.get("resumo") for n in s.get("noticias", []))
+    ]
+    # ====================================================================
+
     first_name = user_name.split()[0] if user_name else "leitor"
     email_mode = (email_mode or "coado").lower()
     if email_mode not in ("coado", "espresso"):
@@ -714,36 +563,29 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     date_short = date_obj.strftime("%d/%m/%Y")
     issue_num = f"{date_obj.timetuple().tm_yday}"
 
-    # Saudação inteligente:
-    # - "auto": calcula pela hora LOCAL do user (usando user_tz). Pra welcome (chega em horários variáveis).
-    # - "manha": sempre "Bom dia". Pro daily (sempre 6h BRT).
-    # - "domingo": "Bom domingo" — pro weekly digest (era "sabado", mantido como alias).
-    # - "neutro": "Oi" — fallback.
     if saudacao_mode == "manha":
         saudacao = "Bom dia"
     elif saudacao_mode in ("domingo", "sabado"):
-        # "sabado" mantido como alias por compat — weekly agora é domingo
         saudacao = "Bom domingo"
     elif saudacao_mode == "neutro":
         saudacao = "Oi"
-    else:  # auto: hora local do user
+    else:
         try:
             from zoneinfo import ZoneInfo
             local_dt = date_obj.astimezone(ZoneInfo(user_tz)) if date_obj.tzinfo else date_obj
             hour = local_dt.hour
         except Exception:
-            hour = date_obj.hour  # fallback
+            hour = date_obj.hour
         if 5 <= hour < 12:
             saudacao = "Bom dia"
         elif 12 <= hour < 18:
             saudacao = "Boa tarde"
         elif 18 <= hour < 24:
             saudacao = "Boa noite"
-        else:  # 0-4
+        else:
             saudacao = "Olá"
 
     total_noticias = sum(len(s["noticias"]) for s in sections) + len(trending)
-    # intro_count: usado SÓ no H1 do hero — mostra apenas notícias (mais limpo)
     if total_noticias:
         intro_count = f"{total_noticias} notícia{'s' if total_noticias != 1 else ''}"
     else:
@@ -752,12 +594,9 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     stat_noticias = total_noticias or 0
     stat_trending = len(trending)
     stat_temas = len(sections)
-    # Minutos: ~10s/manchete espresso (resumida), ~20s/manchete coado (análise completa)
-    # total_noticias já inclui trending — NÃO somar de novo
     secs_each = 10 if email_mode == "espresso" else 20
     stat_minutos = max(2, round(stat_noticias * secs_each / 60))
 
-    # Textos do hero — variam entre daily e weekly
     if weekly_mode:
         hero_h1 = f'<span style="background:linear-gradient(180deg,transparent 60%,{COLORS["mint"]} 60%);padding:0 2px;">Sua semana</span><br/>em {intro_count}.'
         hero_subtitle = "Sua semana inteira, recortada pra você. Pega o café — temos um tempinho."
@@ -767,7 +606,6 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
         hero_subtitle = "A cada toque em ＋ ou —, a gente entende melhor o que importa pra você. Bom café."
         mode_badge = "⚡ ESPRESSO" if email_mode == "espresso" else "☕ CAFÉ COADO"
 
-    # TTS player (opcional)
     tts_html = ""
     if tts_url:
         duration_str = tts_duration or "—"
@@ -780,7 +618,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
               </a>
             </td>
             <td valign="middle">
-              <div style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:14px;color:{COLORS['ink']};letter-spacing:-0.005em;">Ouça esta edição</div>
+              <div style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:14px;color:{COLORS['ink']};letter-spacing:-0.005em;">Ouça esta edição</div>
               <div style="font-family:{SANS_FONT};font-size:11px;color:{COLORS['ink']};opacity:0.7;font-weight:500;">narrada pra você</div>
             </td>
             <td valign="middle" align="right" style="font-family:{MONO_FONT};font-size:12px;color:{COLORS['ink']};font-weight:600;background:rgba(10,37,64,0.1);padding:4px 8px;">{_esc(duration_str)}</td>
@@ -791,7 +629,6 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     sections_html = _render_news_sections(sections, email_mode=email_mode)
     recap_html = _render_daily_recap(daily_recap)
 
-    # Quote do dia — pequeno bloco editorial entre o hero e o recap
     quote_html = ""
     if daily_quote:
         author_html = ""
@@ -812,12 +649,10 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     manage_link = manage_url
     unsub_link = unsub_url or "#"
 
-    # Share URL: pra welcome (sem edition_id), aponta pra home; pra daily/weekly, aponta pro /r/{id}
     if edition_id:
         share_url = f"{share_base_url.rstrip('/')}/{edition_id}"
     else:
         share_url = "https://recorte.news"
-    # Texto pré-preenchido (url-encoded). WhatsApp/X aceitam %20 e similares.
     from urllib.parse import quote as _q
     if weekly_mode:
         share_msg = f"✂ Minha semana, recortada: 7 dias do mundo lidos pra mim, numa edição única de domingo. É o Recorte:"
@@ -828,8 +663,6 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     share_wa_text = _q(f"{share_msg} {share_url}")
     share_x_text = _q(f"{share_msg} {share_url}")
 
-    # Fontshare CDN (ITF): Switzer, General Sans, Gambarino. Email clients que
-    # bloquearem web fonts caem nos fallbacks definidos em SERIF_FONT/SANS_FONT/SANS_DISPLAY.
     web_fonts_link = '<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,700,800,900&f[]=general-sans@400,500,600,700&f[]=gambarino@400i,400&display=swap">'
 
     return f"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -842,7 +675,6 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
 {web_fonts_link}
 <!--[if mso]><style type="text/css">body, table, td {{font-family: Georgia, 'Times New Roman', serif !important;}} .mso-sans {{font-family: Arial, Helvetica, sans-serif !important;}}</style><![endif]-->
 <style>
-  /* Responsivo mobile (≤600px) */
   @media only screen and (max-width:600px){{
     .container {{ width:100% !important; max-width:100% !important; }}
     .px-mob {{ padding-left:20px !important; padding-right:20px !important; }}
@@ -851,31 +683,22 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     .news-img {{ width:100% !important; height:200px !important; max-height:200px !important; object-fit:cover !important; }}
     .news-img-thumb {{ width:100% !important; max-width:280px !important; height:140px !important; max-height:140px !important; object-fit:cover !important; }}
     .share-btn {{ display:block !important; width:100% !important; margin:6px 0 !important; }}
-    /* 3 caixas welcome: força altura igual + reduz fontes pra não quebrar palavras */
     .feat-mob {{ height:130px !important; min-height:130px !important; padding:14px 6px !important; vertical-align:top !important; }}
     .feat-mob .feat-emoji {{ font-size:22px !important; margin-bottom:6px !important; }}
     .feat-mob .feat-title {{ font-size:9.5px !important; letter-spacing:0.04em !important; line-height:1.15 !important; }}
     .feat-mob .feat-desc {{ font-size:10.5px !important; line-height:1.25 !important; }}
   }}
-  /* Force light mode — email sempre renderiza claro independente do tema do device.
-     Estratégia adotada por NYT, Substack, Morning Brew, Axios.
-     Garante consistência cream + mint + navy + yellow em todos os clientes,
-     incluindo Gmail Android (que NÃO respeita prefers-color-scheme).
-     "Ver mensagem inteira" também renderiza igual ao desktop. */
   :root {{
     color-scheme: light only;
     supported-color-schemes: light;
   }}
-  /* iOS Mail 13+: força cores a serem mantidas (evita inversion automática) */
   u + .body a {{ color: inherit; }}
-  /* Imagem da notícia */
   .news-img {{ display:block; width:100%; max-width:560px; height:315px; object-fit:cover; border:0; border-radius:8px; }}
   .news-img-thumb {{ display:block; width:100%; max-width:280px; height:158px; object-fit:cover; border:0; border-radius:8px; margin:0 auto; }}
 </style>
 </head>
 <body bgcolor="{COLORS['bg']}" style="margin:0;padding:0;background:{COLORS['bg']};font-family:{SANS_FONT};-webkit-font-smoothing:antialiased;" class="body">
 
-<!-- preheader: visível no preview do inbox -->
 <div style="display:none;font-size:1px;color:{COLORS['bg']};line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
   {saudacao}, {_esc(first_name)}. {"Sua semana em " + intro_count + " — antes do café." if weekly_mode else "Hoje em " + intro_count + " só pra você — em 5 minutos."}
 </div>
@@ -884,7 +707,6 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
   <tr><td align="center" style="padding:24px 16px;">
     <table role="presentation" class="container" width="640" cellpadding="0" cellspacing="0" border="0" bgcolor="{COLORS['bg']}" style="max-width:640px;background:{COLORS['bg']};">
 
-      <!-- MASTHEAD verde-menta -->
       <tr><td bgcolor="{COLORS['mint']}" style="background:{COLORS['mint']};padding:26px 36px 22px;" class="px-mob">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
           <td valign="middle">
@@ -908,32 +730,30 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
 
       {tts_html}
 
-      <!-- HERO -->
       <tr><td style="padding:44px 36px 28px;" class="px-mob">
         <div style="font-family:{SERIF_FONT};font-style:italic;font-size:15px;color:{COLORS['mint_dark']};margin-bottom:12px;">— {saudacao}, {_esc(first_name)}.</div>
-        <h1 class="hero-h1" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:44px;line-height:1.0;letter-spacing:-0.04em;color:{COLORS['ink']};margin:0 0 18px 0;">{hero_h1}</h1>
+        <h1 class="hero-h1" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:44px;line-height:1.0;letter-spacing:-0.04em;color:{COLORS['ink']};margin:0 0 18px 0;">{hero_h1}</h1>
         <p style="font-family:{SANS_FONT};font-size:16px;line-height:1.55;color:{COLORS['ink_soft']};margin:0 0 24px 0;max-width:520px;">{hero_subtitle}</p>
 
-        <!-- Quick stats bar -->
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid {COLORS['line']};border-bottom:1px solid {COLORS['line']};">
           <tr>
             <td align="center" style="padding:14px 4px;">
-              <div class="stat-num" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:24px;color:{COLORS['mint_dark']};line-height:1;letter-spacing:-0.02em;">{stat_noticias}</div>
+              <div class="stat-num" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:24px;color:{COLORS['mint_dark']};line-height:1;letter-spacing:-0.02em;">{stat_noticias}</div>
               <div style="font-family:{SANS_FONT};font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:{COLORS['ink_muted']};margin-top:5px;">Notícias</div>
             </td>
             <td width="1" style="background:{COLORS['line']};">&nbsp;</td>
             <td align="center" style="padding:14px 4px;">
-              <div class="stat-num" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:24px;color:{COLORS['mint_dark']};line-height:1;letter-spacing:-0.02em;">{stat_trending}</div>
+              <div class="stat-num" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:24px;color:{COLORS['mint_dark']};line-height:1;letter-spacing:-0.02em;">{stat_trending}</div>
               <div style="font-family:{SANS_FONT};font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:{COLORS['ink_muted']};margin-top:5px;">Em alta</div>
             </td>
             <td width="1" style="background:{COLORS['line']};">&nbsp;</td>
             <td align="center" style="padding:14px 4px;">
-              <div class="stat-num" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:24px;color:{COLORS['mint_dark']};line-height:1;letter-spacing:-0.02em;">{stat_temas}</div>
+              <div class="stat-num" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:24px;color:{COLORS['mint_dark']};line-height:1;letter-spacing:-0.02em;">{stat_temas}</div>
               <div style="font-family:{SANS_FONT};font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:{COLORS['ink_muted']};margin-top:5px;">Temas seus</div>
             </td>
             <td width="1" style="background:{COLORS['line']};">&nbsp;</td>
             <td align="center" style="padding:14px 4px;">
-              <div class="stat-num" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-style:italic;font-size:24px;color:{COLORS['mint_dark']};line-height:1;letter-spacing:-0.02em;">{stat_minutos}'</div>
+              <div class="stat-num" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:24px;color:{COLORS['mint_dark']};line-height:1;letter-spacing:-0.02em;">{stat_minutos}'</div>
               <div style="font-family:{SANS_FONT};font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:{COLORS['ink_muted']};margin-top:5px;">Leitura</div>
             </td>
           </tr>
@@ -947,7 +767,6 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
 
       {_render_tricolor_band()}
 
-      <!-- SIGN OFF verde-menta -->
       <tr><td bgcolor="{COLORS['mint']}" style="background:{COLORS['mint']};padding:36px 36px 30px;text-align:center;" class="px-mob">
         <div style="font-family:{SERIF_FONT};font-style:italic;font-size:19px;line-height:1.5;color:{COLORS['ink']};margin-bottom:20px;padding:0 20px;">
           <span style="color:{COLORS['mint_dark']};font-size:24px;font-weight:700;vertical-align:-8px;">“</span>A notícia certa, na hora certa, é o melhor café da manhã. ☕<span style="color:{COLORS['mint_dark']};font-size:24px;font-weight:700;vertical-align:-8px;">”</span>
@@ -955,7 +774,6 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
         <div style="font-family:{SANS_FONT};font-weight:800;font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:{COLORS['mint_dark']};">— Recorte ✂ &nbsp;·&nbsp; até amanhã às 6h</div>
       </td></tr>
 
-      <!-- COMPARTILHAR -->
       <tr><td style="padding:24px 36px 8px 36px;text-align:center;" class="px-mob">
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;">
           <tr><td align="center" style="padding-bottom:12px;font-family:{SERIF_FONT};font-style:italic;font-size:15px;color:{COLORS['ink_soft']};" class="dark-text-soft">
@@ -986,7 +804,6 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
         </table>
       </td></tr>
 
-      <!-- FOOTER -->
       <tr><td bgcolor="{COLORS['bg_2']}" style="background:{COLORS['bg_2']};padding:28px 36px;text-align:center;" class="px-mob">
         <div style="font-family:{SANS_FONT};font-size:11px;color:{COLORS['ink_muted']};line-height:1.7;" class="dark-text-muted">
           Você está recebendo porque se cadastrou em <strong style="color:{COLORS['ink']};" class="dark-text">Recorte ✂</strong>.
