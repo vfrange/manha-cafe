@@ -7,15 +7,6 @@ salva o HTML pronto na fila `email_queue` com status='pending'.
 
 O dispatcher (dispatch_emails.py) lê essa fila no horário exato
 e dispara via Resend.
-
-Vantagens:
-- Email chega às 6h00 exatas (não 6h15 ou 8h)
-- Tempo de coleta+IA não afeta horário de envio (buffer de 2h)
-- Se falhar, dispatcher pode tentar de novo
-- Cron externo pode disparar (não depende só do GitHub Actions)
-
-Roda em paralelo (5 workers). Idempotente: se já existe email enfileirado
-pra (user, hoje, daily), não cria de novo.
 """
 
 import os
@@ -56,7 +47,6 @@ def already_queued(user_id, scheduled_for, kind="daily"):
     rows = res.data or []
     if not rows:
         return None
-    # se já tem qualquer registro (pending, sent, sending, failed), retorna ele
     return rows[0]
 
 
@@ -77,7 +67,6 @@ def enqueue_email(user_id, kind, scheduled_for, subject, html, edition_id=None):
         supabase.table("email_queue").insert(row).execute()
         return True
     except Exception as e:
-        # se for duplicate key, é ok (algum outro worker enfileirou primeiro)
         if "duplicate" in str(e).lower() or "23505" in str(e):
             log(f"  ⚠ já enfileirado (race condition), pulando user_id={user_id}")
             return False
@@ -94,15 +83,11 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
     kind = "weekly" if weekly else "daily"
 
     # SKIP do weekly: user que recebeu welcome HOJE não deve receber weekly no mesmo dia.
-    # Justificativa: welcome já entregou a 1a edição; weekly retrospectivo dos últimos 7 dias
-    # não faz sentido pra quem acabou de cadastrar. Próximo weekly: sábado seguinte.
     if weekly:
         welcome_at = user.get("welcome_sent_at")
         if welcome_at:
             try:
-                # Aceita formato ISO com ou sem Z
                 w_dt = datetime.fromisoformat(welcome_at.replace("Z", "+00:00"))
-                # Converte pra BRT pra comparar com scheduled_for (que é data BRT)
                 w_brt_date = w_dt.astimezone(now_brt.tzinfo).date().isoformat()
                 if w_brt_date == scheduled_for:
                     log(f"  ⏭ {email}: welcome foi hoje ({w_brt_date}), pulando weekly")
@@ -128,12 +113,13 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
     if filtered_items:
         log(f"  filtros do user: {len(filtered_items)} itens")
 
-    # Pré-busca os labels dos temas do user (pra Em Alta híbrido)
     _topics_pre = supabase.table("topics").select("label").eq("user_id", uid).execute()
     user_topic_labels = [t["label"] for t in (_topics_pre.data or [])]
-
-    # Conta temas únicos pra calcular budget elástico (Em Alta + por_tema)
     unique_topic_count = len({lbl for lbl in user_topic_labels}) if user_topic_labels else 0
+
+    # PATCH FRESCOR: janela dinâmica por dia da semana (igual ao daily_digest.py)
+    stale_window_h = dd.get_stale_window_hours(weekly, now_brt)
+    log(f"  📅 janela frescor: {stale_window_h}h ({'weekly' if weekly else ('segunda' if now_brt.weekday() == 0 else 'daily')})")
 
     # Trending
     trending = []
@@ -142,8 +128,6 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
         raw_scope = user.get("trending_scope") or "br"
         scopes = [s.strip() for s in raw_scope.split(",") if s.strip()] or ["br"]
         labels = []
-        # Budget ELÁSTICO: preenche até atingir cap total (28 daily / 35 weekly).
-        # Calcula baseado em quantos temas o user tem (mais temas → menos Em Alta).
         if weekly:
             TOTAL_TRENDING_BUDGET = dd.weekly_trending_budget(unique_topic_count)
         else:
@@ -176,9 +160,7 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
                 trending.extend(curated)
         trending_label = " + ".join(labels) if labels else ""
 
-        # Cap global final: TOTAL_TRENDING_BUDGET itens no Em Alta (independente de quantos scopes)
         if len(trending) > TOTAL_TRENDING_BUDGET:
-            # Round-robin entre scopes pra manter balanço
             by_scope_origin = {}
             for item in trending:
                 origin = item.get("scope_origin", "")
@@ -196,8 +178,6 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
     topics = topics_res.data or []
     fallback_country = "GLOBAL" if default_country == "INTL" else default_country
 
-    # No weekly, mais notícias por tema. Adaptativo: até 7 temas únicos → 4 por tema; acima → 3.
-    # news_per_topic dinâmico baseado em qtd de temas (escadinha)
     unique_labels = {t["label"] for t in topics}
     topic_count_for_scaling = len(unique_labels)
     if weekly:
@@ -205,16 +185,20 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
     else:
         news_per_topic = dd.daily_news_per_topic(topic_count_for_scaling)
 
+    is_welcome = not user.get("welcome_sent")
+
     by_label = {}
     for t in topics:
         if dd.is_topic_paused(t["label"], paused, datetime.now(timezone.utc)):
             continue
         country = t.get("country") or fallback_country
         category = t.get("category")
+        # PATCH FRESCOR: passa max_age_hours pro fetch (igual ao daily_digest.py)
         news = dd.fetch_all_sources(
             t["query"], country, category=category,
             label=t["label"], source_type=t.get("source", "curated"),
             weekly=weekly,
+            max_age_hours=stale_window_h,
         )
         if not news:
             continue
@@ -244,8 +228,7 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
         group["news"] = deduped
         topics_with_news.append(group)
 
-    # URL VALIDATION: HEAD check em URLs ANTES de mandar pro Claude (descarta links 4xx/5xx).
-    # SKIP Google News (sempre retorna 200/redirect — validação real só após resolve_gnews_urls).
+    # URL VALIDATION
     try:
         from sources.utils import filter_valid_urls
         for group in topics_with_news:
@@ -260,6 +243,50 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
     except Exception as e:
         log(f"  ⚠ URL validation falhou (não bloqueia): {e}")
 
+    # PATCH FRESCOR: resolve gnews PRE-CURATE — decodifica URLs ANTES do Claude curar
+    try:
+        gnews_targets = []
+        for group in topics_with_news:
+            for n in group["news"]:
+                if "news.google.com" in (n.get("link") or ""):
+                    gnews_targets.append(n)
+        if gnews_targets:
+            log(f"  🔓 pré-decodificando {len(gnews_targets)} URL(s) Google News antes do Claude curar...")
+            def _resolve_pre(item):
+                url = item.get("link", "")
+                new_url = dd._try_decode_gnews_url(url)
+                if new_url != url:
+                    item["link"] = new_url
+                    return True
+                return False
+            resolved_pre = 0
+            with ThreadPoolExecutor(max_workers=6) as ex:
+                results = list(ex.map(_resolve_pre, gnews_targets))
+                resolved_pre = sum(1 for r in results if r)
+            log(f"  ✓ {resolved_pre}/{len(gnews_targets)} URLs Google News decodificadas pré-curate")
+            removed_pre = 0
+            for group in topics_with_news:
+                before = len(group["news"])
+                group["news"] = [n for n in group["news"]
+                                 if "news.google.com" not in (n.get("link") or "")]
+                removed_pre += before - len(group["news"])
+            if removed_pre > 0:
+                log(f"  🚫 removidas {removed_pre} notícia(s) com wrapper Gnews não decodificado (antes do Claude)")
+    except Exception as e:
+        log(f"  ⚠ resolve gnews pré-curate falhou (não bloqueia): {e}")
+
+    # PATCH DEDUP 5D: remove notícias já enviadas pro user nos últimos 5 dias
+    try:
+        sent_links, sent_title_sigs = dd._load_recently_sent_signatures(uid, days=5)
+        if sent_links or sent_title_sigs:
+            removed_5d = dd._filter_already_sent(topics_with_news, sent_links, sent_title_sigs)
+            if removed_5d > 0:
+                log(f"  🔁 dedup 5d: removidas {removed_5d} notícia(s) já enviada(s) recentemente "
+                    f"(banco: {len(sent_links)} URLs + {len(sent_title_sigs)} signatures)")
+            topics_with_news = [g for g in topics_with_news if g.get("news")]
+    except Exception as e:
+        log(f"  ⚠ dedup 5d cross-edição falhou (não bloqueia): {e}")
+
     # Ordena: customizados primeiro, depois curados
     topics_with_news.sort(key=lambda g: 0 if g.get("source") == "custom" else 1)
 
@@ -270,15 +297,20 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
             filtered_items=filtered_items,
             weekly=weekly,
             news_per_topic=news_per_topic,
+            is_welcome=is_welcome,
         )
         label_meta = {t["label"]: {"topic_id": t["topic_id"], "scopes": t["scopes"]} for t in topics_with_news}
         link_to_lang = {}
+        link_to_img = {}
         for t in topics_with_news:
             for n in t.get("news", []):
                 ln = n.get("link", "")
                 lg = (n.get("lang") or "").lower()
                 if ln and lg and lg != "pt":
                     link_to_lang[ln] = lg
+                img = n.get("img_url") or ""
+                if ln and img:
+                    link_to_img[ln] = img
         for s in raw_sections:
             if s.get("noticias"):
                 clean = [n for n in s["noticias"] if n.get("manchete") and n.get("resumo")]
@@ -297,6 +329,8 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
                     lk = noticia.get("link", "")
                     if lk in link_to_lang:
                         noticia["lang"] = link_to_lang[lk]
+                    if lk in link_to_img:
+                        noticia["img_url"] = link_to_img[lk]
                 sections.append({
                     "topic": tema,
                     "topic_id": meta.get("topic_id"),
@@ -308,7 +342,7 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
         log(f"  ⏭ {email}: nada pra mandar, pulando enfileiramento")
         return "empty"
 
-    # Dedup cruzado trends ↔ sections (mesma lógica do daily_digest)
+    # Dedup cruzado trends ↔ sections
     if trending and sections:
         dd._dedupe_sections_against_trends(sections, trending)
         sections = [s for s in sections if s.get("noticias")]
@@ -320,6 +354,13 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
     # Resolve URLs do Google News pra URLs reais dos publishers
     dd.resolve_gnews_urls(sections, trending)
 
+    # Remove seções que ficaram vazias
+    before_count = len(sections)
+    sections = [s for s in sections if s.get("noticias")]
+    dropped_empty = before_count - len(sections)
+    if dropped_empty > 0:
+        log(f"  🧹 removidos {dropped_empty} tema(s) sem notícias")
+
     # Feedback links
     sections = dd.add_feedback_links(uid, sections)
 
@@ -329,62 +370,70 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
     daily_quote = recap_data.get("quote", "") if isinstance(recap_data, dict) else ""
     daily_quote_author = recap_data.get("quote_author", "") if isinstance(recap_data, dict) else ""
 
-    # IMAGE EXTRACTION: pra a 1ª notícia de cada tema + 1ª de trending,
-    # busca og:image do artigo (paralelo, com cache).
+    # IMAGE EXTRACTION (estratégia híbrida A+B igual ao daily_digest.py)
     try:
         from sources.utils import extract_images, validate_images
-        urls_to_fetch = []
-        # 1ª de cada section
+        urls_para_scrape = []
         for sec in sections:
             for n in sec.get("noticias", []):
-                if n.get("manchete") and n.get("resumo"):
-                    if n.get("link"):
-                        urls_to_fetch.append(n["link"])
-                    break  # só a 1ª válida
-        # 1ª de trending
-        for item in trending[:1]:
-            if item.get("link"):
-                urls_to_fetch.append(item["link"])
-        if urls_to_fetch:
-            img_map = extract_images(urls_to_fetch)
-            # Valida que as image URLs realmente são image/*
-            non_empty_imgs = [v for v in img_map.values() if v]
-            valid_imgs = validate_images(non_empty_imgs) if non_empty_imgs else {}
-            # Aplica de volta
+                if not n.get("img_url") and n.get("link"):
+                    urls_para_scrape.append(n["link"])
+        for t in trending:
+            if not t.get("img_url") and t.get("link"):
+                urls_para_scrape.append(t["link"])
+        if urls_para_scrape:
+            log(f"  🌐 scraping og:image de {len(urls_para_scrape)} URLs (paralelo)...")
+            img_map = extract_images(urls_para_scrape)
+            non_empty = [v for v in img_map.values() if v]
+            valid_imgs = validate_images(non_empty) if non_empty else {}
             for sec in sections:
                 for n in sec.get("noticias", []):
-                    if n.get("manchete") and n.get("resumo"):
-                        if n.get("link"):
-                            img = img_map.get(n["link"])
-                            if img and valid_imgs.get(img):
-                                n["img_url"] = img
-                        break
-            if trending and trending[0].get("link"):
-                img = img_map.get(trending[0]["link"])
-                if img and valid_imgs.get(img):
-                    trending[0]["img_url"] = img
-            count_imgs = sum(1 for sec in sections for n in sec.get("noticias", []) if n.get("img_url"))
-            count_imgs += 1 if (trending and trending[0].get("img_url")) else 0
-            log(f"  🖼  {count_imgs} imagens extraídas")
+                    if n.get("img_url"):
+                        continue
+                    link = n.get("link", "")
+                    if link in img_map:
+                        img = img_map[link]
+                        if img and valid_imgs.get(img):
+                            n["img_url"] = img
+            for t in trending:
+                if t.get("img_url"):
+                    continue
+                link = t.get("link", "")
+                if link in img_map:
+                    img = img_map[link]
+                    if img and valid_imgs.get(img):
+                        t["img_url"] = img
+        if trending:
+            n_with_img = sum(1 for t in trending if t.get("img_url"))
+            log(f"  📷 trending: {n_with_img}/{len(trending)} com imagem")
+        if sections:
+            total_n = sum(len(s.get("noticias", [])) for s in sections)
+            total_img = sum(1 for s in sections for n in s.get("noticias", []) if n.get("img_url"))
+            log(f"  📷 notícias: {total_img}/{total_n} com imagem (híbrido A+B)")
     except Exception as e:
-        log(f"  ⚠ Image extraction falhou (não bloqueia): {e}")
+        log(f"  ⚠ Image hybrid extraction falhou (não bloqueia): {e}")
 
     # Render
     signed_manage = gen_manage_url(MANAGE_URL, uid, ttl_days=30)
     signed_unsub = gen_unsub_url(SUPABASE_URL, uid)
     email_mode = (user.get("email_mode") or "coado").lower()
 
-    # Saudação: prepare é sempre madrugada → o email vai disparar de manhã (daily 6h ou sábado 8h)
     user_tz = user.get("timezone") or "America/Sao_Paulo"
-    saudacao_mode = "sabado" if weekly else "manha"
+    if is_welcome:
+        saudacao_mode = "auto"
+    elif weekly:
+        saudacao_mode = "sabado"
+    else:
+        saudacao_mode = "manha"
 
-    # Edition ID: gerado ANTES do render pra entrar nos share buttons
     from tracking import gen_edition_id, save_edition, wrap_links_in_html
     edition_id = gen_edition_id()
 
-    # URLs base — podem ser sobrescritas por env vars enquanto rewrites de /c e /r não estão configurados
+    # URLs base — share_base agora usa edge function por padrão (fix do "Abrir online" pra home)
     click_base = os.environ.get("CLICK_BASE_URL", "https://recorte.news/c")
-    share_base = os.environ.get("SHARE_BASE_URL", "https://recorte.news/r")
+    # PATCH SHARE BASE: aponta pra edge function /functions/v1/edition por padrão.
+    # Antes era recorte.news/r que redirecionava pra home (404 silencioso).
+    share_base = os.environ.get("SHARE_BASE_URL", f"{SUPABASE_URL}/functions/v1/edition")
 
     html = render_email(
         user_name=user["name"], date_obj=now_brt,
@@ -395,20 +444,11 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
         email_mode=email_mode, weekly_mode=weekly,
         user_tz=user_tz, saudacao_mode=saudacao_mode,
         filtered_items_count=len(filtered_items),
+        is_welcome=is_welcome,
         unsub_url=signed_unsub,
         edition_id=edition_id,
         share_base_url=share_base,
     )
-
-    # Wrappa links externos em /c/{short_id} pra click tracking
-    try:
-        html = wrap_links_in_html(
-            html, user_id=uid, edition_id=edition_id,
-            supabase_client=supabase,
-            click_base_url=click_base,
-        )
-    except Exception as e:
-        log(f"  ⚠ Click tracking wrap falhou (não bloqueia): {e}")
 
     # Subject
     first = user["name"].split()[0] if user.get("name") else "Você"
@@ -417,7 +457,10 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
     else:
         subject = f"Bom dia, {first}. Hoje tem ✂ ({now_brt.strftime('%d/%m')})"
 
-    # Salva edition (HTML servido pelo /r/{id} público)
+    # PATCH ORDEM CRÍTICA: save_edition ANTES do wrap_links_in_html.
+    # O wrap insere registros em link_clicks com FK pra editions.id.
+    # Se a edition não foi salva primeiro, todos os inserts falham com FK violation
+    # e o tracking de cliques fica QUEBRADO (sem nenhum link rastreável).
     try:
         save_edition(
             supabase, user_id=uid, kind=kind, subject=subject,
@@ -426,6 +469,22 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
         )
     except Exception as e:
         log(f"  ⚠ save_edition falhou (não bloqueia): {e}")
+
+    # Agora sim wrappa links externos em /c/{short_id} pra click tracking.
+    # A edition já existe na tabela, então os inserts em link_clicks vão funcionar.
+    try:
+        html = wrap_links_in_html(
+            html, user_id=uid, edition_id=edition_id,
+            supabase_client=supabase,
+            click_base_url=click_base,
+        )
+        # Atualiza HTML da edition com versão wrapeada (pra /r/{id} servir versão final)
+        try:
+            supabase.table("editions").update({"html": html}).eq("id", edition_id).execute()
+        except Exception as e:
+            log(f"  ⚠ Update edition html falhou (não bloqueia): {e}")
+    except Exception as e:
+        log(f"  ⚠ Click tracking wrap falhou (não bloqueia): {e}")
 
     # Enfileira
     ok = enqueue_email(uid, kind, scheduled_for, subject, html, edition_id=edition_id)
@@ -439,10 +498,8 @@ def main():
     now_brt = datetime.now(BRT)
     log(f"=== prepare_daily run ===", hour=now_brt.hour)
 
-    # scheduled_for = HOJE em BRT (será disparado às 6h dessa mesma data BRT)
     scheduled_for = now_brt.date().isoformat()
 
-    # Pega usuários ativos
     res = supabase.table("users").select("*").eq("active", True).execute()
     all_users = res.data or []
     if not all_users:
@@ -451,7 +508,6 @@ def main():
 
     log(f"users ativos", count=len(all_users), scheduled_for=scheduled_for)
 
-    # Paraleliza preparação
     workers = int(os.environ.get("PARALLEL_WORKERS", "5"))
     workers = max(1, min(workers, len(all_users)))
     log(f"processando em paralelo", workers=workers)
