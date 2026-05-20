@@ -6,6 +6,7 @@ Estratégias:
 - Extração de og:image via fetch HTML (fallback: twitter:image, primeira img grande)
 - Paralelo (asyncio) com timeout 3s — não bloqueia o prepare
 - Cache em memória durante a run (evita refetch da mesma URL)
+- Blacklist de URLs genéricas (banners de portal, share defaults, placeholders)
 """
 import re
 import asyncio
@@ -27,6 +28,58 @@ GET_TIMEOUT = 8.0            # 8s pra fetch HTML (mais cobertura de publishers l
 MAX_CONCURRENT = 10          # max 10 conexões simultâneas
 # User-Agent FIXO pra HEAD checks (sites são tolerantes em HEAD).
 USER_AGENT = "Mozilla/5.0 (compatible; RecorteBot/1.0; +https://recorte.news)"
+
+
+# ============================================================================
+# BLACKLIST DE IMAGENS GENÉRICAS — banners de portal que não são da matéria
+# ============================================================================
+# Quando matéria não tem og:image próprio, o publisher serve og:image PADRÃO
+# do site inteiro (banner "videos em alta no G1", share default, etc).
+# Esses padrões aparecem na URL da imagem — detectamos e descartamos.
+GENERIC_IMAGE_PATTERNS = [
+    # G1 / Globo (banner "vídeos em alta")
+    r'videos[-_]?em[-_]?alta',
+    r'g1[-_]?logo',
+    r'globo[-_]?logo',
+    # Padrões universais de fallback/share default
+    r'/share[-_]?default',
+    r'/og[-_]?default',
+    r'/og[-_]?image[-_]?default',
+    r'/default[-_]?share',
+    r'/social[-_]?default',
+    r'/placeholder',
+    r'placeholder[-_]',
+    r'/banner[-_]?share',
+    r'site[-_]?banner',
+    r'/home[-_]?image',
+    r'fallback[-_]?image',
+    r'no[-_]?image',
+    r'noimage\b',
+    r'logo[-_]?share',
+    r'og[-_]share',
+    r'twitter[-_]share',
+    r'social[-_]preview',
+    # Imagens muito pequenas pelo nome (favicon-like)
+    r'_\d{1,2}x\d{1,2}\.',  # _16x16, _32x32
+    # Logos / brand assets
+    r'/logo\.(?:png|jpg|jpeg|webp|svg)',
+    r'[-_]logo\.(?:png|jpg|jpeg|webp|svg)',
+    r'/brand[-_]',
+    # Padrões de homepage/cover
+    r'/cover[-_]?default',
+    r'homepage[-_]?cover',
+]
+
+
+def _is_generic_image(url: str) -> bool:
+    """Detecta imagens genéricas/placeholder que não são da matéria específica.
+
+    Retorna True se a URL bate em algum padrão de banner/share-default conhecido.
+    """
+    if not url or not isinstance(url, str):
+        return False
+    url_lower = url.lower()
+    return any(re.search(pat, url_lower) for pat in GENERIC_IMAGE_PATTERNS)
 
 
 # Regex pra encontrar og:image / twitter:image em HTML
@@ -62,10 +115,7 @@ def is_valid_url(url: str) -> bool:
 
 
 async def _check_url(session: aiohttp.ClientSession, url: str) -> Dict:
-    """HEAD check de uma URL. Retorna {url, status, ok, redirect_url}.
-
-    ok = True se status 2xx ou 3xx; False se 4xx, 5xx ou erro de conexão.
-    """
+    """HEAD check de uma URL."""
     if url in _url_cache:
         return _url_cache[url]
 
@@ -78,8 +128,7 @@ async def _check_url(session: aiohttp.ClientSession, url: str) -> Dict:
 
     try:
         async with session.head(
-            url,
-            allow_redirects=True,
+            url, allow_redirects=True,
             timeout=aiohttp.ClientTimeout(total=HEAD_TIMEOUT),
             headers={"User-Agent": USER_AGENT},
         ) as resp:
@@ -87,26 +136,22 @@ async def _check_url(session: aiohttp.ClientSession, url: str) -> Dict:
             result["ok"] = 200 <= resp.status < 400
             result["final_url"] = str(resp.url)
     except asyncio.TimeoutError:
-        result["status"] = -1  # timeout
-        # Em caso de timeout no HEAD, ainda confiamos no link (alguns servers não suportam HEAD)
-        # Vamos marcar como ok=True e deixar passar — click tracker pega se for 4xx no momento do clique
+        result["status"] = -1
         result["ok"] = True
     except aiohttp.ClientError as e:
-        # Erros de conexão (DNS, SSL, refused) — descarta
         log.debug(f"  ⚠ HEAD falhou {url}: {e}")
         result["status"] = -2
         result["ok"] = False
     except Exception as e:
         log.debug(f"  ⚠ HEAD exception {url}: {e}")
         result["status"] = -3
-        result["ok"] = True  # erros inesperados: assume OK (não estraga a curadoria)
+        result["ok"] = True
 
     _url_cache[url] = result
     return result
 
 
 async def _check_urls_batch(urls: List[str]) -> Dict[str, Dict]:
-    """HEAD check paralelo de uma lista de URLs."""
     if not urls:
         return {}
     connector = aiohttp.TCPConnector(limit=MAX_CONCURRENT, ssl=False)
@@ -123,23 +168,12 @@ async def _check_urls_batch(urls: List[str]) -> Dict[str, Dict]:
 
 
 def filter_valid_urls(news_items: List[Dict], url_key: str = "link") -> List[Dict]:
-    """Remove itens com URL inválida. Síncrono pra ser fácil de chamar.
-
-    Args:
-        news_items: lista de dicts com URLs (cada item tem chave 'link' ou similar)
-        url_key: nome da chave que contém a URL
-
-    Returns:
-        Lista filtrada com só itens cujas URLs respondem 2xx/3xx (ou timeout no HEAD).
-    """
     if not news_items:
         return news_items
-
     urls = [item.get(url_key, "") for item in news_items]
     urls = [u for u in urls if u]
     if not urls:
         return []
-
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -148,7 +182,6 @@ def filter_valid_urls(news_items: List[Dict], url_key: str = "link") -> List[Dic
         finally:
             loop.close()
     except Exception as e:
-        # Se asyncio quebrar, deixa passar tudo (não bloqueia o prepare)
         log.warning(f"  ⚠ URL validation falhou em lote: {e}")
         return news_items
 
@@ -157,18 +190,16 @@ def filter_valid_urls(news_items: List[Dict], url_key: str = "link") -> List[Dic
         url = item.get(url_key, "")
         r = results.get(url)
         if r and r.get("ok"):
-            # Se houve redirect, atualiza a URL final
             if r.get("final_url") and r["final_url"] != url:
                 item[url_key] = r["final_url"]
             valid.append(item)
         else:
             log.info(f"  ✗ URL descartada: {url} (status={r.get('status') if r else 'unknown'})")
-
     return valid
 
 
 async def _fetch_og_image(session: aiohttp.ClientSession, url: str) -> Optional[str]:
-    """Faz GET no URL e extrai og:image. Retorna URL absoluto da imagem ou None."""
+    """Faz GET no URL e extrai og:image. Filtra imagens genéricas via blacklist."""
     if url in _image_cache:
         return _image_cache[url]
 
@@ -178,8 +209,7 @@ async def _fetch_og_image(session: aiohttp.ClientSession, url: str) -> Optional[
 
     try:
         async with session.get(
-            url,
-            allow_redirects=True,
+            url, allow_redirects=True,
             timeout=aiohttp.ClientTimeout(total=GET_TIMEOUT),
             headers={
                 "User-Agent": USER_AGENT,
@@ -190,7 +220,6 @@ async def _fetch_og_image(session: aiohttp.ClientSession, url: str) -> Optional[
             if resp.status >= 400:
                 _image_cache[url] = None
                 return None
-            # Lê só os primeiros 80KB (head com og: tags deve estar bem no topo)
             content_type = resp.headers.get("Content-Type", "").lower()
             if "html" not in content_type:
                 _image_cache[url] = None
@@ -203,8 +232,6 @@ async def _fetch_og_image(session: aiohttp.ClientSession, url: str) -> Optional[
         _image_cache[url] = None
         return None
 
-    # Procura og:image / twitter:image / itemprop=image / link rel=image_src
-    # Ordem: padrões mais comuns primeiro, fallbacks depois
     match = (
         OG_IMAGE_RE.search(html) or
         OG_IMAGE_REVERSED_RE.search(html) or
@@ -216,7 +243,6 @@ async def _fetch_og_image(session: aiohttp.ClientSession, url: str) -> Optional[
         return None
 
     img_url = match.group(1).strip()
-    # Normaliza pra URL absoluta
     if img_url.startswith("//"):
         img_url = "https:" + img_url
     elif img_url.startswith("/"):
@@ -224,8 +250,14 @@ async def _fetch_og_image(session: aiohttp.ClientSession, url: str) -> Optional[
     elif not img_url.startswith("http"):
         img_url = urljoin(final_url, img_url)
 
-    # Sanity check da URL da imagem
     if not is_valid_url(img_url):
+        _image_cache[url] = None
+        return None
+
+    # BLACKLIST: descarta imagem genérica (banner do portal, share default, etc).
+    # Sem imagem é melhor que imagem errada — o template colapsa silenciosamente.
+    if _is_generic_image(img_url):
+        log.info(f"  🚫 imagem genérica descartada: {img_url[:80]}")
         _image_cache[url] = None
         return None
 
@@ -234,7 +266,6 @@ async def _fetch_og_image(session: aiohttp.ClientSession, url: str) -> Optional[
 
 
 async def _fetch_images_batch(urls: List[str]) -> Dict[str, Optional[str]]:
-    """Busca og:image de várias URLs em paralelo."""
     if not urls:
         return {}
     connector = aiohttp.TCPConnector(limit=MAX_CONCURRENT, ssl=False)
@@ -251,11 +282,6 @@ async def _fetch_images_batch(urls: List[str]) -> Dict[str, Optional[str]]:
 
 
 def extract_images(urls: List[str]) -> Dict[str, Optional[str]]:
-    """Extrai og:image de uma lista de URLs. Síncrono pra ser fácil de chamar.
-
-    Returns:
-        dict {url: image_url_or_None}
-    """
     if not urls:
         return {}
     try:
@@ -272,11 +298,13 @@ def extract_images(urls: List[str]) -> Dict[str, Optional[str]]:
 
 # ============ HELPERS PRA CHECK DE IMAGEM ============
 async def _check_image_url(session: aiohttp.ClientSession, url: str) -> bool:
-    """Verifica que a imagem responde 200 e é mesmo image/*."""
+    """Verifica que a imagem responde 200, é image/* E não é genérica."""
+    # Pre-check: se já está na blacklist por URL, descarta sem fazer request
+    if _is_generic_image(url):
+        return False
     try:
         async with session.head(
-            url,
-            allow_redirects=True,
+            url, allow_redirects=True,
             timeout=aiohttp.ClientTimeout(total=HEAD_TIMEOUT),
             headers={"User-Agent": USER_AGENT},
         ) as resp:
@@ -289,7 +317,6 @@ async def _check_image_url(session: aiohttp.ClientSession, url: str) -> bool:
 
 
 def validate_images(image_urls: List[str]) -> Dict[str, bool]:
-    """Verifica em paralelo quais URLs de imagem realmente respondem com imagem."""
     if not image_urls:
         return {}
     image_urls = [u for u in image_urls if u]
@@ -318,42 +345,42 @@ def validate_images(image_urls: List[str]) -> Dict[str, bool]:
 
 # ============ HELPER: EXTRAÇÃO DE IMG DE FEEDPARSER ENTRY (estratégia A) ============
 def extract_img_from_entry(entry) -> Optional[str]:
-    """Extrai URL da imagem de uma entry do feedparser, se a fonte trouxer.
-    
-    Verifica nesta ordem:
-    1. media_content (Yahoo/Google News RSS — <media:content url="...">)
-    2. media_thumbnail (RSS com <media:thumbnail url="...">)
-    3. enclosures (RSS clássico — <enclosure url="..." type="image/...">)
-    4. links com rel="enclosure" e type image/*
-    5. content/summary HTML com primeira <img src="...">
-    
-    Retorna URL absoluta da imagem ou None.
-    """
+    """Extrai URL da imagem de uma entry do feedparser. Aplica blacklist genérica."""
     if not entry:
         return None
-    
+
+    def _check_and_return(url):
+        """Helper: valida URL e checa blacklist antes de retornar."""
+        if url and is_valid_url(url) and not _is_generic_image(url):
+            return url
+        return None
+
     # 1. media_content (Google News, Yahoo)
     media_content = entry.get("media_content", []) or []
     for m in media_content:
         url = m.get("url") if isinstance(m, dict) else None
-        if url and is_valid_url(url):
-            return url
-    
+        result = _check_and_return(url)
+        if result:
+            return result
+
     # 2. media_thumbnail (alguns RSS BR)
     media_thumbnail = entry.get("media_thumbnail", []) or []
     for m in media_thumbnail:
         url = m.get("url") if isinstance(m, dict) else None
-        if url and is_valid_url(url):
-            return url
-    
+        result = _check_and_return(url)
+        if result:
+            return result
+
     # 3. enclosures (RSS clássico)
     enclosures = entry.get("enclosures", []) or []
     for enc in enclosures:
         url = enc.get("url") if isinstance(enc, dict) else (enc.get("href") if isinstance(enc, dict) else None)
         ctype = (enc.get("type", "") if isinstance(enc, dict) else "").lower()
-        if url and is_valid_url(url) and (ctype.startswith("image/") or any(url.lower().endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".webp", ".gif"])):
-            return url
-    
+        if url and (ctype.startswith("image/") or any(url.lower().endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".webp", ".gif"])):
+            result = _check_and_return(url)
+            if result:
+                return result
+
     # 4. links com rel=enclosure e type image
     links = entry.get("links", []) or []
     for link in links:
@@ -362,9 +389,11 @@ def extract_img_from_entry(entry) -> Optional[str]:
         rel = (link.get("rel", "") or "").lower()
         ctype = (link.get("type", "") or "").lower()
         href = link.get("href", "")
-        if rel == "enclosure" and ctype.startswith("image/") and href and is_valid_url(href):
-            return href
-    
+        if rel == "enclosure" and ctype.startswith("image/") and href:
+            result = _check_and_return(href)
+            if result:
+                return result
+
     # 5. Fallback: <img src="..."> no summary/content
     html_blob = entry.get("summary", "") or ""
     if not html_blob:
@@ -377,7 +406,8 @@ def extract_img_from_entry(entry) -> Optional[str]:
             img_url = m.group(1)
             if img_url.startswith("//"):
                 img_url = "https:" + img_url
-            if is_valid_url(img_url):
-                return img_url
-    
+            result = _check_and_return(img_url)
+            if result:
+                return result
+
     return None
