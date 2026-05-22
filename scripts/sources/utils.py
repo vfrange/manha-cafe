@@ -41,6 +41,13 @@ GENERIC_IMAGE_PATTERNS = [
     r'videos[-_]?em[-_]?alta',
     r'g1[-_]?logo',
     r'globo[-_]?logo',
+    # G1 og:image padrão "preview-share-min.png" servido em s3.glbimg.com
+    # quando matéria não tem og:image próprio. Bug detectado 21/05/2026.
+    r'preview[-_]?share[-_]?min',
+    # TradingView placeholder "news-story.jpg" em static/images/illustrations
+    # servido como og:image quando a matéria não tem capa. Bug 21/05/2026.
+    r'news[-_]?story\.(?:jpg|jpeg|png|webp)',
+    r'/illustrations/news[-_]?story',
     # Padrões universais de fallback/share default
     r'/share[-_]?default',
     r'/og[-_]?default',

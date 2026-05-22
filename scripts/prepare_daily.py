@@ -23,15 +23,23 @@ from anthropic import Anthropic
 import daily_digest as dd
 from feedback_token import manage_url as gen_manage_url, unsub_url as gen_unsub_url
 from email_template import render_email
+from hallucination_guard import (
+    validate_and_clean_sections,
+    validate_and_clean_trending,
+)
 
 # ============ CONFIG ============
 BRT = timezone(timedelta(hours=-3))
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
+ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
 MANAGE_URL = os.environ["MANAGE_URL"]
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+# Reusa o claude do dd (mesmo client) mas também tem o nosso pra validação
+claude = Anthropic(api_key=ANTHROPIC_API_KEY)
+MODEL = "claude-haiku-4-5-20251001"
 
 
 def log(msg, **kwargs):
@@ -82,7 +90,6 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
     email = user["email"]
     kind = "weekly" if weekly else "daily"
 
-    # SKIP do weekly: user que recebeu welcome HOJE não deve receber weekly no mesmo dia.
     if weekly:
         welcome_at = user.get("welcome_sent_at")
         if welcome_at:
@@ -95,7 +102,6 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
             except Exception as e:
                 log(f"  ⚠ {email}: erro ao parsear welcome_sent_at='{welcome_at}': {e}")
 
-    # Checa idempotência
     existing = already_queued(uid, scheduled_for, kind)
     if existing:
         log(f"  ⏭ {email}: já existe na fila (status={existing.get('status')})")
@@ -103,7 +109,10 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
 
     log(f"preparando", email=email, kind=kind, scheduled_for=scheduled_for)
 
-    # === Coleta + curadoria (mesma lógica do daily_digest.process_user) ===
+    # PATCH ANTI-ALUCINAÇÃO: gera edition_id cedo pra usar no log de validação
+    from tracking import gen_edition_id, save_edition, wrap_links_in_html
+    edition_id = gen_edition_id()
+
     default_country = user.get("default_country") or "BR"
 
     profile = dd.load_profile(uid)
@@ -117,13 +126,13 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
     user_topic_labels = [t["label"] for t in (_topics_pre.data or [])]
     unique_topic_count = len({lbl for lbl in user_topic_labels}) if user_topic_labels else 0
 
-    # PATCH FRESCOR: janela dinâmica por dia da semana (igual ao daily_digest.py)
     stale_window_h = dd.get_stale_window_hours(weekly, now_brt)
     log(f"  📅 janela frescor: {stale_window_h}h ({'weekly' if weekly else ('segunda' if now_brt.weekday() == 0 else 'daily')})")
 
     # Trending
     trending = []
     trending_label = ""
+    raw_trends_combined = []
     if user.get("trending_enabled", True):
         raw_scope = user.get("trending_scope") or "br"
         scopes = [s.strip() for s in raw_scope.split(",") if s.strip()] or ["br"]
@@ -145,8 +154,10 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
                 tcountry = user.get("trending_country") or "BR"
                 tlabel = dd.COUNTRY_NAMES.get(tcountry, tcountry)
             labels.append(tlabel)
-            raw_trends = dd.fetch_trending(tcountry, weekly=weekly)
+            # PATCH ANTI-ALUCINAÇÃO: passa max_age_hours pro fetch_trending
+            raw_trends = dd.fetch_trending(tcountry, weekly=weekly, max_age_hours=stale_window_h)
             log(f"  trends brutos", count=len(raw_trends), scope=tcountry, weekly=weekly)
+            raw_trends_combined.extend(raw_trends)
             if raw_trends:
                 curated = dd.curate_trends(
                     user["name"], tlabel, raw_trends, learned,
@@ -173,6 +184,22 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
                         balanced.append(lst.pop(0))
             trending = balanced
 
+        # PATCH ANTI-ALUCINAÇÃO: valida trending
+        if trending and raw_trends_combined:
+            try:
+                trend_stats = validate_and_clean_trending(
+                    trending, raw_trends_combined, supabase, uid, edition_id,
+                    claude, MODEL,
+                )
+                if trend_stats.get("discarded_critical") or trend_stats.get("discarded_moderate") or trend_stats.get("rewritten"):
+                    log(f"  🛡 anti-aluc trending: ok={trend_stats['ok']} reescritos={trend_stats['rewritten']} "
+                        f"descartados={trend_stats['discarded_critical']+trend_stats['discarded_moderate']} "
+                        f"(crit={trend_stats['discarded_critical']}/mod={trend_stats['discarded_moderate']})")
+                if len(trending) > TOTAL_TRENDING_BUDGET:
+                    trending = trending[:TOTAL_TRENDING_BUDGET]
+            except Exception as e:
+                log(f"  ⚠ anti-aluc trending falhou (não bloqueia): {e}")
+
     # Notícias por tema
     topics_res = supabase.table("topics").select("*").eq("user_id", uid).execute()
     topics = topics_res.data or []
@@ -193,7 +220,6 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
             continue
         country = t.get("country") or fallback_country
         category = t.get("category")
-        # PATCH FRESCOR: passa max_age_hours pro fetch (igual ao daily_digest.py)
         news = dd.fetch_all_sources(
             t["query"], country, category=category,
             label=t["label"], source_type=t.get("source", "curated"),
@@ -243,7 +269,7 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
     except Exception as e:
         log(f"  ⚠ URL validation falhou (não bloqueia): {e}")
 
-    # PATCH FRESCOR: resolve gnews PRE-CURATE — decodifica URLs ANTES do Claude curar
+    # RESOLVE GNEWS PRE-CURATE
     try:
         gnews_targets = []
         for group in topics_with_news:
@@ -275,7 +301,7 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
     except Exception as e:
         log(f"  ⚠ resolve gnews pré-curate falhou (não bloqueia): {e}")
 
-    # PATCH DEDUP 5D: remove notícias já enviadas pro user nos últimos 5 dias
+    # DEDUP 5D
     try:
         sent_links, sent_title_sigs = dd._load_recently_sent_signatures(uid, days=5)
         if sent_links or sent_title_sigs:
@@ -287,7 +313,6 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
     except Exception as e:
         log(f"  ⚠ dedup 5d cross-edição falhou (não bloqueia): {e}")
 
-    # Ordena: customizados primeiro, depois curados
     topics_with_news.sort(key=lambda g: 0 if g.get("source") == "custom" else 1)
 
     sections = []
@@ -299,6 +324,24 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
             news_per_topic=news_per_topic,
             is_welcome=is_welcome,
         )
+        # PATCH ANTI-ALUCINAÇÃO: valida cada notícia curada contra fonte bruta
+        try:
+            val_stats = validate_and_clean_sections(
+                raw_sections, topics_with_news, supabase, uid, edition_id,
+                claude, MODEL,
+            )
+            if val_stats.get("discarded_critical") or val_stats.get("discarded_moderate") or val_stats.get("rewritten"):
+                log(f"  🛡 anti-aluc sections: ok={val_stats['ok']} reescritos={val_stats['rewritten']} "
+                    f"descartados={val_stats['discarded_critical']+val_stats['discarded_moderate']} "
+                    f"(crit={val_stats['discarded_critical']}/mod={val_stats['discarded_moderate']}) "
+                    f"sem_fonte={val_stats['no_source']}")
+            # Trunca cada seção pra news_per_topic (depois do buffer +2 do Claude)
+            for s in raw_sections:
+                if s.get("noticias"):
+                    s["noticias"] = s["noticias"][:news_per_topic]
+        except Exception as e:
+            log(f"  ⚠ anti-aluc sections falhou (não bloqueia): {e}")
+
         label_meta = {t["label"]: {"topic_id": t["topic_id"], "scopes": t["scopes"]} for t in topics_with_news}
         link_to_lang = {}
         link_to_img = {}
@@ -342,35 +385,29 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
         log(f"  ⏭ {email}: nada pra mandar, pulando enfileiramento")
         return "empty"
 
-    # Dedup cruzado trends ↔ sections
     if trending and sections:
         dd._dedupe_sections_against_trends(sections, trending)
         sections = [s for s in sections if s.get("noticias")]
 
-    # Reordenar: customizados primeiro, depois curados
     label_to_source = {t["label"]: t.get("source", "curated") for t in topics_with_news}
     sections.sort(key=lambda s: 0 if label_to_source.get(s.get("topic"), "curated") == "custom" else 1)
 
-    # Resolve URLs do Google News pra URLs reais dos publishers
     dd.resolve_gnews_urls(sections, trending)
 
-    # Remove seções que ficaram vazias
     before_count = len(sections)
     sections = [s for s in sections if s.get("noticias")]
     dropped_empty = before_count - len(sections)
     if dropped_empty > 0:
         log(f"  🧹 removidos {dropped_empty} tema(s) sem notícias")
 
-    # Feedback links
     sections = dd.add_feedback_links(uid, sections)
 
-    # Recap
     recap_data = dd.generate_daily_recap(user["name"], sections, trending, learned)
     daily_recap = recap_data.get("recap", "") if isinstance(recap_data, dict) else ""
     daily_quote = recap_data.get("quote", "") if isinstance(recap_data, dict) else ""
     daily_quote_author = recap_data.get("quote_author", "") if isinstance(recap_data, dict) else ""
 
-    # IMAGE EXTRACTION (estratégia híbrida A+B igual ao daily_digest.py)
+    # IMAGE EXTRACTION
     try:
         from sources.utils import extract_images, validate_images
         urls_para_scrape = []
@@ -426,13 +463,7 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
     else:
         saudacao_mode = "manha"
 
-    from tracking import gen_edition_id, save_edition, wrap_links_in_html
-    edition_id = gen_edition_id()
-
-    # URLs base — share_base agora usa edge function por padrão (fix do "Abrir online" pra home)
     click_base = os.environ.get("CLICK_BASE_URL", "https://recorte.news/c")
-    # PATCH SHARE BASE: aponta pra edge function /functions/v1/edition por padrão.
-    # Antes era recorte.news/r que redirecionava pra home (404 silencioso).
     share_base = os.environ.get("SHARE_BASE_URL", f"{SUPABASE_URL}/functions/v1/edition")
 
     html = render_email(
@@ -450,17 +481,12 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
         share_base_url=share_base,
     )
 
-    # Subject
     first = user["name"].split()[0] if user.get("name") else "Você"
     if weekly:
         subject = f"Bom domingo, {first}. Sua semana, recortada ✂"
     else:
         subject = f"Bom dia, {first}. Hoje tem ✂ ({now_brt.strftime('%d/%m')})"
 
-    # PATCH ORDEM CRÍTICA: save_edition ANTES do wrap_links_in_html.
-    # O wrap insere registros em link_clicks com FK pra editions.id.
-    # Se a edition não foi salva primeiro, todos os inserts falham com FK violation
-    # e o tracking de cliques fica QUEBRADO (sem nenhum link rastreável).
     try:
         save_edition(
             supabase, user_id=uid, kind=kind, subject=subject,
@@ -470,15 +496,12 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
     except Exception as e:
         log(f"  ⚠ save_edition falhou (não bloqueia): {e}")
 
-    # Agora sim wrappa links externos em /c/{short_id} pra click tracking.
-    # A edition já existe na tabela, então os inserts em link_clicks vão funcionar.
     try:
         html = wrap_links_in_html(
             html, user_id=uid, edition_id=edition_id,
             supabase_client=supabase,
             click_base_url=click_base,
         )
-        # Atualiza HTML da edition com versão wrapeada (pra /r/{id} servir versão final)
         try:
             supabase.table("editions").update({"html": html}).eq("id", edition_id).execute()
         except Exception as e:
@@ -486,7 +509,6 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
     except Exception as e:
         log(f"  ⚠ Click tracking wrap falhou (não bloqueia): {e}")
 
-    # Enfileira
     ok = enqueue_email(uid, kind, scheduled_for, subject, html, edition_id=edition_id)
     if ok:
         log(f"  ✓ {email}: enfileirado ({len(html)} chars HTML, edition={edition_id[:8]})")

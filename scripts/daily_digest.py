@@ -23,72 +23,63 @@ from safety import (
     is_safe_news, is_safe_curated, SAFETY_INSTRUCTIONS,
     POLITICAL_BIAS_INSTRUCTIONS, is_political_topic,
 )
+from hallucination_guard import (
+    validate_and_clean_sections,
+    validate_and_clean_trending,
+    get_current_date_context,
+    ANTI_HALLUCINATION_RULE,
+)
 # ============ CONFIG ============
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
 ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
 RESEND_API_KEY = os.environ["RESEND_API_KEY"]
-FEEDBACK_BASE_URL = os.environ["FEEDBACK_BASE_URL"]  # ex: https://xxx.functions.supabase.co/feedback
+FEEDBACK_BASE_URL = os.environ["FEEDBACK_BASE_URL"]
 FROM_EMAIL = os.environ.get("FROM_EMAIL", "Manhã <digest@onresend.dev>")
 MANAGE_URL = os.environ.get("MANAGE_URL", "https://seudominio.netlify.app/cadastro.html")
 TARGET_HOUR_BRT = int(os.environ.get("TARGET_HOUR_BRT", "-1"))
 DRY_RUN = os.environ.get("DRY_RUN", "false").lower() == "true"
 MODEL = "claude-haiku-4-5-20251001"
-# Modelo premium pra tasks de alta visibilidade (Em Alta + Welcome curate_news)
 MODEL_PREMIUM = "claude-sonnet-4-6"
-MAX_NEWS_OUT_PER_TOPIC = 2  # legado — agora cálculo dinâmico via daily_news_per_topic()
+MAX_NEWS_OUT_PER_TOPIC = 2
 MAX_TRENDING_OUT = 10
 # ============================================================================
 # CONFIG DE VOLUME — ESCADINHAS POR NÚMERO DE TEMAS
 # ============================================================================
-# A escadinha controla quantas notícias o user recebe baseado em quantos temas escolheu.
-# Mais temas → menos por tema (pra não saturar). E o "Em Alta" é ELÁSTICO:
-# preenche o que falta até atingir o cap total da edição.
-# --- DAILY (~5 min Espresso / ~9 min Coado em users medianos) ---
-DAILY_TOTAL_CAP = 28              # cap absoluto de notícias na edição daily
-DAILY_TRENDING_MIN = 5            # Em Alta nunca cai abaixo disso (mais relevância em destaque)
-DAILY_TRENDING_MAX = 6            # Em Alta nunca passa disso (preserva foco nos temas)
+DAILY_TOTAL_CAP = 28
+DAILY_TRENDING_MIN = 5
+DAILY_TRENDING_MAX = 6
 def daily_news_per_topic(topic_count: int) -> int:
-    """Escadinha do daily: quantas notícias por tema baseado em qtd de temas.
-    
-    Sem margem — confiamos no resolve_gnews_pre_curate() que valida URLs
-    ANTES do Claude curar, garantindo que o que ele curar vai funcionar.
-    """
     if topic_count <= 3:
         return 5
     elif topic_count <= 6:
         return 4
     elif topic_count <= 10:
         return 3
-    else:  # 11+
+    else:
         return 2
 def daily_trending_budget(topic_count: int) -> int:
-    """Em Alta elástico no daily: preenche o que sobra do cap."""
     per_topic = daily_news_per_topic(topic_count)
     used = per_topic * topic_count
     remaining = DAILY_TOTAL_CAP - used
     return max(DAILY_TRENDING_MIN, min(DAILY_TRENDING_MAX, remaining))
-# --- WEEKLY (~12 min Coado em users medianos, retrospectiva semanal) ---
-WEEKLY_TOTAL_CAP = 35             # cap absoluto de notícias na edição weekly
-WEEKLY_TRENDING_MIN = 5           # Em Alta nunca cai abaixo disso
-WEEKLY_TRENDING_MAX = 10          # Em Alta nunca passa disso
+WEEKLY_TOTAL_CAP = 35
+WEEKLY_TRENDING_MIN = 5
+WEEKLY_TRENDING_MAX = 10
 def weekly_news_per_topic(topic_count: int) -> int:
-    """Escadinha do weekly: quantas notícias por tema."""
     if topic_count <= 4:
         return 5
     elif topic_count <= 7:
         return 4
     elif topic_count <= 11:
         return 3
-    else:  # 12-15
+    else:
         return 2
 def weekly_trending_budget(topic_count: int) -> int:
-    """Em Alta elástico no weekly: preenche o que sobra do cap."""
     per_topic = weekly_news_per_topic(topic_count)
     used = per_topic * topic_count
     remaining = WEEKLY_TOTAL_CAP - used
     return max(WEEKLY_TRENDING_MIN, min(WEEKLY_TRENDING_MAX, remaining))
-# Legados pra compatibilidade (alguns lugares ainda usam)
 WEEKLY_TRENDING_BUDGET = 10
 WEEKLY_NEWS_PER_TOPIC_FEW = 5
 WEEKLY_NEWS_PER_TOPIC_MANY = 3
@@ -114,38 +105,22 @@ def log(msg, **kv):
 # ============================================================================
 # JANELA DE FRESCOR TEMPORAL — descarte HARD de notícias velhas
 # ============================================================================
-# Filtro Python que roda DEPOIS de fetch_all_sources e ANTES do Claude curar.
-# Garante que notícia velha não chega no email, INDEPENDENTE da fonte/agregador.
-#
-# Janela dinâmica por dia da semana (BRT):
-#   - Segunda-feira (daily): 48h — cobre sábado tarde + domingo + segunda madrugada
-#     (domingo tem weekly, mas pode ter notícia importante de sábado)
-#   - Terça a sábado (daily): 30h — notícias do dia anterior + madrugada de hoje
-#   - Domingo (weekly): 168h = 7 dias (retrospectiva semanal)
 def get_stale_window_hours(weekly: bool, now_brt) -> int:
-    """Retorna a janela em horas pra qual notícias mais velhas são descartadas."""
     if weekly:
-        return 168  # 7 dias
-    # weekday(): segunda=0, domingo=6
-    if now_brt.weekday() == 0:  # segunda
+        return 168
+    if now_brt.weekday() == 0:
         return 48
     return 30
 def _filter_stale_news(news_list, max_age_hours):
-    """Remove notícias mais velhas que max_age_hours em relação a agora.
-    Notícias sem published_at são MANTIDAS (defensivo — não punir fonte ruim).
-    Retorna (lista filtrada, total descartado).
-    """
     cutoff = datetime.now(timezone.utc) - timedelta(hours=max_age_hours)
     kept = []
     dropped = 0
     for n in news_list:
         pub_str = n.get("published_at") or n.get("published") or ""
         if not pub_str:
-            # Sem data: mantém (Claude vai usar regra de frescor secundária)
             kept.append(n)
             continue
         try:
-            # Tenta vários formatos comuns
             pub_dt = datetime.fromisoformat(pub_str.replace("Z", "+00:00"))
             if pub_dt.tzinfo is None:
                 pub_dt = pub_dt.replace(tzinfo=timezone.utc)
@@ -153,7 +128,6 @@ def _filter_stale_news(news_list, max_age_hours):
                 dropped += 1
                 continue
         except Exception:
-            # Data não-parseável: mantém (defensivo)
             kept.append(n)
             continue
         kept.append(n)
@@ -161,29 +135,13 @@ def _filter_stale_news(news_list, max_age_hours):
 # ============ MULTI-SOURCE FETCH ============
 def fetch_all_sources(query, country, category=None, label=None, source_type="curated",
                       weekly=False, max_age_hours=None):
-    """
-    Roda todas as fontes em paralelo. Retorna lista combinada de notícias brutas.
-    Para temas BR, prioriza RSS BR + Google News BR + Reddit.
-    Para temas Global/Tech, prioriza Google News Global + HN + Reddit.
-    Para temas CURADOS GLOBAL, adiciona RSS direto de NYT/WaPo/BBC/etc.
-    Args:
-        weekly: se True, busca notícias dos últimos 7 dias (Recorte da Semana).
-                Senão, busca padrão (últimas 24-48h).
-        max_age_hours: filtro HARD de frescor — descarta notícias mais velhas que isso.
-                       Se None, ignora (mas recomendado SEMPRE passar pra evitar
-                       agregadores re-indexarem notícia antiga).
-    """
     is_br = country == "BR"
     is_global = country == "GLOBAL"
     is_tech = category == "tecnologia" or any(
         kw in query.lower() for kw in ["tech","ia ","ai","intelig","gpt","openai","software"]
     )
-    # Filtros temporais:
-    # - weekly: últimos 7 dias (Recorte da Semana)
-    # - daily/welcome: últimos 2 dias (evita notícias velhas tipo "escalação de jogo de ontem")
     gnews_when = "7d" if weekly else "2d"
     reddit_time = "week" if weekly else "day"
-    # No weekly aumentamos limites das fontes pra ter mais material pra curar
     gnews_max = 15 if weekly else 8
     reddit_max = 8 if weekly else 4
     hn_max = 10 if weekly else 5
@@ -195,7 +153,6 @@ def fetch_all_sources(query, country, category=None, label=None, source_type="cu
     fetchers.append(("reddit", lambda: reddit.fetch(query, category=category, max_items=reddit_max, time_filter=reddit_time)))
     if is_br:
         fetchers.append(("br_rss", lambda: br_rss.fetch(query, category=category, max_items=br_max)))
-    # RSS internacional: só pra temas CURADOS GLOBAIS (não para customs)
     if is_global and source_type == "curated" and label:
         fetchers.append(("intl_rss", lambda: intl_rss.fetch_for_topic(label, max_per_feed=4 if weekly else 2)))
     results = []
@@ -210,14 +167,11 @@ def fetch_all_sources(query, country, category=None, label=None, source_type="cu
                 except Exception as e:
                     log(f"  ⚠ erro fonte {name}: {e}")
         except TimeoutError:
-            # Não falha o pipeline inteiro se uma fonte travar — segue com o que coletou
             pendentes = [futures[f] for f in futures if not f.done()]
             log(f"  ⚠ timeout 25s — {len(pendentes)}/{len(futures)} fonte(s) não responderam: {', '.join(pendentes)} — seguindo com {len(results)} itens das fontes que responderam")
-            # Cancela as travadas pra não vazar threads
             for f in futures:
                 if not f.done():
                     f.cancel()
-    # dedupe por título (cross-source)
     seen = set()
     deduped = []
     for r in results:
@@ -225,17 +179,19 @@ def fetch_all_sources(query, country, category=None, label=None, source_type="cu
         if key and key not in seen:
             seen.add(key)
             deduped.append(r)
-    # FILTRO TEMPORAL HARD: descarta notícias > max_age_hours (default daily 30h / segunda 48h)
-    # Roda DEPOIS do dedup pra economizar trabalho.
-    # Independente da fonte — pega agregadores tipo OneFootball que re-indexam matérias antigas.
     if max_age_hours is not None:
         before = len(deduped)
         deduped, stale_count = _filter_stale_news(deduped, max_age_hours=max_age_hours)
         if stale_count > 0:
             log(f"  🕐 frescor ({max_age_hours}h): descartadas {stale_count}/{before} notícia(s) velha(s)")
     return deduped
-def fetch_trending(country, weekly=False):
-    """Combina trends: Google News Top Stories + Reddit + Bluesky + YouTube Trending."""
+def fetch_trending(country, weekly=False, max_age_hours=None):
+    """Combina trends: Google News Top Stories + Reddit + Bluesky + YouTube Trending.
+
+    PATCH 22/05: aplica filtro de frescor (max_age_hours) também no trending.
+    Antes, trending pulava o filtro temporal e podia trazer notícias velhas
+    (caso SpaceX/Anthropic 21/05/2026 — notícia de 15 dias atrás).
+    """
     trends = []
     try:
         trends.extend(google_news.fetch_trends(country))
@@ -256,12 +212,18 @@ def fetch_trending(country, weekly=False):
         trends.extend(youtube_trending.fetch_trending(country=country, max_items=8))
     except Exception as e:
         log(f"  ⚠ youtube trending: {e}")
+    # Aplica filtro de frescor (igual ao fetch_all_sources).
+    # Pega agregadores que re-indexam manchetes antigas.
+    if max_age_hours is not None and trends:
+        before = len(trends)
+        trends, stale_count = _filter_stale_news(trends, max_age_hours=max_age_hours)
+        if stale_count > 0:
+            log(f"  🕐 trending frescor ({max_age_hours}h): descartadas {stale_count}/{before} velha(s)")
     return trends
 # ============ CLAUDE CURATION ============
-MAX_NEWS_INPUT_PER_TOPIC = 6   # quantas notícias brutas mandar pro Claude por tema
-MAX_TOPICS_PER_BATCH = 4       # quantos temas processar numa chamada (evita JSON gigante)
+MAX_NEWS_INPUT_PER_TOPIC = 6
+MAX_TOPICS_PER_BATCH = 4
 def _robust_json_parse(text):
-    """Tenta parsear JSON com várias estratégias de fallback."""
     text = re.sub(r"^```(?:json)?\s*", "", text.strip())
     text = re.sub(r"\s*```$", "", text)
     try:
@@ -291,7 +253,6 @@ def _robust_json_parse(text):
     return {}
 def _call_claude_json(prompt, max_tokens=4000, retries=2, log_prefix="",
                       model=None, system_prompt=None):
-    """Chama Claude e parseia JSON com retry e prompt caching."""
     last_err = None
     current_prompt = prompt
     selected_model = model or MODEL
@@ -330,8 +291,11 @@ def _call_claude_json(prompt, max_tokens=4000, retries=2, log_prefix="",
     return {}
 def _curate_news_batch(user_name, topics_with_news, learned_profile="", filtered_items=None,
                        weekly=False, news_per_topic=None, is_welcome=False):
-    """Processa UM batch de temas (até MAX_TOPICS_PER_BATCH). Aplica filtros do user se passados."""
-    out_per_topic = news_per_topic if news_per_topic is not None else MAX_NEWS_OUT_PER_TOPIC
+    """Processa UM batch de temas. Aplica buffer +2 pra suportar descartes da validação anti-alucinação."""
+    user_target = news_per_topic if news_per_topic is not None else MAX_NEWS_OUT_PER_TOPIC
+    # BUFFER ANTI-ALUCINAÇÃO: pede 2 a mais pro Claude. Após validate_and_clean_sections,
+    # truncamos pra user_target. Garante volume mesmo com descartes.
+    out_per_topic = user_target + 2
     selected_model = MODEL_PREMIUM if is_welcome else None
     payload = []
     has_political = False
@@ -394,17 +358,21 @@ Se o "fonte" de uma matéria estiver nessa lista, DESCARTE-A integralmente. Se a
         editorial_brief = f"Para cada tema abaixo, selecione as **até {out_per_topic} notícias mais relevantes** do dia (priorize: impacto real, novidade, alinhamento com perfil; evite duplicatas e clickbait)."
         resumo_instr = "**resumo**: 3-4 frases (100-160 palavras) em PT-BR. Explica o que aconteceu, números/fatos centrais, contexto e implicação imediata"
         fatos_instr = "**fatos_chave**: array de 3 a 5 bullets curtos (cada um 6-15 palavras) com os pontos mais importantes — números, datas, players, valores, decisões. Ex: [\"Selic caiu de 13,75% para 13,25%\", \"1ª redução em 12 meses\", \"Mercado esperava corte de 0,75 ponto\"]"
+    now_brt = datetime.now(BRT)
+    date_ctx = get_current_date_context(now_brt)
     system_prompt = f"""{VOICE_PROMPT}
 # ============================================
 # INSTRUÇÕES ESPECÍFICAS DESTA TAREFA — CURADORIA
 # ============================================
+📅 **CONTEXTO TEMPORAL**: {date_ctx}
+{ANTI_HALLUCINATION_RULE}
 Você está fazendo a CURADORIA editorial da edição diária do Recorte ✂ — escolhendo as matérias mais relevantes pra este leitor específico, escrevendo as manchetes, resumos e fatos-chave em PT-BR.
 Tudo que você escrever vai direto pra caixa de entrada do leitor — siga o VOICE GUIDE acima rigorosamente.
 {SAFETY_INSTRUCTIONS}
 {POLITICAL_BIAS_INSTRUCTIONS}
 🇧🇷 **REGRA CRÍTICA DE IDIOMA**: TODO o conteúdo gerado DEVE estar em **português brasileiro natural**, MESMO QUE a matéria original esteja em inglês, espanhol ou outro idioma. Traduza com fluência, mantendo nomes próprios e marcas no original.
 ⚠️ **REGRA CRÍTICA DE FORMATO**: Retorne APENAS JSON VÁLIDO, sem markdown, sem blocos de código, sem ```json```. Escape TODAS as aspas duplas dentro de strings com \\". Não use quebras de linha dentro de strings. Não inclua texto antes ou depois do JSON. A primeira character da resposta DEVE ser `{{` e a última `}}`.
-📰 **OBJETIVO EDITORIAL**: O leitor deve conseguir entender cada notícia INTEIRA sem precisar abrir o link. Seja rico em fatos, números, datas e contexto. Mantenha o tom do VOICE GUIDE — direto, brasileiro, próximo.
+📰 **OBJETIVO EDITORIAL**: O leitor deve conseguir entender cada notícia INTEIRA sem precisar abrir o link. Seja rico em fatos, números, datas e contexto. Mantenha o tom do VOICE GUIDE — direto, brasileiro, próximo. PORÉM, NÃO INVENTE: tudo que você escrever deve vir EXPLICITAMENTE da fonte (regra anti-alucinação acima).
 🚫 **REGRA CRÍTICA DE DEDUPLICAÇÃO**: NUNCA inclua duas notícias sobre o MESMO evento, mesmo que venham de fontes diferentes ou com palavras ligeiramente diferentes. Se ver vários itens brutos sobre o mesmo acontecimento, escolha APENAS UM (preferindo: fonte mais respeitável > matéria mais completa > publicação mais recente). Em caso de dúvida sobre se 2 são o mesmo evento, considere que SÃO e una.
 🎯 **REGRA CRÍTICA DE COERÊNCIA TEMA ↔ NOTÍCIA** (descarte agressivo se não casar):
 Cada notícia que você incluir DEVE ser **ESPECIFICAMENTE sobre o tema declarado**, não sobre algo tangencialmente relacionado. As fontes podem trazer matérias contaminadas por keywords amplas — **filtre você como editor**.
@@ -418,15 +386,15 @@ Cada notícia que você incluir DEVE ser **ESPECIFICAMENTE sobre o tema declarad
 **EM DÚVIDA, DESCARTE.** É melhor o tema vir com 1 notícia perfeita do que com 3 incluindo 1 deslocada. Não force preenchimento.
 🕐 **REGRA CRÍTICA DE FRESCOR TEMPORAL**:
 - **Para edições daily**: NUNCA inclua notícias com `publicado_em` mais antigo que **48 horas** em relação à data atual (que está no user message). Edição diária = notícias de HOJE e do DIA ANTERIOR. Não 3 dias atrás. Não semana passada.
-- **CUIDADO COM AGREGADORES** (OneFootball, Flipboard, Google News com re-indexação, Yahoo Sports, etc): eles RE-INDEXAM notícias antigas com data de indexação recente. Se ver matéria sobre evento que SABIDAMENTE aconteceu há vários dias (ex: "Roger Machado deixa o São Paulo" sendo que isso foi há 1+ semana), DESCARTE — está velha mesmo que o `publicado_em` pareça novo. Use seu conhecimento do mundo.
+- **CUIDADO COM AGREGADORES** (OneFootball, Flipboard, Google News com re-indexação, Yahoo Sports, etc): eles RE-INDEXAM notícias antigas com data de indexação recente. Se ver matéria sobre evento que SABIDAMENTE aconteceu há vários dias, DESCARTE — está velha mesmo que o `publicado_em` pareça novo. Use seu conhecimento do mundo.
 - Para qualquer EVENTO com timeline definida: SE a data do evento JÁ PASSOU, NUNCA escolha uma matéria que cubra a PREVISÃO/EXPECTATIVA/ESCALAÇÃO/PRÉ-JOGO. Sempre prefira a matéria com o RESULTADO/desfecho.
 - Quando 2 matérias falam do mesmo evento (uma "antes", outra "depois"): SEMPRE escolha a "depois".
 - Se TODAS as matérias forem previsões de eventos já passados, MELHOR DESCARTAR a categoria.
 📋 **ESTRUTURA DE RESPOSTA**: O JSON deve seguir o schema exato indicado no user message. Não invente campos. Não omita campos requeridos.
 🎯 **CRITÉRIOS DE QUALIDADE**:
 - Manchetes seguindo o VOICE GUIDE (máx 9 palavras quando possível, máx 90 chars sempre)
-- Resumos com números, contexto, e implicação clara
-- Fatos-chave concretos: datas, valores, players nomeados
+- Resumos com números, contexto, e implicação clara — TUDO DA FONTE (regra anti-alucinação acima)
+- Fatos-chave concretos: datas, valores, players nomeados — TUDO DA FONTE
 - Sempre cite a fonte original (campo "fonte")
 - Indique idioma original se NÃO for PT (campo "lang")
 ⚖️ **RIGOR EDITORIAL**:
@@ -434,7 +402,6 @@ Cada notícia que você incluir DEVE ser **ESPECIFICAMENTE sobre o tema declarad
 - Não extrapole além do que está na matéria original
 - Política, religião, identidade: enquadramento factual sempre
 Os dados específicos do dia + instruções pontuais virão no próximo turn do user."""
-    from datetime import datetime, timezone, timedelta
     now_brt_str = datetime.now(timezone(timedelta(hours=-3))).strftime("%Y-%m-%d %H:%M BRT")
     user_message = f"""**USUÁRIO:** {user_name}
 **DATA/HORA ATUAL (referência pro frescor temporal):** {now_brt_str}
@@ -469,7 +436,6 @@ Dados:
     return secoes
 def curate_news(user_name, topics_with_news, learned_profile="", filtered_items=None,
                 weekly=False, news_per_topic=None, is_welcome=False):
-    """Curadoria com batching."""
     if not topics_with_news:
         return []
     all_sections = []
@@ -488,12 +454,10 @@ def curate_news(user_name, topics_with_news, learned_profile="", filtered_items=
         all_sections.extend(sections)
     return all_sections
 def _norm_for_dedup(text: str) -> str:
-    """Normaliza string pra detectar duplicatas: minúsculo, sem pontuação/espaços."""
     if not text:
         return ""
     return re.sub(r'[^a-z0-9]', '', text.lower())
 def _apply_user_filters(items, filtered_items):
-    """Aplica filtros do usuário (lista de 'temas/veículos a NÃO receber')."""
     if not filtered_items or not items:
         return items
     norm_filters = [f.strip().lower() for f in filtered_items if isinstance(f, str) and f.strip()]
@@ -513,7 +477,6 @@ def _apply_user_filters(items, filtered_items):
         log(f"  ⚠ filtros do user: removeu {removed} item(ns) por bloqueios explícitos")
     return out
 def _dedupe_trends(items):
-    """Remove trends duplicados: mesmo link OU manchetes muito similares."""
     seen_links = set()
     seen_signatures = set()
     out = []
@@ -531,15 +494,9 @@ def _dedupe_trends(items):
         out.append(it)
     return out
 # ============================================================================
-# DEDUP CROSS-EDIÇÃO 5D — adicionado pra evitar repetição entre edições
+# DEDUP CROSS-EDIÇÃO 5D
 # ============================================================================
 def _load_recently_sent_signatures(user_id, days=5):
-    """Pega URLs + assinaturas de manchetes enviadas pro user nos últimos N dias.
-    Lê email_items.kind='news' onde payload tem campo 'link' e 'title' (manchete PT-BR).
-    Retorna (set de links, set de title signatures).
-    Custo: 1 query SQL (~50ms). Sem dependência do Claude.
-    """
-    from datetime import datetime, timezone, timedelta
     cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
     try:
         res = supabase.table("email_items").select("payload") \
@@ -561,10 +518,6 @@ def _load_recently_sent_signatures(user_id, days=5):
         log(f"  ⚠ load_recently_sent_signatures falhou: {e}")
         return set(), set()
 def _filter_already_sent(topics_with_news, sent_links, sent_title_sigs):
-    """Remove notícias brutas cuja URL ou manchete já foi enviada pro user nos últimos N dias.
-    Compara link (string match) E title signature (norm chars[:50]).
-    Modifica in-place. Retorna total removido.
-    """
     if not sent_links and not sent_title_sigs:
         return 0
     removed = 0
@@ -582,7 +535,6 @@ def _filter_already_sent(topics_with_news, sent_links, sent_title_sigs):
     return removed
 # ============================================================================
 def _dedupe_sections_against_trends(sections, trending):
-    """Remove notícias de cada seção que já apareceram em trending (Em Alta)."""
     if not trending or not sections:
         return 0
     trend_links = set()
@@ -611,7 +563,6 @@ def _dedupe_sections_against_trends(sections, trending):
     return removed
 def curate_trends(user_name, scope_label, trends, learned_profile="",
                   user_topics_labels=None, filtered_items=None, max_out=None, weekly=False):
-    """Em Alta: até 5 trends (default daily) ou 10 (weekly)."""
     if not trends:
         return []
     MAX_TRENDS_INPUT = 30 if weekly else 18
@@ -646,8 +597,11 @@ def curate_trends(user_name, scope_label, trends, learned_profile="",
     else:
         mix_instruction = ""
         total_out = total_target if weekly else MAX_TRENDING_OUT
+    # BUFFER ANTI-ALUCINAÇÃO no trending também: pede 2 a mais.
+    user_target_trend = total_out
     if max_out is not None and max_out > 0:
-        total_out = min(total_out, max_out)
+        user_target_trend = min(user_target_trend, max_out)
+    total_out_with_buffer = user_target_trend + 2
     filter_instruction = ""
     if filtered_items:
         filter_list = ", ".join(f'"{f}"' for f in filtered_items[:20])
@@ -656,16 +610,20 @@ def curate_trends(user_name, scope_label, trends, learned_profile="",
 {filter_list}
 Se um trend é de um veículo dessa lista (campo "fonte"), DESCARTE-O integralmente.
 """
+    now_brt = datetime.now(BRT)
+    date_ctx = get_current_date_context(now_brt)
     system_prompt = f"""{VOICE_PROMPT}
 # ============================================
 # INSTRUÇÕES ESPECÍFICAS DESTA TAREFA — EM ALTA
 # ============================================
+📅 **CONTEXTO TEMPORAL**: {date_ctx}
+{ANTI_HALLUCINATION_RULE}
 Você está montando a seção "🔥 Em Alta" da edição diária do Recorte ✂.
 {SAFETY_INSTRUCTIONS}
 🚫 **REGRA CRÍTICA DE DEDUPLICAÇÃO**: NUNCA inclua duas manchetes sobre o MESMO evento.
 🇧🇷 **REGRA CRÍTICA DE IDIOMA**: TODO conteúdo DEVE estar em **português brasileiro fluente**.
 ⚠️ **REGRA CRÍTICA DE FORMATO**: Retorne APENAS JSON VÁLIDO, sem markdown.
-📰 **OBJETIVO EDITORIAL**: O leitor entende cada evento sem precisar abrir o link.
+📰 **OBJETIVO EDITORIAL**: O leitor entende cada evento sem precisar abrir o link. PORÉM tudo deve vir EXPLICITAMENTE da fonte (regra anti-alucinação acima).
 🎯 **CRITÉRIOS DE CURADORIA DE TRENDING**:
 - Priorize: eventos significativos, lançamentos importantes, esporte/cultura de impacto
 - Evite: fofoca rasa, conteúdo regional sem contexto, jargão obscuro
@@ -678,7 +636,7 @@ Você está montando a seção "🔥 Em Alta" da edição diária do Recorte ✂
 {filter_instruction}
 {mix_instruction}
 {context_intro}
-{instruction_verb} ({total_out} itens): top stories + redes sociais + viralizações.
+{instruction_verb} ({total_out_with_buffer} itens): top stories + redes sociais + viralizações.
 {'Como é semanal, dê contexto e mencione a evolução ao longo dos dias quando relevante.' if weekly else 'Seja rico em fatos e contexto.'}
 Pra cada item:
 - **manchete**: título PT-BR direto, máx 90 chars, sem clickbait
@@ -705,7 +663,6 @@ Trends brutos:
         log(f"  ⚠ dedup removeu {before - len(items)} duplicatas do Em Alta")
     return items
 def generate_daily_recap(user_name, sections, trending, learned_profile=""):
-    """Gera o 'Seu dia em 60 segundos' + uma quote de destaque pro topo."""
     if not sections and not trending:
         return {"recap": "", "quote": "", "quote_author": ""}
     summary_input = []
@@ -723,6 +680,12 @@ def generate_daily_recap(user_name, sections, trending, learned_profile=""):
     profile_section = ""
     if learned_profile.strip():
         profile_section = f"\nPerfil de {user_name}: {learned_profile}\nUse pra dar destaque ao que casa com o perfil.\n"
+    now_brt = datetime.now(BRT)
+    date_ctx = get_current_date_context(now_brt)
+    recap_system = f"""{VOICE_PROMPT}
+📅 **CONTEXTO TEMPORAL**: {date_ctx}
+{ANTI_HALLUCINATION_RULE}
+Você está escrevendo o briefing "Seu dia em 60 segundos" + a quote do dia. As manchetes já passaram por validação anti-alucinação — você pode confiar no que recebe. PORÉM, não invente conexões entre eventos, não acrescente contexto de memória, e não atribua cargos/papéis a pessoas que não estão explícitos nas manchetes. Trabalhe APENAS com o que está nas manchetes recebidas."""
     prompt = f"""Você escreve "Seu dia em 60 segundos" — o briefing no topo do email do {user_name}.
 Siga o VOICE GUIDE do Recorte ✂ (tom brasileiro direto, próximo, "a gente lê o mundo pra você").
 {profile_section}
@@ -746,7 +709,7 @@ Manchetes de hoje:
 Responda APENAS JSON VÁLIDO neste formato exato:
 {{"recap": "<parágrafo>", "quote": "<frase com aspas curvas>", "quote_author": "<autor ou contexto curto>"}}"""
     parsed = _call_claude_json(prompt, max_tokens=900, retries=2, log_prefix=" (recap)",
-                                system_prompt=VOICE_PROMPT)
+                                system_prompt=recap_system)
     if not parsed:
         return {"recap": "", "quote": "", "quote_author": ""}
     return {
@@ -756,7 +719,6 @@ Responda APENAS JSON VÁLIDO neste formato exato:
     }
 # ============ EMAIL ITEMS + FEEDBACK LINKS ============
 def create_email_item(user_id, kind, payload):
-    """Insere snapshot em email_items, retorna o id curto."""
     iid = short_id()
     supabase.table("email_items").insert({
         "id": iid,
@@ -766,7 +728,6 @@ def create_email_item(user_id, kind, payload):
     }).execute()
     return iid
 def _try_decode_gnews_url(url, timeout=4):
-    """Tenta decodificar uma URL wrapper do Google News pra URL real da matéria."""
     if not url or "news.google.com" not in url:
         return url
     try:
@@ -780,7 +741,6 @@ def _try_decode_gnews_url(url, timeout=4):
         log(f"    [gnews] falhou decode {url[:50]}...: {e}")
     return url
 def resolve_gnews_urls(sections, trending, max_workers=6):
-    """Resolve URLs de Google News pra URLs reais."""
     from concurrent.futures import ThreadPoolExecutor
     targets = []
     for sec in sections:
@@ -823,7 +783,6 @@ def resolve_gnews_urls(sections, trending, max_workers=6):
     if total_dropped > 0:
         log(f"  ⚠ descartadas {total_dropped} notícia(s) com URL Google News não resolvida (link quebraria)")
 def add_feedback_links(user_id, sections):
-    """Pra cada notícia e cada seção, gera email_items + URLs assinadas."""
     for sec in sections:
         if sec.get("topic_id") or sec.get("topic"):
             tid = create_email_item(user_id, "topic", {
@@ -926,12 +885,19 @@ def process_user(user, now_brt, weekly=False):
         log(f"  temas pausados: {len(paused)}")
     if filtered_items:
         log(f"  filtros do user: {len(filtered_items)} itens")
+    # PATCH ANTI-ALUCINAÇÃO: gera edition_id cedo pra usar no log de validação
+    from tracking import gen_edition_id, save_edition, wrap_links_in_html, finalize_edition
+    edition_id = gen_edition_id()
     _topics_pre = supabase.table("topics").select("label").eq("user_id", uid).execute()
     user_topic_labels = [t["label"] for t in (_topics_pre.data or [])]
     topic_count_for_scaling = len({lbl for lbl in user_topic_labels}) if user_topic_labels else 0
+    # Janela de frescor: segunda-feira 48h, demais dias 30h, weekly 168h
+    stale_window_h = get_stale_window_hours(weekly, now_brt)
+    log(f"  📅 janela frescor: {stale_window_h}h ({'weekly' if weekly else ('segunda' if now_brt.weekday() == 0 else 'daily')})")
     # 1) TRENDING
     trending = []
     trending_label = ""
+    raw_trends_combined = []  # mantém todos os trends brutos pra validação anti-alucinação
     if user.get("trending_enabled", True):
         raw_scope = user.get("trending_scope") or "br"
         scopes = [s.strip() for s in raw_scope.split(",") if s.strip()]
@@ -955,8 +921,10 @@ def process_user(user, now_brt, weekly=False):
                 tcountry = user.get("trending_country") or "BR"
                 tlabel = COUNTRY_NAMES.get(tcountry, tcountry)
             labels.append(tlabel)
-            raw_trends = fetch_trending(tcountry, weekly=weekly)
+            # PATCH ANTI-ALUCINAÇÃO: passa max_age_hours pro fetch_trending
+            raw_trends = fetch_trending(tcountry, weekly=weekly, max_age_hours=stale_window_h)
             log(f"  trends brutos", count=len(raw_trends), scope=tcountry, weekly=weekly)
+            raw_trends_combined.extend(raw_trends)  # acumula pra validação posterior
             if raw_trends:
                 curated = curate_trends(
                     user["name"], tlabel, raw_trends, learned,
@@ -981,6 +949,22 @@ def process_user(user, now_brt, weekly=False):
                     if lst and len(balanced) < TOTAL_TRENDING_BUDGET:
                         balanced.append(lst.pop(0))
             trending = balanced
+        # PATCH ANTI-ALUCINAÇÃO: valida trending contra fontes brutas
+        if trending and raw_trends_combined:
+            try:
+                trend_stats = validate_and_clean_trending(
+                    trending, raw_trends_combined, supabase, uid, edition_id,
+                    claude, MODEL,
+                )
+                if trend_stats.get("discarded_critical") or trend_stats.get("discarded_moderate") or trend_stats.get("rewritten"):
+                    log(f"  🛡 anti-aluc trending: ok={trend_stats['ok']} reescritos={trend_stats['rewritten']} "
+                        f"descartados={trend_stats['discarded_critical']+trend_stats['discarded_moderate']} "
+                        f"(crit={trend_stats['discarded_critical']}/mod={trend_stats['discarded_moderate']})")
+                # Trunca pra target final após validação
+                if len(trending) > TOTAL_TRENDING_BUDGET:
+                    trending = trending[:TOTAL_TRENDING_BUDGET]
+            except Exception as e:
+                log(f"  ⚠ anti-aluc trending falhou (não bloqueia): {e}")
     # 2) NOTÍCIAS POR TEMA
     topics_res = supabase.table("topics").select("*").eq("user_id", uid).execute()
     topics = topics_res.data or []
@@ -990,9 +974,6 @@ def process_user(user, now_brt, weekly=False):
     else:
         news_per_topic = daily_news_per_topic(topic_count_for_scaling)
     is_welcome = not user.get("welcome_sent")
-    # Janela de frescor: segunda-feira 48h, demais dias 30h, weekly 168h
-    stale_window_h = get_stale_window_hours(weekly, now_brt)
-    log(f"  📅 janela frescor: {stale_window_h}h ({'weekly' if weekly else ('segunda' if now_brt.weekday() == 0 else 'daily')})")
     by_label = {}
     for t in topics:
         if is_topic_paused(t["label"], paused, datetime.now(timezone.utc)):
@@ -1082,9 +1063,7 @@ def process_user(user, now_brt, weekly=False):
                 log(f"  🚫 removidas {removed_pre} notícia(s) com wrapper Gnews não decodificado (antes do Claude)")
     except Exception as e:
         log(f"  ⚠ resolve gnews pré-curate falhou (não bloqueia): {e}")
-    # DEDUP 5D CROSS-EDIÇÃO: remove notícias cujas URLs/manchetes já foram enviadas pro user nos últimos 5 dias.
-    # Evita repetição em desdobramentos lentos (política, M&A, saúde pública).
-    # Custo: 1 query SQL. Roda DEPOIS do resolve gnews (URLs finais) e ANTES do Claude curar.
+    # DEDUP 5D CROSS-EDIÇÃO
     try:
         sent_links, sent_title_sigs = _load_recently_sent_signatures(uid, days=5)
         if sent_links or sent_title_sigs:
@@ -1092,7 +1071,6 @@ def process_user(user, now_brt, weekly=False):
             if removed_5d > 0:
                 log(f"  🔁 dedup 5d: removidas {removed_5d} notícia(s) já enviada(s) recentemente "
                     f"(banco: {len(sent_links)} URLs + {len(sent_title_sigs)} signatures)")
-            # Remove grupos vazios após o dedup
             topics_with_news = [g for g in topics_with_news if g.get("news")]
     except Exception as e:
         log(f"  ⚠ dedup 5d cross-edição falhou (não bloqueia): {e}")
@@ -1105,6 +1083,24 @@ def process_user(user, now_brt, weekly=False):
             news_per_topic=news_per_topic,
             is_welcome=is_welcome,
         )
+        # PATCH ANTI-ALUCINAÇÃO: valida cada notícia curada contra fonte bruta original.
+        # 3 camadas: crítico→descarte, moderado→reescrita, leve→permite + log.
+        try:
+            val_stats = validate_and_clean_sections(
+                raw_sections, topics_with_news, supabase, uid, edition_id,
+                claude, MODEL,
+            )
+            if val_stats.get("discarded_critical") or val_stats.get("discarded_moderate") or val_stats.get("rewritten"):
+                log(f"  🛡 anti-aluc sections: ok={val_stats['ok']} reescritos={val_stats['rewritten']} "
+                    f"descartados={val_stats['discarded_critical']+val_stats['discarded_moderate']} "
+                    f"(crit={val_stats['discarded_critical']}/mod={val_stats['discarded_moderate']}) "
+                    f"sem_fonte={val_stats['no_source']}")
+            # Trunca cada seção pra news_per_topic (depois do buffer +2 que pedimos ao Claude)
+            for s in raw_sections:
+                if s.get("noticias"):
+                    s["noticias"] = s["noticias"][:news_per_topic]
+        except Exception as e:
+            log(f"  ⚠ anti-aluc sections falhou (não bloqueia): {e}")
         label_meta = {t["label"]: {"topic_id": t["topic_id"], "scopes": t["scopes"]} for t in topics_with_news}
         link_to_lang = {}
         link_to_img = {}
@@ -1221,12 +1217,7 @@ def process_user(user, now_brt, weekly=False):
             log(f"  📷 notícias: {total_img}/{total_n} com imagem (híbrido A+B)")
     except Exception as e:
         log(f"  ⚠ Image hybrid extraction falhou (não bloqueia): {e}")
-    from tracking import gen_edition_id, save_edition, wrap_links_in_html, finalize_edition
-    edition_id = gen_edition_id()
     click_base = os.environ.get("CLICK_BASE_URL", "https://recorte.news/c")
-    # PATCH 2: share_base default agora aponta pra edge function /functions/v1/edition
-    # (resolve "Abrir online" que redirecionava pra home, já que recorte.news/r/* não tem rota servindo o HTML).
-    # Quando criar Worker /r/* ou migrar DNS pra Cloudflare, basta atualizar SHARE_BASE_URL no GitHub Secrets.
     share_base = os.environ.get("SHARE_BASE_URL", f"{SUPABASE_URL}/functions/v1/edition")
     html = render_email(
         user_name=user["name"], date_obj=now_brt,
