@@ -351,12 +351,12 @@ Se o "fonte" de uma matéria estiver nessa lista, DESCARTE-A integralmente. Se a
     if weekly:
         time_context = "Esta é a **edição SEMANAL** do Recorte (Recorte da Semana), enviada aos sábados. As notícias abaixo cobrem os **últimos 7 dias**."
         editorial_brief = f"Para cada tema, selecione as **até {out_per_topic} notícias mais marcantes da SEMANA** (priorize: eventos com desdobramento ao longo dos dias, marcos relevantes, análise de tendência; ignore atualizações intra-dia repetitivas)."
-        resumo_instr = "**resumo**: 4-5 frases (140-220 palavras) em PT-BR. Foque em **síntese semanal**: o que aconteceu, como evoluiu nos dias, contexto, e implicação. Para temas com vários acontecimentos na semana, costure-os numa narrativa coesa em vez de listar isoladamente."
+        resumo_instr = "**resumo**: 4-5 frases (140-220 palavras) em PT-BR. Foque em **síntese semanal**: o que aconteceu, como evoluiu nos dias, contexto, e implicação. Para temas com vários acontecimentos na semana, costure-os numa narrativa coesa em vez de listar isoladamente. **DESTAQUES**: envolva 2-3 termos importantes (números/valores/datas/nomes próprios chave) com `<strong>...</strong>` — serão renderizados em verde-menta com sublinhado pra ajudar a escanear. Ex: \"O Copom cortou a Selic em <strong>0,5 ponto</strong>, levando a taxa a <strong>12,75% ao ano</strong>\". NÃO envolva frases inteiras nem palavras genéricas."
         fatos_instr = "**fatos_chave**: array de 4 a 6 bullets curtos (cada um 6-18 palavras) com pontos-chave da semana — números, datas dos acontecimentos, players, valores, decisões."
     else:
         time_context = "As notícias abaixo são dos últimos 1-2 dias (edição diária)."
         editorial_brief = f"Para cada tema abaixo, selecione as **até {out_per_topic} notícias mais relevantes** do dia (priorize: impacto real, novidade, alinhamento com perfil; evite duplicatas e clickbait)."
-        resumo_instr = "**resumo**: 3-4 frases (100-160 palavras) em PT-BR. Explica o que aconteceu, números/fatos centrais, contexto e implicação imediata"
+        resumo_instr = "**resumo**: 3-4 frases (100-160 palavras) em PT-BR. Explica o que aconteceu, números/fatos centrais, contexto e implicação imediata. **DESTAQUES**: envolva 2-3 termos importantes (números/valores/datas/nomes próprios chave) com `<strong>...</strong>` — serão renderizados em verde-menta com sublinhado pra ajudar o leitor a escanear visualmente. Ex: \"O Copom cortou a Selic em <strong>0,5 ponto</strong>, levando a taxa a <strong>12,75% ao ano</strong>, na primeira redução desde <strong>setembro de 2025</strong>\". NÃO envolva frases inteiras nem palavras genéricas."
         fatos_instr = "**fatos_chave**: array de 3 a 5 bullets curtos (cada um 6-15 palavras) com os pontos mais importantes — números, datas, players, valores, decisões. Ex: [\"Selic caiu de 13,75% para 13,25%\", \"1ª redução em 12 meses\", \"Mercado esperava corte de 0,75 ponto\"]"
     now_brt = datetime.now(BRT)
     date_ctx = get_current_date_context(now_brt)
@@ -640,7 +640,7 @@ Você está montando a seção "🔥 Em Alta" da edição diária do Recorte ✂
 {'Como é semanal, dê contexto e mencione a evolução ao longo dos dias quando relevante.' if weekly else 'Seja rico em fatos e contexto.'}
 Pra cada item:
 - **manchete**: título PT-BR direto, máx 90 chars, sem clickbait
-- **resumo**: {('4-5 frases (140-200 palavras)' if weekly else '3-4 frases (100-160 palavras)')}
+- **resumo**: {('4-5 frases (140-200 palavras)' if weekly else '3-4 frases (100-160 palavras)')}. Envolva 2-3 termos importantes (números/valores/datas/nomes-chave) com `<strong>...</strong>` — renderizados em verde-menta com sublinhado. NÃO envolva frases inteiras.
 - **fatos_chave**: array de {('4-6' if weekly else '3-5')} bullets curtos
 - **buscas** (opcional): se vier do input, copie
 - **link**: URL relacionada

@@ -115,6 +115,29 @@ def _safe_url(url, fallback="#"):
     return html_lib.escape(url_clean)
 
 
+def _render_inline_html(text):
+    """Escapa HTML mas mantém <strong> e <em>, e estiliza <strong> em verde-menta
+    + underline (MUDANÇA #4 — links visuais inspirados no LAIOB).
+
+    O Claude curador é instruído (em daily_digest.py) a marcar 2-3 termos importantes
+    do resumo com <strong>...</strong>. Esses termos viram destaques visuais coloridos
+    sem virarem hyperlinks navegáveis (não há URL inline — apenas estilização).
+    """
+    if not text:
+        return ""
+    safe = html_lib.escape(text)
+    # Desfaz só as tags permitidas inline
+    safe = safe.replace("&lt;strong&gt;", "<strong>").replace("&lt;/strong&gt;", "</strong>")
+    safe = safe.replace("&lt;em&gt;", "<em>").replace("&lt;/em&gt;", "</em>")
+    # Aplica style inline em verde-menta + underline nos <strong>
+    safe = re.sub(
+        r"<strong>([^<]+)</strong>",
+        rf'<strong style="color:{COLORS["mint_deep"]};text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:2px;font-weight:600;">\1</strong>',
+        safe,
+    )
+    return safe
+
+
 def _render_tricolor_band():
     return f"""<tr><td height="4" style="line-height:0;font-size:0;padding:0;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
@@ -235,7 +258,7 @@ def _render_trending_section(trending, scope_label, email_mode="coado"):
                 resumo_show = resumo_show[:177].rstrip() + "..."
         else:
             resumo_show = resumo_raw
-        resumo = _esc(resumo_show)
+        resumo = _render_inline_html(resumo_show)
         fatos = item.get("fatos_chave") or []
         if is_espresso:
             fatos = []
@@ -270,13 +293,17 @@ def _render_trending_section(trending, scope_label, email_mode="coado"):
                 fonte_suffix = f'<span style="color:{COLORS["ink"]};font-weight:800;">&nbsp;·&nbsp;{_esc(fonte)}</span>'
             link_html = f'<tr><td style="font-family:{SANS_FONT};font-size:12px;color:{COLORS["ink_muted"]};padding-bottom:8px;"><a href="{_safe_url(link)}" style="color:{COLORS["ink"]};text-decoration:none;font-weight:800;border-bottom:2.5px solid {COLORS["mint_deep"]};padding-bottom:1px;margin-right:6px;">Ler matéria →</a>{fonte_suffix}{lang_chip}</td></tr>'
         items_html += f"""
-        <tr><td style="padding:0 0 28px 0;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-            {_render_news_image(item.get('img_url'), manchete, topic_id='trending') if item.get('img_url') else ''}
-            <tr><td>{buscas_html}<div style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:22px;line-height:1.22;color:{COLORS['ink']};letter-spacing:-0.015em;margin-bottom:10px;" class="dark-text">{manchete}</div></td></tr>
-            <tr><td style="font-family:{SANS_FONT};font-size:15px;line-height:1.55;color:{COLORS['ink_soft']};padding-bottom:14px;" class="dark-text-soft">{resumo}</td></tr>
-            {fatos_html}
-            {link_html}
+        <tr><td style="padding:0 0 20px 0;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1.5px solid {COLORS['mint']};border-radius:15px;background:#FFFFFF;">
+            <tr><td style="padding:20px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                {_render_news_image(item.get('img_url'), manchete, topic_id='trending') if item.get('img_url') else ''}
+                <tr><td>{buscas_html}<div style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:22px;line-height:1.22;color:{COLORS['ink']};letter-spacing:-0.015em;margin-bottom:10px;" class="dark-text">{manchete}</div></td></tr>
+                <tr><td style="font-family:{SANS_FONT};font-size:15px;line-height:1.55;color:{COLORS['ink_soft']};padding-bottom:14px;" class="dark-text-soft">{resumo}</td></tr>
+                {fatos_html}
+                {link_html}
+              </table>
+            </td></tr>
           </table>
         </td></tr>"""
     return f"""
@@ -400,19 +427,23 @@ def _render_news_sections(sections, email_mode="coado"):
             if lang in lang_map:
                 lang_chip = f'<span style="display:inline-block;background:{COLORS["bg_2"]};color:{COLORS["ink_muted"]};font-family:{SANS_FONT};font-weight:700;font-size:10px;letter-spacing:0.06em;padding:2px 7px;margin-left:8px;border:1px solid {COLORS["line"]};">{lang_map[lang]}</span>'
             noticias_html += f"""
-            <tr><td style="padding:0 0 32px 0;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                {_render_news_image(n.get('img_url'), n.get('manchete',''), topic_id=sec.get('topic_id') or sec.get('topic'), size_mode='hero') if has_image else ''}
-                <tr><td style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:{'22' if is_espresso else '26'}px;line-height:1.18;color:{COLORS['ink']};letter-spacing:-0.02em;padding-bottom:{'8' if is_espresso else '14'}px;" class="dark-text">{_esc(n.get('manchete',''))}</td></tr>
-                <tr><td style="font-family:{SANS_FONT};font-size:{'14' if is_espresso else '16'}px;line-height:1.6;color:{COLORS['ink_soft']};padding-bottom:{'10' if is_espresso else '16'}px;" class="dark-text-soft">{_esc(resumo_display)}</td></tr>
-                {fatos_html}
-                <tr><td style="font-family:{SANS_FONT};font-size:12px;color:{COLORS['ink_muted']};padding-bottom:8px;" class="dark-text-muted">
-                  <a href="{_safe_url(n.get('link'))}" style="color:{COLORS['ink']};text-decoration:none;font-weight:800;border-bottom:2.5px solid {COLORS['mint_deep']};padding-bottom:1px;margin-right:12px;" class="dark-text">Ler matéria →</a>
-                  <span style="color:{COLORS['ink']};font-weight:800;" class="dark-text">{_esc(n.get('fonte','') or 'Fonte')}</span>
-                  {lang_chip}
+            <tr><td style="padding:0 0 22px 0;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1.5px solid {COLORS['mint']};border-radius:15px;background:#FFFFFF;">
+                <tr><td style="padding:22px;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    {_render_news_image(n.get('img_url'), n.get('manchete',''), topic_id=sec.get('topic_id') or sec.get('topic'), size_mode='hero') if has_image else ''}
+                    <tr><td style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:{'22' if is_espresso else '26'}px;line-height:1.18;color:{COLORS['ink']};letter-spacing:-0.02em;padding-bottom:{'8' if is_espresso else '14'}px;" class="dark-text">{_esc(n.get('manchete',''))}</td></tr>
+                    <tr><td style="font-family:{SANS_FONT};font-size:{'14' if is_espresso else '16'}px;line-height:1.6;color:{COLORS['ink_soft']};padding-bottom:{'10' if is_espresso else '16'}px;" class="dark-text-soft">{_render_inline_html(resumo_display)}</td></tr>
+                    {fatos_html}
+                    <tr><td style="font-family:{SANS_FONT};font-size:12px;color:{COLORS['ink_muted']};padding-bottom:8px;" class="dark-text-muted">
+                      <a href="{_safe_url(n.get('link'))}" style="color:{COLORS['ink']};text-decoration:none;font-weight:800;border-bottom:2.5px solid {COLORS['mint_deep']};padding-bottom:1px;margin-right:12px;" class="dark-text">Ler matéria →</a>
+                      <span style="color:{COLORS['ink']};font-weight:800;" class="dark-text">{_esc(n.get('fonte','') or 'Fonte')}</span>
+                      {lang_chip}
+                    </td></tr>
+                    <tr><td style="padding-top:8px;padding-bottom:4px;">{bias_chips}</td></tr>
+                    {fb_btns}
+                  </table>
                 </td></tr>
-                <tr><td style="padding-top:8px;padding-bottom:4px;">{bias_chips}</td></tr>
-                {fb_btns}
               </table>
             </td></tr>"""
 
@@ -679,6 +710,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     .container {{ width:100% !important; max-width:100% !important; }}
     .px-mob {{ padding-left:20px !important; padding-right:20px !important; }}
     .hero-h1 {{ font-size:36px !important; line-height:1.05 !important; }}
+    .edition-hero {{ font-size:30px !important; }}
     .stat-num {{ font-size:20px !important; }}
     .news-img {{ width:100% !important; height:200px !important; max-height:200px !important; object-fit:cover !important; }}
     .news-img-thumb {{ width:100% !important; max-width:280px !important; height:140px !important; max-height:140px !important; object-fit:cover !important; }}
@@ -731,6 +763,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
       {tts_html}
 
       <tr><td style="padding:44px 36px 28px;" class="px-mob">
+        <div class="edition-hero" style="font-family:{SERIF_FONT};font-style:italic;font-weight:400;font-size:38px;line-height:1;color:{COLORS['mint_dark']};margin-bottom:14px;letter-spacing:-0.03em;">edição <span style="color:{COLORS['ink']};font-style:normal;font-weight:500;">#{issue_num}</span></div>
         <div style="font-family:{SERIF_FONT};font-style:italic;font-size:15px;color:{COLORS['mint_dark']};margin-bottom:12px;">— {saudacao}, {_esc(first_name)}.</div>
         <h1 class="hero-h1" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:44px;line-height:1.0;letter-spacing:-0.04em;color:{COLORS['ink']};margin:0 0 18px 0;">{hero_h1}</h1>
         <p style="font-family:{SANS_FONT};font-size:16px;line-height:1.55;color:{COLORS['ink_soft']};margin:0 0 24px 0;max-width:520px;">{hero_subtitle}</p>
