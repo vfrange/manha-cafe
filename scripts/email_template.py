@@ -297,9 +297,9 @@ def _render_trending_section(trending, scope_label, email_mode="coado"):
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1.5px solid {COLORS['mint']};border-radius:15px;background:#FFFFFF;">
             <tr><td style="padding:20px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr><td style="padding-bottom:14px;"><div style="font-family:{SERIF_FONT};font-weight:700;font-style:italic;font-size:24px;line-height:1.22;color:{COLORS['ink']};letter-spacing:-0.015em;" class="dark-text">{manchete}</div></td></tr>
                 {_render_news_image(item.get('img_url'), manchete, topic_id='trending') if item.get('img_url') else ''}
-                <tr><td>{buscas_html}<div style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:22px;line-height:1.22;color:{COLORS['ink']};letter-spacing:-0.015em;margin-bottom:10px;" class="dark-text">{manchete}</div></td></tr>
-                <tr><td style="font-family:{SANS_FONT};font-size:15px;line-height:1.55;color:{COLORS['ink_soft']};padding-bottom:14px;" class="dark-text-soft">{resumo}</td></tr>
+                <tr><td style="font-family:{SANS_FONT};font-size:15px;line-height:1.55;color:{COLORS['ink_soft']};padding-bottom:14px;{'padding-top:14px;' if item.get('img_url') else ''}" class="dark-text-soft">{buscas_html}{resumo}</td></tr>
                 {fatos_html}
                 {link_html}
               </table>
@@ -307,7 +307,7 @@ def _render_trending_section(trending, scope_label, email_mode="coado"):
           </table>
         </td></tr>"""
     return f"""
-    <tr><td style="padding:32px 36px 8px 36px;">
+    <tr><td style="padding:32px 36px 8px 36px;" class="px-mob">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:8px;border-bottom:4px solid {COLORS['bg_2']};">
         <tr><td style="padding:0 0 22px 0;">
           <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
@@ -323,7 +323,7 @@ def _render_daily_recap(recap_text):
     if not recap_text or not recap_text.strip():
         return ""
     return f"""
-    <tr><td style="padding:0 36px 24px 36px;">
+    <tr><td style="padding:0 36px 24px 36px;" class="px-mob">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{COLORS['mint_bg_light']};border-left:6px solid {COLORS['mint_dark']};">
         <tr><td style="padding:22px 24px;">
           <div style="font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.22em;text-transform:uppercase;color:{COLORS['mint_dark']};margin-bottom:12px;">☕ Seu dia em 60 segundos</div>
@@ -431,9 +431,9 @@ def _render_news_sections(sections, email_mode="coado"):
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1.5px solid {COLORS['mint']};border-radius:15px;background:#FFFFFF;">
                 <tr><td style="padding:22px;">
                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr><td style="font-family:{SERIF_FONT};font-weight:700;font-style:italic;font-size:{'24' if is_espresso else '28'}px;line-height:1.18;color:{COLORS['ink']};letter-spacing:-0.02em;padding-bottom:{'12' if is_espresso else '16'}px;" class="dark-text">{_esc(n.get('manchete',''))}</td></tr>
                     {_render_news_image(n.get('img_url'), n.get('manchete',''), topic_id=sec.get('topic_id') or sec.get('topic'), size_mode='hero') if has_image else ''}
-                    <tr><td style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:{'22' if is_espresso else '26'}px;line-height:1.18;color:{COLORS['ink']};letter-spacing:-0.02em;padding-bottom:{'8' if is_espresso else '14'}px;" class="dark-text">{_esc(n.get('manchete',''))}</td></tr>
-                    <tr><td style="font-family:{SANS_FONT};font-size:{'14' if is_espresso else '16'}px;line-height:1.6;color:{COLORS['ink_soft']};padding-bottom:{'10' if is_espresso else '16'}px;" class="dark-text-soft">{_render_inline_html(resumo_display)}</td></tr>
+                    <tr><td style="font-family:{SANS_FONT};font-size:{'14' if is_espresso else '16'}px;line-height:1.6;color:{COLORS['ink_soft']};padding-bottom:{'10' if is_espresso else '16'}px;{'padding-top:14px;' if has_image else ''}" class="dark-text-soft">{_render_inline_html(resumo_display)}</td></tr>
                     {fatos_html}
                     <tr><td style="font-family:{SANS_FONT};font-size:12px;color:{COLORS['ink_muted']};padding-bottom:8px;" class="dark-text-muted">
                       <a href="{_safe_url(n.get('link'))}" style="color:{COLORS['ink']};text-decoration:none;font-weight:800;border-bottom:2.5px solid {COLORS['mint_deep']};padding-bottom:1px;margin-right:12px;" class="dark-text">Ler matéria →</a>
@@ -454,7 +454,7 @@ def _render_news_sections(sections, email_mode="coado"):
             continue
 
         out += f"""
-        <tr><td style="padding:0 36px;" id="tema-{slug}">
+        <tr><td style="padding:0 36px;" id="tema-{slug}" class="sec-edge">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:8px;border-bottom:4px solid {COLORS['bg_2']};">
             <tr><td style="padding:28px 0 4px 0;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;">
@@ -517,7 +517,7 @@ def _render_toc_top(trending, sections):
         )
     chips_html = "".join(chips)
     return f"""
-        <tr><td style="padding:0 36px 28px 36px;" id="topo">
+        <tr><td style="padding:0 36px 28px 36px;" id="topo" class="px-mob">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{COLORS['mint_bg_light']};border:2.5px solid {COLORS['mint_dark']};">
             <tr><td style="padding:18px 20px;">
               <div style="font-family:{SANS_FONT};font-size:10px;font-weight:800;letter-spacing:0.22em;text-transform:uppercase;color:{COLORS['mint_dark']};margin-bottom:10px;">📑 Navegação rápida</div>
@@ -547,7 +547,7 @@ def _render_toc_bottom(trending, sections):
         )
     chips_html = "".join(chips)
     return f"""
-        <tr><td style="padding:0 36px 28px 36px;">
+        <tr><td style="padding:0 36px 28px 36px;" class="px-mob">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{COLORS['ink']};">
             <tr><td style="padding:16px 20px;">
               <div style="font-family:{SANS_FONT};font-size:10px;font-weight:800;letter-spacing:0.22em;text-transform:uppercase;color:{COLORS['mint']};margin-bottom:9px;">📑 Pula pra outra seção</div>
@@ -555,6 +555,37 @@ def _render_toc_bottom(trending, sections):
             </td></tr>
           </table>
         </td></tr>"""
+
+
+def _minify_email_html(html):
+    """Minificação leve do HTML do email pra reduzir tamanho e evitar Gmail clipping
+    (limite 102KB). Conservadora: não altera conteúdo visível, só remove whitespace
+    desnecessário entre tags.
+
+    - Remove indentação e quebras de linha ENTRE tags
+    - Colapsa múltiplos espaços em um só
+    - Preserva conteúdo de texto e comentários condicionais (Outlook)
+    """
+    if not html:
+        return html
+    # Protege comentários condicionais Outlook (<!--[if mso]> ... <![endif]-->)
+    placeholders = []
+    def _stash(m):
+        placeholders.append(m.group(0))
+        return f"___MSO_COMMENT_{len(placeholders)-1}___"
+    protected = re.sub(r'<!--\[if[^>]*?\]>.*?<!\[endif\]-->', _stash, html, flags=re.DOTALL)
+
+    # Remove whitespace entre tags adjacentes (>< com whitespace no meio)
+    minified = re.sub(r'>\s+<', '><', protected)
+    # Colapsa múltiplos espaços (mas só fora de atributos — heurística simples)
+    minified = re.sub(r'\n\s*', ' ', minified)
+    minified = re.sub(r'  +', ' ', minified)
+
+    # Restaura comentários protegidos
+    for i, comment in enumerate(placeholders):
+        minified = minified.replace(f"___MSO_COMMENT_{i}___", comment)
+
+    return minified
 
 
 def render_email(user_name, date_obj, trending=None, trending_label="",
@@ -641,7 +672,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     if tts_url:
         duration_str = tts_duration or "—"
         tts_html = f"""
-        <tr><td style="background:{COLORS['yellow']};padding:14px 36px;border-bottom:2px solid {COLORS['ink']};">
+        <tr><td style="background:{COLORS['yellow']};padding:14px 36px;border-bottom:2px solid {COLORS['ink']};" class="px-mob">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
             <td width="38" valign="middle" style="padding-right:14px;">
               <a href="{_safe_url(tts_url)}" style="text-decoration:none;">
@@ -696,16 +727,32 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
 
     web_fonts_link = '<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,700,800,900&f[]=general-sans@400,500,600,700&f[]=gambarino@400i,400&display=swap">'
 
-    return f"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+    _html = f"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="pt-BR"><head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="light only">
 <meta name="supported-color-schemes" content="light">
+<meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+<meta name="x-apple-disable-message-reformatting">
 <title>Recorte ✂ · {date_short}</title>
 {web_fonts_link}
-<!--[if mso]><style type="text/css">body, table, td {{font-family: Georgia, 'Times New Roman', serif !important;}} .mso-sans {{font-family: Arial, Helvetica, sans-serif !important;}}</style><![endif]-->
+<!--[if mso]><style type="text/css">body, table, td {{font-family: Georgia, 'Times New Roman', serif !important;}} .mso-sans {{font-family: Arial, Helvetica, sans-serif !important;}} table {{mso-table-lspace:0pt; mso-table-rspace:0pt;}}</style><![endif]-->
 <style>
+  /* Outlook.com / Hotmail: evita o wrap .ExternalClass quebrar line-height */
+  .ExternalClass {{ width: 100%; }}
+  .ExternalClass, .ExternalClass p, .ExternalClass span,
+  .ExternalClass font, .ExternalClass td, .ExternalClass div {{ line-height: inherit; }}
+  /* Reset universal: remove espaçamento extra em tables (Outlook desktop) */
+  table, td {{ mso-table-lspace: 0pt; mso-table-rspace: 0pt; border-collapse: collapse; }}
+  /* Reset img: evita "borda" em Outlook + outline azul ao redor em alguns clients */
+  img {{ -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }}
+  /* Apple Mail / iOS: evita auto-link em números, datas, endereços */
+  a[x-apple-data-detectors] {{
+    color: inherit !important; text-decoration: none !important;
+    font-size: inherit !important; font-family: inherit !important;
+    font-weight: inherit !important; line-height: inherit !important;
+  }}
   @media only screen and (max-width:600px){{
     .container {{ width:100% !important; max-width:100% !important; }}
     .px-mob {{ padding-left:20px !important; padding-right:20px !important; }}
@@ -719,6 +766,10 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
     .feat-mob .feat-emoji {{ font-size:22px !important; margin-bottom:6px !important; }}
     .feat-mob .feat-title {{ font-size:9.5px !important; letter-spacing:0.04em !important; line-height:1.15 !important; }}
     .feat-mob .feat-desc {{ font-size:10.5px !important; line-height:1.25 !important; }}
+    /* Fix iPhone: zera padding lateral da TD outer pra cabeçalho/cards ocuparem largura total */
+    .outer-td {{ padding-left:0 !important; padding-right:0 !important; }}
+    /* Fix iPhone v3: zera padding lateral das TDs de seção (cards full-width em mobile) */
+    .sec-edge {{ padding-left:0 !important; padding-right:0 !important; }}
   }}
   :root {{
     color-scheme: light only;
@@ -736,8 +787,8 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
 </div>
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="{COLORS['bg']}" style="background:{COLORS['bg']};">
-  <tr><td align="center" style="padding:24px 16px;">
-    <table role="presentation" class="container" width="640" cellpadding="0" cellspacing="0" border="0" bgcolor="{COLORS['bg']}" style="max-width:640px;background:{COLORS['bg']};">
+  <tr><td align="center" class="outer-td" style="padding:24px 16px;">
+    <table role="presentation" class="container" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="{COLORS['bg']}" style="width:100%;max-width:640px;background:{COLORS['bg']};">
 
       <tr><td bgcolor="{COLORS['mint']}" style="background:{COLORS['mint']};padding:26px 36px 22px;" class="px-mob">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
@@ -864,3 +915,4 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
   </td></tr>
 </table>
 </body></html>"""
+    return _minify_email_html(_html)

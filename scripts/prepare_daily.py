@@ -50,8 +50,11 @@ def log(msg, **kwargs):
 
 def already_queued(user_id, scheduled_for, kind="daily"):
     """Verifica se já existe email enfileirado pra (user, data, tipo)."""
-    res = supabase.table("email_queue").select("id,status").eq("user_id", user_id) \
-        .eq("scheduled_for", scheduled_for).eq("kind", kind).execute()
+    res = dd._supabase_retry(
+        lambda: supabase.table("email_queue").select("id,status").eq("user_id", user_id)
+            .eq("scheduled_for", scheduled_for).eq("kind", kind).execute(),
+        label="email_queue.select(check)",
+    )
     rows = res.data or []
     if not rows:
         return None
@@ -72,7 +75,10 @@ def enqueue_email(user_id, kind, scheduled_for, subject, html, edition_id=None):
         }
         if edition_id:
             row["edition_id"] = edition_id
-        supabase.table("email_queue").insert(row).execute()
+        dd._supabase_retry(
+            lambda: supabase.table("email_queue").insert(row).execute(),
+            label="email_queue.insert",
+        )
         return True
     except Exception as e:
         if "duplicate" in str(e).lower() or "23505" in str(e):
@@ -122,7 +128,10 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
     if filtered_items:
         log(f"  filtros do user: {len(filtered_items)} itens")
 
-    _topics_pre = supabase.table("topics").select("label").eq("user_id", uid).execute()
+    _topics_pre = dd._supabase_retry(
+        lambda: supabase.table("topics").select("label").eq("user_id", uid).execute(),
+        label="topics.select(pre)",
+    )
     user_topic_labels = [t["label"] for t in (_topics_pre.data or [])]
     unique_topic_count = len({lbl for lbl in user_topic_labels}) if user_topic_labels else 0
 
@@ -201,7 +210,10 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
                 log(f"  ⚠ anti-aluc trending falhou (não bloqueia): {e}")
 
     # Notícias por tema
-    topics_res = supabase.table("topics").select("*").eq("user_id", uid).execute()
+    topics_res = dd._supabase_retry(
+        lambda: supabase.table("topics").select("*").eq("user_id", uid).execute(),
+        label="topics.select(full)",
+    )
     topics = topics_res.data or []
     fallback_country = "GLOBAL" if default_country == "INTL" else default_country
 
@@ -503,7 +515,10 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
             click_base_url=click_base,
         )
         try:
-            supabase.table("editions").update({"html": html}).eq("id", edition_id).execute()
+            dd._supabase_retry(
+                lambda: supabase.table("editions").update({"html": html}).eq("id", edition_id).execute(),
+                label="editions.update(html)",
+            )
         except Exception as e:
             log(f"  ⚠ Update edition html falhou (não bloqueia): {e}")
     except Exception as e:
@@ -522,7 +537,10 @@ def main():
 
     scheduled_for = now_brt.date().isoformat()
 
-    res = supabase.table("users").select("*").eq("active", True).execute()
+    res = dd._supabase_retry(
+        lambda: supabase.table("users").select("*").eq("active", True).execute(),
+        label="users.select(active)",
+    )
     all_users = res.data or []
     if not all_users:
         log("=== fim (nenhum user ativo) ===")

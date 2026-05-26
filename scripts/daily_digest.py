@@ -102,6 +102,59 @@ BRT = timezone(timedelta(hours=-3))
 def log(msg, **kv):
     extra = " ".join(f"{k}={v}" for k, v in kv.items())
     print(f"[{datetime.now(BRT).strftime('%H:%M:%S')}] {msg} {extra}".strip(), flush=True)
+
+# ============================================================================
+# RETRY com backoff exponencial pra escritas no Supabase
+# ============================================================================
+# Motivação: Supabase HTTP/2 pool às vezes desconecta abruptamente
+# (`httpcore.RemoteProtocolError: Server disconnected`), especialmente
+# quando vários workers paralelos compartilham conexões. O cliente postgrest-py
+# tem retry built-in, mas só pra erros HTTP 5xx — não pra disconnect do socket.
+# Esta função pega QUALQUER operação Supabase e tenta de novo com backoff em
+# erros transitórios de rede. Não retenta erros lógicos (4xx, validação).
+import httpx
+try:
+    import httpcore
+    _HTTPCORE_TRANSIENT = (httpcore.RemoteProtocolError, httpcore.ConnectError,
+                           httpcore.ReadError, httpcore.WriteError, httpcore.PoolTimeout)
+except ImportError:
+    _HTTPCORE_TRANSIENT = ()
+
+_TRANSIENT_ERRORS = (
+    httpx.RemoteProtocolError,
+    httpx.ConnectError, httpx.ConnectTimeout,
+    httpx.ReadTimeout, httpx.ReadError,
+    httpx.WriteError, httpx.WriteTimeout,
+    httpx.PoolTimeout,
+) + _HTTPCORE_TRANSIENT
+
+def _supabase_retry(fn, label="supabase", attempts=4, base_delay=0.5):
+    """Envolve uma operação Supabase com retry exponencial em erros transitórios.
+
+    Retenta com backoff: 0.5s, 1s, 2s, 4s (total ~7.5s no pior caso).
+    Erros NÃO-transitórios (validação, 4xx) sobem direto sem retry.
+
+    Args:
+        fn: callable que executa a operação (ex: lambda: supabase.table(...).insert(...).execute())
+        label: nome curto pro log
+        attempts: número total de tentativas (incluindo a primeira)
+        base_delay: delay inicial em segundos (dobra a cada tentativa)
+    """
+    last_exc = None
+    for attempt in range(1, attempts + 1):
+        try:
+            return fn()
+        except _TRANSIENT_ERRORS as e:
+            last_exc = e
+            if attempt < attempts:
+                delay = base_delay * (2 ** (attempt - 1))
+                log(f"  ⚠ {label} transient erro tentativa {attempt}/{attempts}: {type(e).__name__} — aguardando {delay:.1f}s")
+                time.sleep(delay)
+            else:
+                log(f"  ✗ {label} falhou após {attempts} tentativas: {type(e).__name__}: {e}")
+                raise
+    if last_exc:
+        raise last_exc
 # ============================================================================
 # JANELA DE FRESCOR TEMPORAL — descarte HARD de notícias velhas
 # ============================================================================
@@ -499,9 +552,12 @@ def _dedupe_trends(items):
 def _load_recently_sent_signatures(user_id, days=5):
     cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
     try:
-        res = supabase.table("email_items").select("payload") \
-            .eq("user_id", user_id).eq("kind", "news") \
-            .gte("created_at", cutoff).execute()
+        res = _supabase_retry(
+            lambda: supabase.table("email_items").select("payload")
+                .eq("user_id", user_id).eq("kind", "news")
+                .gte("created_at", cutoff).execute(),
+            label="load_recently_sent_signatures",
+        )
         links = set()
         title_sigs = set()
         for row in (res.data or []):
@@ -720,12 +776,15 @@ Responda APENAS JSON VÁLIDO neste formato exato:
 # ============ EMAIL ITEMS + FEEDBACK LINKS ============
 def create_email_item(user_id, kind, payload):
     iid = short_id()
-    supabase.table("email_items").insert({
-        "id": iid,
-        "user_id": user_id,
-        "kind": kind,
-        "payload": payload,
-    }).execute()
+    _supabase_retry(
+        lambda: supabase.table("email_items").insert({
+            "id": iid,
+            "user_id": user_id,
+            "kind": kind,
+            "payload": payload,
+        }).execute(),
+        label=f"create_email_item({kind})",
+    )
     return iid
 def _try_decode_gnews_url(url, timeout=4):
     if not url or "news.google.com" not in url:
@@ -802,7 +861,14 @@ def add_feedback_links(user_id, sections):
     return sections
 # ============ PROFILE / PAUSED TOPICS ============
 def load_profile(user_id):
-    res = supabase.table("user_profile").select("*").eq("user_id", user_id).execute()
+    try:
+        res = _supabase_retry(
+            lambda: supabase.table("user_profile").select("*").eq("user_id", user_id).execute(),
+            label="user_profile.select",
+        )
+    except Exception as e:
+        log(f"  ⚠ load_profile falhou após retry: {e}")
+        return {"learned_text": "", "paused_topics": [], "filtered_items": []}
     if res.data:
         prof = res.data[0]
         prof.setdefault("filtered_items", [])
@@ -888,7 +954,10 @@ def process_user(user, now_brt, weekly=False):
     # PATCH ANTI-ALUCINAÇÃO: gera edition_id cedo pra usar no log de validação
     from tracking import gen_edition_id, save_edition, wrap_links_in_html, finalize_edition
     edition_id = gen_edition_id()
-    _topics_pre = supabase.table("topics").select("label").eq("user_id", uid).execute()
+    _topics_pre = _supabase_retry(
+        lambda: supabase.table("topics").select("label").eq("user_id", uid).execute(),
+        label="topics.select(pre)",
+    )
     user_topic_labels = [t["label"] for t in (_topics_pre.data or [])]
     topic_count_for_scaling = len({lbl for lbl in user_topic_labels}) if user_topic_labels else 0
     # Janela de frescor: segunda-feira 48h, demais dias 30h, weekly 168h
@@ -966,7 +1035,10 @@ def process_user(user, now_brt, weekly=False):
             except Exception as e:
                 log(f"  ⚠ anti-aluc trending falhou (não bloqueia): {e}")
     # 2) NOTÍCIAS POR TEMA
-    topics_res = supabase.table("topics").select("*").eq("user_id", uid).execute()
+    topics_res = _supabase_retry(
+        lambda: supabase.table("topics").select("*").eq("user_id", uid).execute(),
+        label="topics.select(full)",
+    )
     topics = topics_res.data or []
     fallback_country = "GLOBAL" if default_country == "INTL" else default_country
     if weekly:
@@ -1255,7 +1327,10 @@ def process_user(user, now_brt, weekly=False):
             click_base_url=click_base,
         )
         try:
-            supabase.table("editions").update({"html": html}).eq("id", edition_id).execute()
+            _supabase_retry(
+                lambda: supabase.table("editions").update({"html": html}).eq("id", edition_id).execute(),
+                label="editions.update(html)",
+            )
         except Exception as e:
             log(f"  ⚠ Update edition html falhou (não bloqueia): {e}")
     except Exception as e:
@@ -1275,14 +1350,23 @@ def process_user(user, now_brt, weekly=False):
     }
     if is_welcome:
         user_updates["welcome_sent_at"] = now_brt.isoformat()
-    supabase.table("users").update(user_updates).eq("id", uid).execute()
+    try:
+        _supabase_retry(
+            lambda: supabase.table("users").update(user_updates).eq("id", uid).execute(),
+            label="users.update(last_sent_at)",
+        )
+    except Exception as e:
+        log(f"  ⚠ users.update final falhou (não bloqueia o envio): {e}")
     return True
 def main():
     now_brt = datetime.now(BRT)
     target_hour = TARGET_HOUR_BRT if TARGET_HOUR_BRT >= 0 else now_brt.hour
     log(f"=== Manhã ☕ V3 run ===", hora=target_hour, dry=DRY_RUN)
     today_start_brt = now_brt.replace(hour=0, minute=0, second=0, microsecond=0)
-    res = supabase.table("users").select("*").eq("active", True).execute()
+    res = _supabase_retry(
+        lambda: supabase.table("users").select("*").eq("active", True).execute(),
+        label="users.select(main)",
+    )
     all_users = res.data or []
     users = []
     for u in all_users:
