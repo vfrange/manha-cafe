@@ -31,9 +31,46 @@ from supabase import create_client
 
 from feedback_token import unsub_url as gen_unsub_url
 
-# Reusa o _supabase_retry do daily_digest pra ter retry consistente em todo
-# o pipeline (backoff exponencial em RemoteProtocolError / disconnect HTTP/2).
-from daily_digest import _supabase_retry
+# ============================================================================
+# RETRY com backoff exponencial pra escritas no Supabase
+# (duplicado de daily_digest.py pra evitar import cruzado — daily_digest
+# exige ANTHROPIC_API_KEY no top-level, mas o dispatch não usa Claude)
+# ============================================================================
+import time
+import httpx
+try:
+    import httpcore
+    _HTTPCORE_TRANSIENT = (httpcore.RemoteProtocolError, httpcore.ConnectError,
+                           httpcore.ReadError, httpcore.WriteError, httpcore.PoolTimeout)
+except ImportError:
+    _HTTPCORE_TRANSIENT = ()
+
+_TRANSIENT_ERRORS = (
+    httpx.RemoteProtocolError,
+    httpx.ConnectError, httpx.ConnectTimeout,
+    httpx.ReadTimeout, httpx.ReadError,
+    httpx.WriteError, httpx.WriteTimeout,
+    httpx.PoolTimeout,
+) + _HTTPCORE_TRANSIENT
+
+def _supabase_retry(fn, label="supabase", attempts=4, base_delay=0.5):
+    """Envolve uma operação Supabase com retry exponencial em erros transitórios."""
+    last_exc = None
+    for attempt in range(1, attempts + 1):
+        try:
+            return fn()
+        except _TRANSIENT_ERRORS as e:
+            last_exc = e
+            if attempt < attempts:
+                delay = base_delay * (2 ** (attempt - 1))
+                # log() não está definido ainda nesse ponto do módulo — usa print direto
+                print(f"  ⚠ {label} transient erro tentativa {attempt}/{attempts}: {type(e).__name__} — aguardando {delay:.1f}s", flush=True)
+                time.sleep(delay)
+            else:
+                print(f"  ✗ {label} falhou após {attempts} tentativas: {type(e).__name__}: {e}", flush=True)
+                raise
+    if last_exc:
+        raise last_exc
 
 # ============ CONFIG ============
 BRT = timezone(timedelta(hours=-3))
