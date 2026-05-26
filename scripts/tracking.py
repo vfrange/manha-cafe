@@ -15,6 +15,17 @@ from urllib.parse import urlparse
 
 from feedback_token import short_id
 
+# Reusa o _supabase_retry do daily_digest pra ter retry consistente em todo
+# o pipeline (backoff exponencial em RemoteProtocolError / disconnect HTTP/2).
+# Lazy import pra evitar ciclo no tempo de carregamento dos módulos.
+def _get_retry():
+    try:
+        from daily_digest import _supabase_retry
+        return _supabase_retry
+    except Exception:
+        # Fallback: se daily_digest não puder ser importado, executa sem retry.
+        return lambda fn, label="", **kw: fn()
+
 log = logging.getLogger(__name__)
 
 # Domínios que NÃO devem ser wrapeados (links internos)
@@ -77,6 +88,7 @@ def wrap_links_in_html(
         return html
 
     link_metadata = link_metadata or {}
+    _supabase_retry = _get_retry()
 
     # Match <a href="..."> — captura aspas simples ou duplas, ignora maiúsculas
     href_pattern = re.compile(r'<a([^>]*?)\shref=([\'"])([^\'"]+)\2', re.IGNORECASE)
@@ -118,16 +130,25 @@ def wrap_links_in_html(
     # Insert em batch — com fallback de inserts individuais se batch falhar.
     # CRÍTICO: se inserts falharem, os /c/{short_id} no HTML viram links mortos
     # (edge function /c/ não acha → mostra "Notícia saiu do ar" pra TODOS).
-    # Pra mitigar: se batch falhar, tenta 1 por 1 e mantém os que conseguiram inserir.
+    # Pra mitigar:
+    #   1. batch com retry (cobre disconnect HTTP/2)
+    #   2. se batch ainda falhar, tenta 1 por 1 com retry em cada
+    #   3. links que ainda assim falharem, "des-wrappa" pra apontar pra URL original
     if inserts:
         try:
-            supabase_client.table("link_clicks").insert(inserts).execute()
+            _supabase_retry(
+                lambda: supabase_client.table("link_clicks").insert(inserts).execute(),
+                label="link_clicks.insert(batch)",
+            )
         except Exception as e:
-            log.warning(f"  ⚠ batch insert link_clicks falhou: {e} — retentando individuais")
+            log.warning(f"  ⚠ batch insert link_clicks falhou após retry: {e} — retentando individuais")
             ok_short_ids = set()
             for row in inserts:
                 try:
-                    supabase_client.table("link_clicks").insert(row).execute()
+                    _supabase_retry(
+                        lambda r=row: supabase_client.table("link_clicks").insert(r).execute(),
+                        label="link_clicks.insert(single)",
+                    )
                     ok_short_ids.add(row["short_id"])
                 except Exception as e2:
                     log.warning(f"    ⚠ falha individual short_id={row['short_id']}: {e2}")
@@ -163,18 +184,22 @@ def save_edition(
     if edition_id is None:
         edition_id = str(uuid.uuid4())
 
+    _supabase_retry = _get_retry()
     try:
-        supabase_client.table("editions").insert({
-            "id": edition_id,
-            "user_id": user_id,
-            "queue_id": queue_id,
-            "kind": kind,
-            "subject": subject,
-            "html": html,
-            "scheduled_for": scheduled_for,
-        }).execute()
+        _supabase_retry(
+            lambda: supabase_client.table("editions").insert({
+                "id": edition_id,
+                "user_id": user_id,
+                "queue_id": queue_id,
+                "kind": kind,
+                "subject": subject,
+                "html": html,
+                "scheduled_for": scheduled_for,
+            }).execute(),
+            label="editions.insert",
+        )
     except Exception as e:
-        log.error(f"  ✗ falha ao salvar edition: {e}")
+        log.error(f"  ✗ falha ao salvar edition após retry: {e}")
         raise
 
     return edition_id
@@ -183,13 +208,17 @@ def save_edition(
 def finalize_edition(supabase_client, edition_id: str, resend_id: Optional[str] = None):
     """Marca a edition como enviada (sent_at = agora)."""
     from datetime import datetime, timezone
+    _supabase_retry = _get_retry()
     try:
         upd = {"sent_at": datetime.now(timezone.utc).isoformat()}
         if resend_id:
             upd["resend_id"] = resend_id
-        supabase_client.table("editions").update(upd).eq("id", edition_id).execute()
+        _supabase_retry(
+            lambda: supabase_client.table("editions").update(upd).eq("id", edition_id).execute(),
+            label="editions.update(sent_at)",
+        )
     except Exception as e:
-        log.warning(f"  ⚠ falha ao finalizar edition {edition_id}: {e}")
+        log.warning(f"  ⚠ falha ao finalizar edition {edition_id} após retry: {e}")
 
 
 def gen_edition_id() -> str:
