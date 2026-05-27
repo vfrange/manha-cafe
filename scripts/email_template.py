@@ -319,6 +319,139 @@ def _render_trending_section(trending, scope_label, email_mode="coado"):
     </td></tr>"""
 
 
+def _render_undercovered_section(undercovered, email_mode="coado"):
+    """
+    Seção "SAIBA ANTES DE TODOS" — histórias undercovered no Brasil.
+
+    DESIGN HÍBRIDO (Magazine cover + Carimbo Exclusivo):
+    - Card com borda PRETA grossa 3px (sem border-radius) — visual "Economist"
+    - Carimbo vermelho rotacionado "EXCLUSIVO" no canto superior direito
+    - Kicker "▸ SINAL FRACO" em mint deep no topo
+    - Resto (manchete, imagem, resumo, fatos, link) idêntico aos outros cards
+
+    Layout 100% table-based pra compatibilidade Gmail/Outlook/Apple Mail.
+    transform:rotate é enhancement — onde não funciona (Outlook), o carimbo
+    aparece reto e ainda funciona como destaque visual.
+    """
+    if not undercovered:
+        return ""
+
+    items_html = ""
+    for item in undercovered:
+        manchete = _esc(item.get("manchete", ""))
+        resumo_raw = item.get("resumo", "")
+        if not manchete or not resumo_raw:
+            continue
+        is_espresso = (email_mode == "espresso")
+        if is_espresso:
+            import re as _re
+            m = _re.split(r'(?<=[.!?])\s+', resumo_raw, maxsplit=1)
+            resumo_show = m[0] if m else resumo_raw
+            if len(resumo_show) > 180:
+                resumo_show = resumo_show[:177].rstrip() + "..."
+        else:
+            resumo_show = resumo_raw
+        resumo = _render_inline_html(resumo_show)
+
+        # Fatos-chave (idêntico ao trending)
+        fatos = item.get("fatos_chave") or []
+        if is_espresso:
+            fatos = []
+        fatos_html = ""
+        if isinstance(fatos, list) and fatos:
+            bullets = "".join(
+                f'<tr><td valign="top" style="padding:0 8px 6px 0;color:{COLORS["mint_dark"]};font-family:{SANS_FONT};font-weight:800;font-size:14px;line-height:1.4;">›</td>'
+                f'<td style="padding-bottom:6px;font-family:{SANS_FONT};font-size:14px;line-height:1.5;color:{COLORS["ink_soft"]};">{_esc(f)}</td></tr>'
+                for f in fatos[:5]
+            )
+            fatos_html = f'''<tr><td style="padding:0 0 14px 0;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{COLORS['bg_2']};padding:14px 16px;">
+                <tr><td colspan="2" style="font-family:{SANS_FONT};font-weight:800;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:{COLORS['ink_muted']};padding-bottom:8px;">FATOS-CHAVE</td></tr>
+                {bullets}
+              </table>
+            </td></tr>'''
+
+        # Lang chip
+        lang_chip = ""
+        lang = (item.get("lang") or "").lower()
+        lang_map = {"en":"🇺🇸 EN","fr":"🇫🇷 FR","de":"🇩🇪 DE","es":"🇪🇸 ES","it":"🇮🇹 IT","ja":"🇯🇵 JA","zh":"🇨🇳 ZH","ko":"🇰🇷 KO"}
+        if lang in lang_map:
+            lang_chip = (
+                f'<span style="display:inline-block;background:{COLORS["bg_2"]};color:{COLORS["ink_muted"]};'
+                f'font-family:{SANS_FONT};font-weight:700;font-size:10px;letter-spacing:0.06em;'
+                f'padding:2px 7px;margin-left:8px;border:1px solid {COLORS["line"]};">{lang_map[lang]}</span>'
+            )
+
+        # Link com border-top (separa link visualmente — feature do magazine cover)
+        link = item.get("link", "")
+        fonte = item.get("fonte", "")
+        link_html = ""
+        if link:
+            fonte_suffix = ""
+            if fonte:
+                fonte_suffix = f'<span style="color:{COLORS["ink"]};font-weight:800;">&nbsp;·&nbsp;{_esc(fonte)}</span>'
+            link_html = (
+                f'<tr><td style="border-top:1.5px solid {COLORS["ink"]};padding-top:12px;'
+                f'font-family:{SANS_FONT};font-size:12px;color:{COLORS["ink_muted"]};padding-bottom:4px;">'
+                f'<a href="{_safe_url(link)}" style="color:{COLORS["ink"]};text-decoration:none;font-weight:800;'
+                f'margin-right:6px;">Ler matéria →</a>{fonte_suffix}{lang_chip}</td></tr>'
+            )
+
+        # Carimbo EXCLUSIVO vermelho rotacionado (canto superior direito)
+        stamp_html = (
+            f'<span style="display:inline-block;background:#B91C1C;color:#FFFFFF;'
+            f'font-family:{SANS_FONT};font-weight:800;font-size:9px;letter-spacing:0.14em;'
+            f'padding:3px 9px;border:1.5px solid #B91C1C;text-transform:uppercase;'
+            f'-webkit-transform:rotate(8deg);transform:rotate(8deg);'
+            f'mso-rotation:8;">Exclusivo</span>'
+        )
+
+        # Kicker "▸ Sinal Fraco" em mint deep
+        kicker_html = (
+            f'<div style="font-family:{SANS_FONT};font-weight:800;font-size:10px;'
+            f'letter-spacing:0.2em;text-transform:uppercase;color:{COLORS["mint_dark"]};'
+            f'margin-bottom:10px;" class="dark-text-soft">▸ Sinal Fraco</div>'
+        )
+
+        # Card com borda 3px ink (sem border-radius — visual magazine)
+        items_html += f"""
+        <tr><td style="padding:0 0 24px 0;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:3px solid {COLORS['ink']};background:#FFFFFF;">
+            <tr><td style="padding:22px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <!-- Linha topo: kicker (esquerda) + carimbo (direita) -->
+                <tr>
+                  <td style="vertical-align:top;padding-bottom:6px;">{kicker_html}</td>
+                  <td align="right" style="vertical-align:top;padding-bottom:6px;">{stamp_html}</td>
+                </tr>
+                <!-- Manchete -->
+                <tr><td colspan="2" style="padding-bottom:14px;"><div style="font-family:{SERIF_FONT};font-weight:700;font-style:italic;font-size:24px;line-height:1.18;color:{COLORS['ink']};letter-spacing:-0.015em;" class="dark-text">{manchete}</div></td></tr>
+                <!-- Imagem (se houver) -->
+                <tr><td colspan="2">{_render_news_image(item.get('img_url'), manchete, topic_id='undercovered') if item.get('img_url') else ''}</td></tr>
+                <!-- Resumo -->
+                <tr><td colspan="2" style="font-family:{SANS_FONT};font-size:15px;line-height:1.55;color:{COLORS['ink_soft']};padding-bottom:14px;{'padding-top:14px;' if item.get('img_url') else ''}" class="dark-text-soft">{resumo}</td></tr>
+                <!-- Fatos-chave -->
+                {fatos_html.replace('<tr><td style=', '<tr><td colspan="2" style=', 1) if fatos_html else ''}
+                <!-- Link -->
+                {link_html.replace('<tr><td style=', '<tr><td colspan="2" style=', 1) if link_html else ''}
+              </table>
+            </td></tr>
+          </table>
+        </td></tr>"""
+
+    return f"""
+    <tr><td style="padding:32px 36px 8px 36px;" class="sec-edge" id="saiba-antes">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:8px;border-bottom:4px solid {COLORS['bg_2']};">
+        <tr><td style="padding:0 0 22px 0;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+            <td style="background:{COLORS['ink']};padding:5px 12px;font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;color:{COLORS['mint']};">🔭 Saiba antes de todos</td>
+          </tr></table>
+        </td></tr>
+        {items_html}
+      </table>
+    </td></tr>"""
+
+
 def _render_daily_recap(recap_text):
     if not recap_text or not recap_text.strip():
         return ""
@@ -487,16 +620,25 @@ def _render_news_sections(sections, email_mode="coado"):
     return out
 
 
-def _render_toc(trending, sections, position="top"):
-    if not trending and not sections:
+def _render_toc(trending, sections, position="top", undercovered=None):
+    undercovered = undercovered or []
+    if not trending and not sections and not undercovered:
         return ""
     if position == "top":
-        return _render_toc_top(trending, sections)
-    return _render_toc_bottom(trending, sections)
+        return _render_toc_top(trending, sections, undercovered)
+    return _render_toc_bottom(trending, sections, undercovered)
 
 
-def _render_toc_top(trending, sections):
+def _render_toc_top(trending, sections, undercovered=None):
+    undercovered = undercovered or []
     chips = []
+    if undercovered:
+        chips.append(
+            f'<a href="#saiba-antes" style="display:inline-block;background:{COLORS["ink"]};color:{COLORS["mint"]};text-decoration:none;'
+            f'padding:9px 13px;font-family:{SANS_FONT};font-size:11px;font-weight:800;letter-spacing:0.08em;'
+            f'text-transform:uppercase;margin:3px 5px 3px 0;border:2px solid {COLORS["ink"]};">'
+            f'🔭 Saiba Antes <span style="color:#FFFFFF;font-weight:700;">· {len(undercovered)}</span></a>'
+        )
     if trending:
         chips.append(
             f'<a href="#em-alta" style="display:inline-block;background:{COLORS["mint_dark"]};color:#FFF;text-decoration:none;'
@@ -527,8 +669,16 @@ def _render_toc_top(trending, sections):
         </td></tr>"""
 
 
-def _render_toc_bottom(trending, sections):
+def _render_toc_bottom(trending, sections, undercovered=None):
+    undercovered = undercovered or []
     chips = []
+    if undercovered:
+        chips.append(
+            f'<a href="#saiba-antes" style="display:inline-block;background:transparent;color:#FFFFFF;text-decoration:none;'
+            f'padding:6px 11px;font-family:{SANS_FONT};font-size:11px;font-weight:700;letter-spacing:0.08em;'
+            f'text-transform:uppercase;margin:3px 4px 3px 0;border:1.5px solid {COLORS["mint"]};">'
+            f'🔭 Saiba Antes</a>'
+        )
     if trending:
         chips.append(
             f'<a href="#em-alta" style="display:inline-block;background:transparent;color:#FFFFFF;text-decoration:none;'
@@ -597,9 +747,11 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
                  filtered_items_count=0, is_welcome=False,
                  unsub_url="#",
                  edition_id=None,
-                 share_base_url="https://recorte.news/r"):
+                 share_base_url="https://recorte.news/r",
+                 undercovered=None):
     trending = trending or []
     sections = sections or []
+    undercovered = undercovered or []
 
     # ====================================================================
     # DEFENSIVO: filtra sections sem nenhuma notícia válida ANTES do render.
@@ -655,6 +807,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
 
     stat_noticias = total_noticias or 0
     stat_trending = len(trending)
+    stat_undercovered = len(undercovered)
     stat_temas = len(sections)
     secs_each = 10 if email_mode == "espresso" else 20
     stat_minutos = max(2, round(stat_noticias * secs_each / 60))
@@ -688,6 +841,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
         </td></tr>"""
 
     trending_html = _render_trending_section(trending, trending_label, email_mode=email_mode)
+    undercovered_html = _render_undercovered_section(undercovered, email_mode=email_mode)
     sections_html = _render_news_sections(sections, email_mode=email_mode)
     recap_html = _render_daily_recap(daily_recap)
 
@@ -822,8 +976,8 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid {COLORS['line']};border-bottom:1px solid {COLORS['line']};">
           <tr>
             <td align="center" style="padding:14px 4px;">
-              <div class="stat-num" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:24px;color:{COLORS['mint_dark']};line-height:1;letter-spacing:-0.02em;">{stat_noticias}</div>
-              <div style="font-family:{SANS_FONT};font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:{COLORS['ink_muted']};margin-top:5px;">Notícias</div>
+              <div class="stat-num" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:24px;color:{COLORS['mint_dark']};line-height:1;letter-spacing:-0.02em;">{stat_undercovered}</div>
+              <div style="font-family:{SANS_FONT};font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:{COLORS['ink_muted']};margin-top:5px;">Exclusivas</div>
             </td>
             <td width="1" style="background:{COLORS['line']};">&nbsp;</td>
             <td align="center" style="padding:14px 4px;">
@@ -833,7 +987,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
             <td width="1" style="background:{COLORS['line']};">&nbsp;</td>
             <td align="center" style="padding:14px 4px;">
               <div class="stat-num" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:24px;color:{COLORS['mint_dark']};line-height:1;letter-spacing:-0.02em;">{stat_temas}</div>
-              <div style="font-family:{SANS_FONT};font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:{COLORS['ink_muted']};margin-top:5px;">Temas seus</div>
+              <div style="font-family:{SANS_FONT};font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:{COLORS['ink_muted']};margin-top:5px;">Seus temas</div>
             </td>
             <td width="1" style="background:{COLORS['line']};">&nbsp;</td>
             <td align="center" style="padding:14px 4px;">
@@ -846,6 +1000,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
 
       {quote_html}
       {recap_html}
+      {undercovered_html}
       {trending_html}
       {sections_html}
 

@@ -19,6 +19,8 @@ from voice_prompt import VOICE_PROMPT
 from email_template import render_email
 from feedback_token import short_id, feedback_url, manage_url as gen_manage_url, unsub_url as gen_unsub_url
 from sources import google_news, hacker_news, reddit, br_rss, bluesky, youtube_trending, intl_rss
+# Sources novos pra seção "Antes de todos" (sinal fraco / fora do radar BR)
+from sources import substack, cvm, google_trends
 from safety import (
     is_safe_news, is_safe_curated, SAFETY_INSTRUCTIONS,
     POLITICAL_BIAS_INSTRUCTIONS, is_political_topic,
@@ -197,12 +199,13 @@ def fetch_all_sources(query, country, category=None, label=None, source_type="cu
     reddit_time = "week" if weekly else "day"
     gnews_max = 15 if weekly else 8
     reddit_max = 8 if weekly else 4
-    hn_max = 10 if weekly else 5
+    # HN: volume maior pra tech (sinal forte), menor pra outros temas (cobertura editorial geral)
+    hn_max = (10 if weekly else 5) if is_tech else (4 if weekly else 2)
     br_max = 15 if weekly else 8
     fetchers = []
     fetchers.append(("google_news", lambda: google_news.fetch(query, country, max_items=gnews_max, when=gnews_when)))
-    if is_tech:
-        fetchers.append(("hacker_news", lambda: hacker_news.fetch(query, max_items=hn_max)))
+    # HN agora roda em TODOS os temas (não só tech) — editorial signal forte
+    fetchers.append(("hacker_news", lambda: hacker_news.fetch(query, max_items=hn_max)))
     fetchers.append(("reddit", lambda: reddit.fetch(query, category=category, max_items=reddit_max, time_filter=reddit_time)))
     if is_br:
         fetchers.append(("br_rss", lambda: br_rss.fetch(query, category=category, max_items=br_max)))
@@ -276,6 +279,280 @@ def fetch_trending(country, weekly=False, max_age_hours=None):
 # ============ CLAUDE CURATION ============
 MAX_NEWS_INPUT_PER_TOPIC = 6
 MAX_TOPICS_PER_BATCH = 4
+
+# ============ UNDERCOVERED SOURCES ============
+# Combina fontes que captam sinal ANTES da imprensa BR cobrir:
+#   - Substack (newsletters anglo high-signal)
+#   - CVM/B3 fatos relevantes (movimentos corporativos BR antes da editorialização)
+#   - Google Trends RSS (termos com spike de busca, real-time)
+#   - HN top stories (não só tech — editorial de "o que importa")
+
+# Domínios BR mainstream — se um candidato JÁ está nesses domínios, descartamos
+# (não é mais "undercovered" se Folha/G1/Valor/Exame já cobriram).
+BR_MAINSTREAM_DOMAINS = {
+    "folha.uol.com.br", "folha.com.br", "g1.globo.com", "globo.com",
+    "estadao.com.br", "valor.globo.com", "valoreconomico.com.br",
+    "exame.com", "veja.abril.com.br", "uol.com.br", "r7.com",
+    "cnnbrasil.com.br", "metropoles.com", "terra.com.br",
+    "bbc.com/portuguese", "noticias.uol.com.br",
+    "oglobo.globo.com", "gazetadopovo.com.br", "correiobraziliense.com.br",
+    "infomoney.com.br", "neofeed.com.br", "brazilJournal.com",
+    "investnews.com.br", "money-times.com.br",
+}
+
+def _is_br_mainstream(url):
+    """True se a URL pertence a um veículo mainstream BR (já coberto, não é undercovered)."""
+    if not url:
+        return False
+    try:
+        from urllib.parse import urlparse
+        host = urlparse(url).hostname or ""
+        host = host.lower().lstrip("www.")
+        for d in BR_MAINSTREAM_DOMAINS:
+            if host == d or host.endswith("." + d):
+                return True
+    except Exception:
+        pass
+    return False
+
+
+def fetch_undercovered(country="BR", weekly=False, max_age_hours=None):
+    """
+    Busca candidatos pra seção "saiba antes de todos" — histórias que ainda
+    não foram cobertas pela imprensa brasileira mainstream.
+
+    Combina substack + cvm + google_trends + HN top, depois filtra:
+    1. URLs que JÁ estão em domínios BR mainstream (não é mais "antes")
+    2. Filtro de frescor (idade máxima)
+    3. Dedup por título
+    """
+    items = []
+
+    # 1. Substack — newsletters anglo (2 posts por feed, 72h)
+    try:
+        sub_items = substack.fetch(
+            max_items_per_feed=2,
+            max_age_hours=72 if not weekly else 168,
+        )
+        for it in sub_items:
+            it["_origin"] = "substack"
+        items.extend(sub_items)
+    except Exception as e:
+        log(f"  ⚠ substack: {e}")
+
+    # 2. CVM / B3 fatos relevantes (só BR ou GLOBAL com flavor BR)
+    if country in ("BR", "GLOBAL"):
+        try:
+            cvm_items = cvm.fetch(
+                max_items_per_query=3,
+                max_age_hours=36 if not weekly else 168,
+                weekly=weekly,
+            )
+            for it in cvm_items:
+                it["_origin"] = "cvm"
+            items.extend(cvm_items)
+        except Exception as e:
+            log(f"  ⚠ cvm: {e}")
+
+    # 3. Google Trends RSS (termos com spike de busca)
+    try:
+        gt_items = google_trends.fetch(
+            country=country,
+            max_items=12 if not weekly else 20,
+            max_age_hours=48 if not weekly else 168,
+        )
+        for it in gt_items:
+            it["_origin"] = "google_trends"
+        items.extend(gt_items)
+    except Exception as e:
+        log(f"  ⚠ google_trends: {e}")
+
+    # 4. HN top stories (sem query — pega o que tá bombando geral)
+    try:
+        hn_items = hacker_news.fetch(query=None, max_items=15 if not weekly else 25)
+        for it in hn_items:
+            it["_origin"] = "hacker_news_top"
+        items.extend(hn_items)
+    except Exception as e:
+        log(f"  ⚠ hn top: {e}")
+
+    # FILTRO 1: remove URLs que JÁ estão em mídia BR mainstream
+    before_mainstream = len(items)
+    items = [it for it in items if not _is_br_mainstream(it.get("link", ""))]
+    removed_mainstream = before_mainstream - len(items)
+    if removed_mainstream > 0:
+        log(f"  🧹 undercovered: removidos {removed_mainstream} já em mídia BR mainstream")
+
+    # FILTRO 2: dedup por título normalizado
+    seen = set()
+    deduped = []
+    for it in items:
+        title = it.get("title", "")
+        key = re.sub(r"\W+", "", title).lower()[:80]
+        if key and key not in seen:
+            seen.add(key)
+            deduped.append(it)
+
+    # FILTRO 3: frescor
+    if max_age_hours is not None and deduped:
+        before = len(deduped)
+        deduped, stale_count = _filter_stale_news(deduped, max_age_hours=max_age_hours)
+        if stale_count > 0:
+            log(f"  🕐 undercovered frescor ({max_age_hours}h): descartadas {stale_count}/{before}")
+
+    return deduped
+
+
+def curate_undercovered(user_name, raw_items, learned_text,
+                        user_topic_labels=None, filtered_items=None,
+                        exclude_links=None, exclude_titles=None,
+                        max_out=10, weekly=False):
+    """
+    Filtra/cura candidatos da seção "saiba antes de todos" via Claude.
+
+    Aplica TODAS as regras dos outros capítulos:
+    - Filtra por temas do user (relevância aos interesses)
+    - Aplica filtered_items (remove explicitamente filtrados)
+    - Aplica learned_text (preferências aprendidas)
+    - Dedup vs sections/trending (exclude_links/titles)
+    - Prioriza "fato UAU" verdadeiramente undercovered
+    """
+    exclude_links = exclude_links or set()
+    exclude_titles = exclude_titles or set()
+    user_topic_labels = user_topic_labels or []
+    filtered_items = filtered_items or []
+
+    # 1. Pré-filtro: remove duplicatas com outras seções
+    pre_filtered = []
+    for it in raw_items:
+        link = it.get("link", "")
+        title = it.get("title", "")
+        title_key = re.sub(r"\W+", "", title).lower()[:80]
+        if link and link in exclude_links:
+            continue
+        if title_key and title_key in exclude_titles:
+            continue
+        pre_filtered.append(it)
+
+    if not pre_filtered:
+        return []
+
+    # 2. Trunca pra Claude não estourar contexto (max 50 candidatos)
+    candidates = pre_filtered[:50]
+
+    # 3. Monta prompt
+    items_json = []
+    for i, it in enumerate(candidates):
+        items_json.append({
+            "id": i,
+            "title": it.get("title", "")[:200],
+            "summary": (it.get("summary") or "")[:300],
+            "lang": it.get("lang", "pt"),
+        })
+
+    # Contexto do user: temas, filtros, preferências
+    user_context_bits = []
+    if user_topic_labels:
+        user_context_bits.append(f"TEMAS DE INTERESSE DO LEITOR: {', '.join(user_topic_labels)}")
+    if filtered_items:
+        filtered_str = ", ".join(f'"{f}"' for f in filtered_items[:20])
+        user_context_bits.append(f"ITENS FILTRADOS (NÃO trazer nada sobre): {filtered_str}")
+    if learned_text and learned_text.strip():
+        user_context_bits.append(f"PREFERÊNCIAS APRENDIDAS: {learned_text.strip()[:500]}")
+    user_context = "\n".join(user_context_bits) if user_context_bits else "Leitor sem temas/preferências configurados — escolha o mais interessante geral."
+
+    system = (
+        "Você é o curador da seção 'SAIBA ANTES DE TODOS' do Recorte News, "
+        "uma newsletter brasileira de notícias. Esta seção tem UM objetivo: "
+        "trazer histórias verdadeiramente UAU que o leitor brasileiro AINDA NÃO VIU hoje.\n\n"
+        "CRITÉRIOS RIGOROSOS pra escolher itens:\n\n"
+        "1. RELEVÂNCIA AOS TEMAS DO LEITOR — priorize itens que conversam com os "
+        "interesses declarados. Se o leitor segue 'Tech & IA', traga IA undercovered; "
+        "se segue 'Geopolítica', traga geopolítica undercovered.\n\n"
+        "2. GARANTIA DE 'UNDERCOVERED' — só inclua se você tem ALTA CONFIANÇA que "
+        "a história NÃO foi coberta hoje por Folha, G1, Estadão, Valor, Exame, BBC Brasil, "
+        "CNN Brasil ou outro veículo brasileiro mainstream. Na dúvida, DESCARTE.\n\n"
+        "3. FATOR UAU — preferência absoluta por histórias surpreendentes, contraintuitivas, "
+        "ou que revelam algo que vai virar conversa amanhã/semana que vem. EVITE trivialidade, "
+        "incremental, ou coisa óbvia.\n\n"
+        "4. RESPEITAR FILTROS — JAMAIS traga conteúdo sobre itens explicitamente filtrados "
+        "pelo usuário. Esse é um filtro DURO.\n\n"
+        "5. EVITAR: celebridade pura, esporte trivial, política partidária, fofoca, "
+        "clickbait, conteúdo já viralizado.\n\n"
+        "Idioma: aceitar inglês (das newsletters anglo) — você reescreve TUDO em PT-BR fluente."
+    )
+
+    user_prompt = (
+        f"Leitor: {user_name}.\n\n"
+        f"{user_context}\n\n"
+        f"Candidatos brutos ({len(candidates)} itens):\n{json.dumps(items_json, ensure_ascii=False)}\n\n"
+        f"Escolha até {max_out} MELHORES — pode ser MENOS se não tiver gente realmente "
+        f"undercovered/UAU. Qualidade > quantidade. Se só 4 itens passam no filtro rigoroso, "
+        f"retorne 4. Pra cada escolhido, retorne JSON:\n"
+        "{\n"
+        '  "items": [\n'
+        '    {\n'
+        '      "id": <id original>,\n'
+        '      "manchete": "<reescrita em PT-BR fluente, 6-12 palavras, sem clickbait, intrigante>",\n'
+        '      "resumo": "<2-3 frases em PT-BR explicando o que é, contexto e por que importa. Use <strong>termo</strong> em 1-2 termos-chave por resumo.>",\n'
+        '      "fatos_chave": ["fato 1 curto", "fato 2 curto", "fato 3 curto"]\n'
+        '    }\n'
+        '  ]\n'
+        "}\n\n"
+        "REGRAS DE OUTPUT:\n"
+        "- 3 a 4 fatos_chave por item, cada um com 4-10 palavras, factuais (não opinião)\n"
+        "- Se não tem info suficiente nos candidatos pra preencher os campos com confiança, "
+        "DESCARTE o item (não invente)\n"
+        "- Retorne APENAS o JSON, sem comentários antes/depois"
+    )
+
+    try:
+        resp = claude.messages.create(
+            model=MODEL,
+            max_tokens=4000,
+            system=system,
+            messages=[{"role": "user", "content": user_prompt}],
+        )
+        raw = resp.content[0].text if resp.content else "{}"
+        parsed = _robust_json_parse(raw)
+    except Exception as e:
+        log(f"  ⚠ curate_undercovered falhou: {e}")
+        return []
+
+    if not parsed or "items" not in parsed:
+        log(f"  ⚠ curate_undercovered: JSON sem 'items'")
+        return []
+
+    # 4. Hidrata items escolhidos com link + source originais
+    out = []
+    for chosen in parsed.get("items", [])[:max_out]:
+        idx = chosen.get("id")
+        if idx is None or idx < 0 or idx >= len(candidates):
+            continue
+        original = candidates[idx]
+        manchete = (chosen.get("manchete") or "").strip()
+        resumo = (chosen.get("resumo") or "").strip()
+        if not manchete or not resumo:
+            continue  # garante validade mínima
+        fatos = chosen.get("fatos_chave") or []
+        if not isinstance(fatos, list):
+            fatos = []
+        out.append({
+            "manchete": manchete,
+            "resumo": resumo,
+            "fatos_chave": fatos[:4],
+            "link": original.get("link", ""),
+            "fonte": original.get("source", ""),
+            "lang": original.get("lang", "pt"),
+            "origin": original.get("_origin", ""),  # interno, não exibido
+            "img_url": original.get("img_url"),
+            "raw_title": original.get("title"),  # pra anti-aluc
+            "raw_summary": original.get("summary"),
+        })
+
+    return out
+
+
 def _robust_json_parse(text):
     text = re.sub(r"^```(?:json)?\s*", "", text.strip())
     text = re.sub(r"\s*```$", "", text)
