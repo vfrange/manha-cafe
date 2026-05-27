@@ -294,7 +294,7 @@ def _render_trending_section(trending, scope_label, email_mode="coado"):
             link_html = f'<tr><td style="font-family:{SANS_FONT};font-size:12px;color:{COLORS["ink_muted"]};padding-bottom:8px;"><a href="{_safe_url(link)}" style="color:{COLORS["ink"]};text-decoration:none;font-weight:800;border-bottom:2.5px solid {COLORS["mint_deep"]};padding-bottom:1px;margin-right:6px;">Ler matéria →</a>{fonte_suffix}{lang_chip}</td></tr>'
         items_html += f"""
         <tr><td style="padding:0 0 20px 0;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1.5px solid {COLORS['mint']};border-radius:15px;background:#FFFFFF;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;border:1.5px solid {COLORS['mint']};border-radius:15px;background:#FFFFFF;">
             <tr><td style="padding:20px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr><td style="padding-bottom:14px;"><div style="font-family:{SERIF_FONT};font-weight:700;font-style:italic;font-size:24px;line-height:1.22;color:{COLORS['ink']};letter-spacing:-0.015em;" class="dark-text">{manchete}</div></td></tr>
@@ -561,7 +561,7 @@ def _render_news_sections(sections, email_mode="coado"):
                 lang_chip = f'<span style="display:inline-block;background:{COLORS["bg_2"]};color:{COLORS["ink_muted"]};font-family:{SANS_FONT};font-weight:700;font-size:10px;letter-spacing:0.06em;padding:2px 7px;margin-left:8px;border:1px solid {COLORS["line"]};">{lang_map[lang]}</span>'
             noticias_html += f"""
             <tr><td style="padding:0 0 22px 0;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1.5px solid {COLORS['mint']};border-radius:15px;background:#FFFFFF;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;border:1.5px solid {COLORS['mint']};border-radius:15px;background:#FFFFFF;">
                 <tr><td style="padding:22px;">
                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                     <tr><td style="font-family:{SERIF_FONT};font-weight:700;font-style:italic;font-size:{'24' if is_espresso else '28'}px;line-height:1.18;color:{COLORS['ink']};letter-spacing:-0.02em;padding-bottom:{'12' if is_espresso else '16'}px;" class="dark-text">{_esc(n.get('manchete',''))}</td></tr>
