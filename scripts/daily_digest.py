@@ -290,14 +290,36 @@ MAX_TOPICS_PER_BATCH = 4
 # Domínios BR mainstream — se um candidato JÁ está nesses domínios, descartamos
 # (não é mais "undercovered" se Folha/G1/Valor/Exame já cobriram).
 BR_MAINSTREAM_DOMAINS = {
+    # Grandes diários e portais
     "folha.uol.com.br", "folha.com.br", "g1.globo.com", "globo.com",
-    "estadao.com.br", "valor.globo.com", "valoreconomico.com.br",
-    "exame.com", "veja.abril.com.br", "uol.com.br", "r7.com",
-    "cnnbrasil.com.br", "metropoles.com", "terra.com.br",
-    "bbc.com/portuguese", "noticias.uol.com.br",
-    "oglobo.globo.com", "gazetadopovo.com.br", "correiobraziliense.com.br",
-    "infomoney.com.br", "neofeed.com.br", "brazilJournal.com",
-    "investnews.com.br", "money-times.com.br",
+    "estadao.com.br", "oglobo.globo.com", "uol.com.br", "noticias.uol.com.br",
+    "r7.com", "noticias.r7.com", "terra.com.br", "ig.com.br",
+    "metropoles.com", "correiobraziliense.com.br", "gazetadopovo.com.br",
+    "gauchazh.clicrbs.com.br", "zh.clicrbs.com.br",  # Zero Hora
+    "em.com.br",  # Estado de Minas
+    "correio24horas.com.br",
+    # Negócios / mercado financeiro
+    "valor.globo.com", "valoreconomico.com.br", "exame.com",
+    "infomoney.com.br", "neofeed.com.br", "braziljournal.com",
+    "investnews.com.br", "money-times.com.br", "istoedinheiro.com.br",
+    "forbes.com.br",
+    # Revistas semanais
+    "veja.abril.com.br", "veja.com", "istoe.com.br", "cartacapital.com.br",
+    "epoca.globo.com",
+    # Broadcasts
+    "cnnbrasil.com.br", "band.uol.com.br", "band.com.br",
+    "jovempan.com.br", "noticias.band.uol.com.br",
+    "recordtv.r7.com", "sbt.com.br",
+    # BBC/Reuters/AP em PT
+    "bbc.com/portuguese", "bbc.com",
+    "reuters.com", "br.reuters.com",
+    # Tech BR mainstream
+    "tecmundo.com.br", "canaltech.com.br", "olhardigital.com.br",
+    "tilt.uol.com.br", "tecnoblog.net",
+    # Independente mas com grande alcance
+    "nexojornal.com.br", "poder360.com.br", "piaui.folha.uol.com.br",
+    "revistapiaui.estadao.com.br", "brasil247.com",
+    "redebrasilatual.com.br", "icl.com.br",
 }
 
 def _is_br_mainstream(url):

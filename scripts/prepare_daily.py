@@ -452,6 +452,19 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
             except Exception as e:
                 log(f"  ⚠ resolve gnews undercovered falhou (não bloqueia): {e}")
 
+            # FIX BUG GAZETA: re-aplica filtro BR mainstream APÓS decode.
+            # Necessário porque URLs vindas via Google News (CVM) chegam como
+            # news.google.com/... e só depois do decode revelam o domínio real
+            # (folha, gazeta, valor, etc). Sem isso, mainstream vaza pra undercovered.
+            try:
+                before_post = len(uc_raw)
+                uc_raw = [it for it in uc_raw if not dd._is_br_mainstream(it.get("link", ""))]
+                removed_post = before_post - len(uc_raw)
+                if removed_post > 0:
+                    log(f"  🧹 saiba_antes pós-decode: removidos {removed_post} mainstream BR revelados após decode")
+            except Exception as e:
+                log(f"  ⚠ re-filtro mainstream falhou (não bloqueia): {e}")
+
             # FILTRO: dedup 5d cross-edição (não enviar repetido em 5 dias)
             try:
                 if uc_raw:
@@ -498,6 +511,16 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
                     weekly=weekly,
                 )
                 log(f"  📡 saiba_antes curados count={len(undercovered)}")
+
+                # DEFENSE IN DEPTH: re-filtra mainstream BR pós-cura.
+                # Cobre edge case onde Claude escolheu item com URL que escapou dos filtros
+                # anteriores (ex: redirect, URL com subdomínio inusual, etc).
+                if undercovered:
+                    before_final = len(undercovered)
+                    undercovered = [u for u in undercovered if not dd._is_br_mainstream(u.get("link", ""))]
+                    removed_final = before_final - len(undercovered)
+                    if removed_final > 0:
+                        log(f"  🧹 saiba_antes pós-cura: removidos {removed_final} mainstream BR (defense in depth)")
 
                 # ANTI-ALUCINAÇÃO
                 if undercovered:
