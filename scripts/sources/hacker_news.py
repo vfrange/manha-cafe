@@ -15,7 +15,9 @@ def _http_json(url, timeout=8):
 
 
 def _keywords(query):
-    """Extrai keywords mínimas do query."""
+    """Extrai keywords mínimas do query. Aceita None/vazio (retorna [])."""
+    if not query:
+        return []
     q = query.lower()
     # remove stopwords PT/EN básicas
     stops = {"de","do","da","e","a","o","em","no","na","para","com","os","as",
@@ -28,6 +30,10 @@ def fetch(query, max_items=8, scan_top=80):
     """
     Pega top N stories do HN, filtra as que casam com keywords do query.
     Bom pra temas de tech/AI/business.
+
+    Se query=None ou vazia → não aplica filtro de keywords (retorna top N stories).
+    Esse modo é usado pela seção "Saiba antes de todos" (fetch_undercovered) que
+    quer top stories tech sem amarrar a uma busca específica.
     """
     try:
         top_ids = _http_json(HN_TOPSTORIES)[:scan_top]
@@ -35,8 +41,9 @@ def fetch(query, max_items=8, scan_top=80):
         return []
 
     kws = _keywords(query)
-    if not kws:
-        return []
+    # Se não tem keywords (query=None/vazia), aceita TODAS as top stories.
+    # Se tem keywords, aplica filtro título-contém-keyword.
+    use_filter = bool(kws)
 
     results = []
     for sid in top_ids:
@@ -49,9 +56,10 @@ def fetch(query, max_items=8, scan_top=80):
         title = (item.get("title") or "").strip()
         if not title:
             continue
-        title_low = title.lower()
-        if not any(kw in title_low for kw in kws):
-            continue
+        if use_filter:
+            title_low = title.lower()
+            if not any(kw in title_low for kw in kws):
+                continue
         url = item.get("url") or f"https://news.ycombinator.com/item?id={sid}"
         results.append({
             "title": title,
