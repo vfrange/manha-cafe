@@ -1518,6 +1518,138 @@ def process_user(user, now_brt, weekly=False):
     if trending and sections:
         _dedupe_sections_against_trends(sections, trending)
         sections = [s for s in sections if s.get("noticias")]
+
+    # ============ SAIBA ANTES DE TODOS (undercovered) ============
+    # Sinal fraco / não coberto pela imprensa BR mainstream.
+    # Aplica TODAS as regras dos outros capítulos: temas do user, filtered_items,
+    # learned_text, paused_topics, dedup 5d, frescor, anti-aluc, og:image.
+    # Opt-in: default ATIVADO, user pode desativar via preferência undercovered_enabled.
+    undercovered = []
+    if not user.get("undercovered_enabled", True):
+        log(f"  ⏭ saiba_antes desativado pelo user")
+    else:
+        try:
+            scope_for_uc = "BR" if user.get("default_country", "BR") in ("BR", None) else "GLOBAL"
+            uc_raw = fetch_undercovered(
+                country=scope_for_uc,
+                weekly=weekly,
+                max_age_hours=stale_window_h,
+            )
+            log(f"  📡 saiba_antes brutos count={len(uc_raw)}")
+
+            # FILTRO: paused_topics (se algum candidato bate com tema pausado, descarta)
+            if paused and uc_raw:
+                before_paused = len(uc_raw)
+                uc_raw = [
+                    it for it in uc_raw
+                    if not is_topic_paused(it.get("title", "")[:80], paused, datetime.now(timezone.utc))
+                ]
+                removed_paused = before_paused - len(uc_raw)
+                if removed_paused > 0:
+                    log(f"  ⏸ saiba_antes: removidos {removed_paused} de temas pausados")
+
+            # FILTRO: resolve URLs do Google News (CVM usa GNews wrapper)
+            try:
+                gnews_targets = [it for it in uc_raw if "news.google.com" in (it.get("link") or "")]
+                if gnews_targets:
+                    log(f"  🔓 saiba_antes: pré-decodificando {len(gnews_targets)} URL(s) Google News...")
+                    def _resolve_uc(item):
+                        url = item.get("link", "")
+                        new_url = _try_decode_gnews_url(url)
+                        if new_url != url:
+                            item["link"] = new_url
+                            return True
+                        return False
+                    with ThreadPoolExecutor(max_workers=6) as ex:
+                        list(ex.map(_resolve_uc, gnews_targets))
+                    before_gn = len(uc_raw)
+                    uc_raw = [it for it in uc_raw if "news.google.com" not in (it.get("link") or "")]
+                    removed_gn = before_gn - len(uc_raw)
+                    if removed_gn > 0:
+                        log(f"  🚫 saiba_antes: removidos {removed_gn} GNews wrappers não decodificados")
+            except Exception as e:
+                log(f"  ⚠ resolve gnews undercovered falhou (não bloqueia): {e}")
+
+            # FIX BUG GAZETA: re-aplica filtro BR mainstream APÓS decode
+            try:
+                before_post = len(uc_raw)
+                uc_raw = [it for it in uc_raw if not _is_br_mainstream(it.get("link", ""))]
+                removed_post = before_post - len(uc_raw)
+                if removed_post > 0:
+                    log(f"  🧹 saiba_antes pós-decode: removidos {removed_post} mainstream BR revelados após decode")
+            except Exception as e:
+                log(f"  ⚠ re-filtro mainstream falhou (não bloqueia): {e}")
+
+            # FILTRO: dedup 5d cross-edição (não enviar repetido em 5 dias)
+            try:
+                if uc_raw:
+                    _sent_links, _sent_sigs = _load_recently_sent_signatures(uid, days=5)
+                    if _sent_links or _sent_sigs:
+                        before_5d = len(uc_raw)
+                        _uc_group = [{"news": uc_raw, "label": "_uc"}]
+                        _filter_already_sent(_uc_group, _sent_links, _sent_sigs)
+                        uc_raw = _uc_group[0].get("news", [])
+                        removed_5d = before_5d - len(uc_raw)
+                        if removed_5d > 0:
+                            log(f"  🔁 saiba_antes dedup 5d: removidos {removed_5d} já enviado(s)")
+            except Exception as e:
+                log(f"  ⚠ dedup 5d undercovered falhou (não bloqueia): {e}")
+
+            if uc_raw:
+                # FILTRO: dedup vs sections + trending
+                exclude_links = set()
+                exclude_titles = set()
+                for s in sections:
+                    for n in s.get("noticias", []):
+                        if n.get("link"):
+                            exclude_links.add(n["link"])
+                        title = n.get("manchete", "")
+                        title_key = re.sub(r"\W+", "", title).lower()[:80]
+                        if title_key:
+                            exclude_titles.add(title_key)
+                for t in trending:
+                    if t.get("link"):
+                        exclude_links.add(t["link"])
+                    title = t.get("manchete", "")
+                    title_key = re.sub(r"\W+", "", title).lower()[:80]
+                    if title_key:
+                        exclude_titles.add(title_key)
+
+                # CURADORIA: Claude escolhe melhores considerando TEMAS + filtros + learned
+                undercovered = curate_undercovered(
+                    user["name"], uc_raw, learned,
+                    user_topic_labels=user_topic_labels,
+                    filtered_items=filtered_items,
+                    exclude_links=exclude_links,
+                    exclude_titles=exclude_titles,
+                    max_out=8,
+                    weekly=weekly,
+                )
+                log(f"  📡 saiba_antes curados count={len(undercovered)}")
+
+                # DEFENSE IN DEPTH: re-filtra mainstream BR pós-cura
+                if undercovered:
+                    before_final = len(undercovered)
+                    undercovered = [u for u in undercovered if not _is_br_mainstream(u.get("link", ""))]
+                    removed_final = before_final - len(undercovered)
+                    if removed_final > 0:
+                        log(f"  🧹 saiba_antes pós-cura: removidos {removed_final} mainstream BR (defense in depth)")
+
+                # ANTI-ALUCINAÇÃO
+                if undercovered:
+                    try:
+                        uc_stats = validate_and_clean_trending(
+                            undercovered, uc_raw, supabase, uid, edition_id,
+                            claude, MODEL,
+                        )
+                        if uc_stats.get("discarded_critical") or uc_stats.get("discarded_moderate") or uc_stats.get("rewritten"):
+                            log(f"  🛡 anti-aluc saiba_antes: ok={uc_stats['ok']} reescritos={uc_stats['rewritten']} "
+                                f"descartados={uc_stats['discarded_critical']+uc_stats['discarded_moderate']}")
+                    except Exception as e:
+                        log(f"  ⚠ anti-aluc saiba_antes falhou (não bloqueia): {e}")
+        except Exception as e:
+            log(f"  ⚠ saiba_antes falhou (não bloqueia): {e}")
+
     label_to_source = {t["label"]: t.get("source", "curated") for t in topics_with_news}
     sections.sort(key=lambda s: 0 if label_to_source.get(s.get("topic"), "curated") == "custom" else 1)
     resolve_gnews_urls(sections, trending)
@@ -1557,6 +1689,9 @@ def process_user(user, now_brt, weekly=False):
         for t in trending:
             if not t.get("img_url") and t.get("link"):
                 urls_para_scrape.append(t["link"])
+        for u in undercovered:
+            if not u.get("img_url") and u.get("link"):
+                urls_para_scrape.append(u["link"])
         if urls_para_scrape:
             log(f"  🌐 scraping og:image de {len(urls_para_scrape)} URLs (paralelo)...")
             img_map = extract_images(urls_para_scrape)
@@ -1579,9 +1714,20 @@ def process_user(user, now_brt, weekly=False):
                     img = img_map[link]
                     if img and valid_imgs.get(img):
                         t["img_url"] = img
+            for u in undercovered:
+                if u.get("img_url"):
+                    continue
+                link = u.get("link", "")
+                if link in img_map:
+                    img = img_map[link]
+                    if img and valid_imgs.get(img):
+                        u["img_url"] = img
         if trending:
             n_with_img = sum(1 for t in trending if t.get("img_url"))
             log(f"  📷 trending: {n_with_img}/{len(trending)} com imagem")
+        if undercovered:
+            n_with_img = sum(1 for u in undercovered if u.get("img_url"))
+            log(f"  📷 saiba_antes: {n_with_img}/{len(undercovered)} com imagem")
         if sections:
             total_n = sum(len(s.get("noticias", [])) for s in sections)
             total_img = sum(1 for s in sections for n in s.get("noticias", []) if n.get("img_url"))
@@ -1593,6 +1739,7 @@ def process_user(user, now_brt, weekly=False):
     html = render_email(
         user_name=user["name"], date_obj=now_brt,
         trending=trending, trending_label=trending_label,
+        undercovered=undercovered,
         sections=sections, manage_url=signed_manage,
         user_id=uid,
         daily_recap=daily_recap,
