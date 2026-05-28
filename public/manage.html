@@ -646,10 +646,28 @@
       </div>
     </div>
 
-    <!-- 03 TRENDING TOPICS -->
+    <!-- 03 SAIBA ANTES DE TODOS (novo capítulo) -->
     <div class="step">
       <div class="step-header">
         <span class="step-num">03</span>
+        <div>
+          <div class="step-title">Saiba antes de todos 🔭</div>
+          <div class="step-hint"><strong>O scoop antes da imprensa.</strong> Uma seção exclusiva com histórias do mundo que <strong>ainda não chegaram</strong> aos jornalões brasileiros — Substack anglo, comunicados oficiais, sinais emergentes. <em>Tudo curado pra conversar com os seus temas.</em></div>
+        </div>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle on" id="undercoveredToggle" onclick="toggleUndercovered()"></div>
+        <div>
+          <div class="toggle-label" id="undercoveredLabel">Incluir "Saiba antes de todos"</div>
+          <div class="toggle-sub">Até 8 histórias por dia que dificilmente você lê em Folha, G1 ou Valor</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 04 TRENDING TOPICS -->
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">04</span>
         <div>
           <div class="step-title">Trending Topics 🔥</div>
           <div class="step-hint">Os termos mais buscados do dia no <strong>Brasil e no mundo</strong> — aparecem no topo do e-mail, antes das suas notícias.</div>
@@ -664,10 +682,10 @@
       </div>
     </div>
 
-    <!-- 04 PERSONALIZADO -->
+    <!-- 05 PERSONALIZADO -->
     <div class="step">
       <div class="step-header">
-        <span class="step-num">04</span>
+        <span class="step-num">05</span>
         <div>
           <div class="step-title">Seus temas (do jeito que você quiser)</div>
           <div class="step-hint">Escreva qualquer coisa: empresas, marcas, eventos, concorrentes, segmentos. <strong>É aqui que o Recorte fica único</strong> — porque ninguém mais escreve as mesmas coisas que você. Detecto se é tema brasileiro ou global automaticamente; clique nas bandeirinhas pra ajustar se eu errar. <em>Ou escolha temas curados abaixo, se preferir.</em></div>
@@ -681,10 +699,10 @@
       <div class="tags-list" id="tagsList"></div>
     </div>
 
-    <!-- 05 CURADOS -->
+    <!-- 06 CURADOS -->
     <div class="step">
       <div class="step-header">
-        <span class="step-num">05</span>
+        <span class="step-num">06</span>
         <div>
           <div class="step-title">Ou marque temas de seu interesse abaixo</div>
           <div class="step-hint">Pra cada um marcado, eu trago notícias do <strong>Brasil e do mundo</strong> automaticamente, traduzidas em PT-BR. Os temas escritos por você no item acima aparecem <strong>primeiro</strong> no e-mail.</div>
@@ -693,10 +711,10 @@
       <div class="topics-grid" id="topicsGrid"></div>
     </div>
 
-    <!-- 06 FILTROS — opcional -->
+    <!-- 07 FILTROS — opcional -->
     <div class="step">
       <div class="step-header">
-        <span class="step-num">06</span>
+        <span class="step-num">07</span>
         <div>
           <div class="step-title">Filtros (opcional)</div>
           <div class="step-hint">
@@ -815,6 +833,7 @@
 
   // ===== STATE =====
   let trendingEnabled = true;
+  let undercoveredEnabled = true;
   let customTopics = []; // [{ label, query }]
 
   // ===== PAÍSES (código de discagem) =====
@@ -990,6 +1009,14 @@
     }
   });
 
+  function toggleUndercovered() {
+    undercoveredEnabled = !undercoveredEnabled;
+    const t = document.getElementById('undercoveredToggle');
+    const lbl = document.getElementById('undercoveredLabel');
+    t.classList.toggle('on', undercoveredEnabled);
+    lbl.textContent = undercoveredEnabled ? 'Incluir "Saiba antes de todos"' : 'Pular "Saiba antes de todos"';
+  }
+
   function toggleTrending() {
     trendingEnabled = !trendingEnabled;
     const t = document.getElementById('trendingToggle');
@@ -1129,6 +1156,7 @@
       await callManage('update', {
         user_updates: {
           trending_enabled: trendingEnabled,
+          undercovered_enabled: undercoveredEnabled,
           trending_scope: 'br,global',
           email_mode: emailMode,
         },
@@ -1195,6 +1223,18 @@
     if (trendCheck) {
       if (trendingEnabled) trendCheck.classList.add('on');
       else trendCheck.classList.remove('on');
+    }
+
+    // Undercovered (Saiba antes de todos) toggle — default true se campo ausente
+    undercoveredEnabled = user.undercovered_enabled !== false;
+    const ucCheck = document.getElementById('undercoveredToggle');
+    const ucLabel = document.getElementById('undercoveredLabel');
+    if (ucCheck) {
+      if (undercoveredEnabled) ucCheck.classList.add('on');
+      else ucCheck.classList.remove('on');
+    }
+    if (ucLabel) {
+      ucLabel.textContent = undercoveredEnabled ? 'Incluir "Saiba antes de todos"' : 'Pular "Saiba antes de todos"';
     }
 
     // Cards curados — marca os que o user tem
