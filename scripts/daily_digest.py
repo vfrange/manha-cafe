@@ -105,6 +105,57 @@ def log(msg, **kv):
     extra = " ".join(f"{k}={v}" for k, v in kv.items())
     print(f"[{datetime.now(BRT).strftime('%H:%M:%S')}] {msg} {extra}".strip(), flush=True)
 
+
+# ============================================================================
+# STRIP HTML TAGS — segurança defense-in-depth
+# Garante que tags HTML (<strong>, <em>, <b>, <i>, etc.) vindas do Claude
+# curador NÃO apareçam como texto literal escapado no email (`&lt;strong&gt;`).
+# Aplicado nas SAÍDAS dos 3 curadores (sections/trending/undercovered) antes
+# do escape no template. Camada 1 = prompt instrui Claude a não usar HTML.
+# Camada 2 = essa função remove caso Claude desobedeça.
+# ============================================================================
+import re as _html_strip_re
+_HTML_TAG_RE = _html_strip_re.compile(r"<[^>]+>")
+_HTML_ENTITY_RE = _html_strip_re.compile(r"&[a-zA-Z]+;|&#\d+;")
+
+
+def _strip_html_tags(text):
+    """Remove tags HTML e entidades de uma string. Idempotente, tolera None.
+    Ex: 'Stanford ensina <strong>agentes</strong>' → 'Stanford ensina agentes'
+    """
+    if not text or not isinstance(text, str):
+        return text
+    cleaned = _HTML_TAG_RE.sub("", text)
+    # Decodifica entidades comuns que podem ter vindo do Claude
+    cleaned = (cleaned
+        .replace("&nbsp;", " ").replace("&amp;", "&")
+        .replace("&lt;", "<").replace("&gt;", ">")
+        .replace("&quot;", '"').replace("&#39;", "'").replace("&apos;", "'"))
+    # Remove qualquer outra entidade residual
+    cleaned = _HTML_ENTITY_RE.sub("", cleaned)
+    # Normaliza espaços
+    cleaned = _html_strip_re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned
+
+
+def _strip_html_from_items(items, fields=("manchete", "resumo", "termo")):
+    """Aplica _strip_html_tags nos campos textuais de uma lista de items.
+    Também limpa fatos_chave (lista de strings)."""
+    if not items:
+        return items
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        for f in fields:
+            if f in item and item[f]:
+                item[f] = _strip_html_tags(item[f])
+        # fatos_chave é lista de strings
+        if "fatos_chave" in item and isinstance(item["fatos_chave"], list):
+            item["fatos_chave"] = [_strip_html_tags(x) if isinstance(x, str) else x
+                                    for x in item["fatos_chave"]]
+    return items
+
+
 # ============================================================================
 # RETRY com backoff exponencial pra escritas no Supabase
 # ============================================================================
@@ -516,7 +567,7 @@ def curate_undercovered(user_name, raw_items, learned_text,
         '    {\n'
         '      "id": <id original>,\n'
         '      "manchete": "<reescrita em PT-BR fluente, 6-12 palavras, sem clickbait, intrigante>",\n'
-        '      "resumo": "<2-3 frases em PT-BR explicando o que é, contexto e por que importa. Use <strong>termo</strong> em 1-2 termos-chave por resumo.>",\n'
+        '      "resumo": "<2-3 frases em PT-BR explicando o que é, contexto e por que importa. TEXTO PURO sem nenhuma tag HTML ou markdown.>",\n'
         '      "fatos_chave": ["fato 1 curto", "fato 2 curto", "fato 3 curto"]\n'
         '    }\n'
         '  ]\n'
@@ -525,6 +576,10 @@ def curate_undercovered(user_name, raw_items, learned_text,
         "- 3 a 4 fatos_chave por item, cada um com 4-10 palavras, factuais (não opinião)\n"
         "- Se não tem info suficiente nos candidatos pra preencher os campos com confiança, "
         "DESCARTE o item (não invente)\n"
+        "- 🚫 TEXTO PURO em TUDO (manchete, resumo, fatos_chave): NUNCA use tags HTML "
+        "(<strong>, <em>, <b>, <i>, <span>, <br>) nem markdown (**, *, __). "
+        "O template do email cuida da tipografia. Se você inserir uma tag, ela aparece "
+        "como texto literal escapado no email (bug visual).\n"
         "- Retorne APENAS o JSON, sem comentários antes/depois"
     )
 
@@ -572,6 +627,10 @@ def curate_undercovered(user_name, raw_items, learned_text,
             "raw_summary": original.get("summary"),
         })
 
+    # SAFETY: remove qualquer HTML que Claude tenha inserido na manchete/resumo/fatos
+    # (ex: <strong>, <em>, &nbsp;) — o template já escapa, então deixar HTML aqui
+    # faz aparecer texto literal escapado no email final.
+    _strip_html_from_items(out)
     return out
 
 
@@ -720,6 +779,9 @@ Se o "fonte" de uma matéria estiver nessa lista, DESCARTE-A integralmente. Se a
 {ANTI_HALLUCINATION_RULE}
 Você está fazendo a CURADORIA editorial da edição diária do Recorte ✂ — escolhendo as matérias mais relevantes pra este leitor específico, escrevendo as manchetes, resumos e fatos-chave em PT-BR.
 Tudo que você escrever vai direto pra caixa de entrada do leitor — siga o VOICE GUIDE acima rigorosamente.
+
+🚫 **REGRA CRÍTICA DE FORMATO — TEXTO PURO**: TODAS as manchetes, resumos e fatos-chave devem ser **TEXTO PURO**, sem NENHUMA tag HTML ou markdown. NUNCA use `<strong>`, `<em>`, `<b>`, `<i>`, `<span>`, `<br>`, `**negrito**`, `*itálico*`, `__sublinhado__`, ou qualquer outro marcador de formatação. O template do email já cuida da tipografia. Se você adicionar uma tag, ela vai aparecer como texto literal escapado (ex: `&lt;strong&gt;`) no email do leitor — bug visual grave.
+
 {SAFETY_INSTRUCTIONS}
 {POLITICAL_BIAS_INSTRUCTIONS}
 🇧🇷 **REGRA CRÍTICA DE IDIOMA**: TODO o conteúdo gerado DEVE estar em **português brasileiro natural**, MESMO QUE a matéria original esteja em inglês, espanhol ou outro idioma. Traduza com fluência, mantendo nomes próprios e marcas no original.
@@ -730,7 +792,19 @@ Tudo que você escrever vai direto pra caixa de entrada do leitor — siga o VOI
 Cada notícia que você incluir DEVE ser **ESPECIFICAMENTE sobre o tema declarado**, não sobre algo tangencialmente relacionado. As fontes podem trazer matérias contaminadas por keywords amplas — **filtre você como editor**.
 **Regra geral:** se você precisa explicar pra alguém POR QUE essa notícia está nesse tema, ela não está nesse tema. Descarte.
 **Exemplos do que NUNCA fazer:**
-- Tema "Wellness (Bem-estar)" → NÃO incluir surtos de epidemia, mortalidade hospitalar, sistema de saúde pública, OMS.
+- Tema "Wellness (Bem-estar)" — use a framework dos 6 PILARES do Global Wellness Institute (GWI). Wellness é a ECONOMIA DO BEM-ESTAR em pessoas saudáveis, NÃO saúde-doença.
+
+  ✅ OS 6 PILARES (qualquer matéria que se encaixe em UM deles é elegível):
+  1. **Saúde e Nutrição Preventiva**: alimentos funcionais, dietas (mediterrânea, plant-based, keto), suplementos (whey, creatina, ômega-3, magnésio, colágeno), chás funcionais, jejum intermitente.
+  2. **Atividades Físicas (Fitness)**: academias, yoga, pilates, crossfit, musculação, corrida, athleisure, apps de treino, HIIT, mobilidade.
+  3. **Estética e Cuidados Pessoais**: skincare, clean beauty, procedimentos NÃO invasivos (radiofrequência estética, drenagem, massagem), cosméticos naturais.
+  4. **Saúde Mental e Mindfulness**: apps de meditação, terapia online, mindfulness, aromaterapia, óleos essenciais, coaching, redução de estresse.
+  5. **Mercado do Sono**: colchões/travesseiros tecnológicos, wearables (Oura, Whoop), chás relaxantes, melatonina, higiene do sono.
+  6. **Turismo de Bem-Estar e Spas**: retreats, spas urbanos, resorts termais, ofurô, sauna, day spa.
+
+  ❌ NUNCA INCLUIR: doenças, sintomas, dores, vacinação, tratamentos médicos (cirurgia, quimio, transplante), sistema de saúde (hospital, UTI, SUS, OMS), epidemiologia (surto, mortalidade, óbito), diagnósticos médicos. Wellness NÃO é sobre pessoa doente.
+
+  **Teste mental**: encaixa em UM dos 6 pilares? SIM = elegível. NÃO ou descreve doença/sintoma/tratamento? DESCARTE — vai pra Ciência & Saúde, não Wellness.
 - Tema "Trabalho & carreira" → NÃO incluir matéria sobre economia macro, PIB, inflação.
 - Tema "Cultura & entretenimento" → NÃO incluir matéria de celebridade processada por crime/escândalo policial.
 - Tema "Negócios & M&A" → NÃO incluir matéria de tech/IA empresarial.
@@ -785,6 +859,9 @@ Dados:
     if filtered_items:
         for sec in secoes:
             sec["noticias"] = _apply_user_filters(sec.get("noticias", []), filtered_items)
+    # SAFETY: remove HTML que Claude possa ter inserido nas manchetes/resumos/fatos
+    for sec in secoes:
+        _strip_html_from_items(sec.get("noticias", []))
     return secoes
 def curate_news(user_name, topics_with_news, learned_profile="", filtered_items=None,
                 weekly=False, news_per_topic=None, is_welcome=False):
@@ -809,6 +886,48 @@ def _norm_for_dedup(text: str) -> str:
     if not text:
         return ""
     return re.sub(r'[^a-z0-9]', '', text.lower())
+
+# Stopwords PT/EN pra pular ao extrair primeira palavra "significativa" da manchete.
+# Usado no dedup por (fonte, entidade) — captura repetição tipo
+# "Trump anuncia X" + "Trump diz Y" do mesmo veículo.
+_DEDUP_STOPWORDS = {
+    "de","do","da","dos","das","e","a","o","as","os","um","uma","uns","umas",
+    "em","no","na","nos","nas","ao","aos","à","às","para","por","pra","com","sem",
+    "que","se","ou","mas","mais","menos","muito","muita","muitos","muitas",
+    "ele","ela","eles","elas","seu","sua","seus","suas","este","esta","isso","esse","essa",
+    "the","of","and","an","to","for","in","on","at","by","is","are","was","were",
+    "this","that","these","those","it","its","be","been","being","with","from",
+}
+
+
+def _first_significant_word(title: str) -> str:
+    """Pega primeira palavra ≥3 chars que não seja stopword (lowercase, sem acento desnecessário).
+    Usado pra detectar 'mesma entidade central' em 2 manchetes diferentes do mesmo site."""
+    if not title:
+        return ""
+    # Remove acentos pra match robusto (joão→joao)
+    import unicodedata
+    norm = unicodedata.normalize("NFKD", title)
+    norm = "".join(c for c in norm if not unicodedata.combining(c))
+    words = re.findall(r"\w+", norm.lower())
+    for w in words:
+        if w not in _DEDUP_STOPWORDS and len(w) >= 3:
+            return w
+    return words[0] if words else ""
+
+
+def _significant_words(title: str, max_n: int = 6) -> set:
+    """Retorna SET das primeiras max_n palavras significativas (≥3 chars, não-stopword, sem acento)."""
+    if not title:
+        return set()
+    import unicodedata
+    norm = unicodedata.normalize("NFKD", title)
+    norm = "".join(c for c in norm if not unicodedata.combining(c))
+    words = re.findall(r"\w+", norm.lower())
+    sig = [w for w in words if w not in _DEDUP_STOPWORDS and len(w) >= 3]
+    return set(sig[:max_n])
+
+
 def _apply_user_filters(items, filtered_items):
     if not filtered_items or not items:
         return items
@@ -829,6 +948,15 @@ def _apply_user_filters(items, filtered_items):
         log(f"  ⚠ filtros do user: removeu {removed} item(ns) por bloqueios explícitos")
     return out
 def _dedupe_trends(items):
+    """Dedup do trending em 2 camadas (rápido, custo zero):
+    1. Link exato (lowercased)
+    2. Primeiros 50 chars da manchete normalizada (cobre títulos quase idênticos)
+
+    Casos mais sutis (mesma fonte + mesma entidade, manchete-prefixo, overlap
+    semântico tipo Fonseca x Djokovic da Jovem Pan) são pegados pelo
+    EDITOR CHEFE (editorial_review), que vê a edição inteira e tem contexto
+    semântico que o regex não tem.
+    """
     seen_links = set()
     seen_signatures = set()
     out = []
@@ -916,6 +1044,416 @@ def _dedupe_sections_against_trends(sections, trending):
     if removed:
         log(f"  ⚠ dedup cruzado: removeu {removed} notícia(s) repetida(s) entre Em Alta e temas")
     return removed
+
+# ============================================================================
+# WELLNESS BLACKLIST — defesa programática EXAUSTIVA
+# Wellness = lifestyle preventivo POSITIVO. Nunca doença/dor/sintoma/hospital/vacina/tratamento.
+# Camada 2 reforçando a regra do system prompt (Camada 1).
+# IMPORTANTE: usa word boundaries (\b) pra evitar falsos positivos
+# tipo "versus" → "sus", "discussão" → "sus", "consorcio" → "sor", etc.
+# ============================================================================
+WELLNESS_THEME_PATTERNS = (
+    "wellness", "bem-estar", "bem estar", "bemestar",
+    "lifestyle saudável", "lifestyle saudavel",
+)
+# RAÍZES — viram \braiz\w*\b → pegam todas as variações
+# (vacin → vacina/vacinas/vacinação/vacinal/vacinada; imuniz → imunização/imunizar/imunizante; etc.)
+WELLNESS_BLACKLIST_ROOTS = (
+    # Imunização (todas as variações)
+    "vacin", "imuniz", "soroprev",
+    # Doenças genéricas (raiz)
+    "doenç", "doenc",
+    # Sintomas (raiz)
+    "sintom",
+    # Inflamação (raiz)
+    "inflam",
+    # Epidemiologia (raízes)
+    "epidem", "pandem", "endem",
+    # Contaminação/infecção (raízes)
+    "contagi", "contagí", "contamin", "infec", "infeç", "infecc",
+    # Mortalidade (raiz)
+    "óbito", "obito",
+    # Cólica (raízes com/sem acento)
+    "cólic", "colic",
+    # Quimio/radio (raízes)
+    "quimio", "radioterap",
+    # Antibiótico/antiviral/etc (raiz "anti...")
+    "antibiót", "antibiot", "antivir", "antifúng", "antifung",
+    "antidepres", "ansiolít", "ansiolit", "analgésic", "analgesic",
+)
+# PALAVRAS COMPLETAS — viram \bpalavra\b (word boundary exata)
+WELLNESS_BLACKLIST_KEYWORDS = (
+    # === DOENÇAS NOMEADAS ===
+    # Infecciosas/virais
+    "gripe", "dengue", "covid", "covid-19", "zika", "chikungunya",
+    "sarampo", "varíola", "variola", "varicela", "catapora", "rubéola", "rubeola",
+    "caxumba", "tuberculose", "hepatite", "hepatites",
+    "hiv", "aids", "sífilis", "sifilis", "gonorreia", "herpes",
+    "malária", "malaria", "ebola", "febre amarela",
+    # Crônicas/sistêmicas
+    "câncer", "cancer", "cancerígeno", "cancerigeno",
+    "tumor", "tumores", "carcinoma", "leucemia", "melanoma",
+    "metástase", "metastase", "neoplasia",
+    "diabetes", "diabético", "diabetico",
+    "hipertensão", "hipertensao", "hipertenso",
+    "obesidade mórbida", "obesidade morbida",
+    "asma", "asmático", "asmatico", "bronquite", "pneumonia", "sinusite",
+    "artrite", "artrose", "osteoporose", "fibromialgia",
+    "alzheimer", "parkinson", "demência", "demencia",
+    "esclerose múltipla", "esclerose multipla", "ela",
+    "epilepsia", "lúpus", "lupus", "psoríase", "psoriase",
+    "fibrose", "cirrose", "gastrite", "úlcera", "ulcera", "refluxo",
+    "enxaqueca", "glaucoma", "catarata",
+    # Cardiovasculares
+    "avc", "derrame cerebral", "infarto", "infartos",
+    "arritmia", "cardiopatia", "insuficiência cardíaca", "insuficiencia cardiaca",
+    "trombose", "aneurisma",
+    # Mentais (contexto clínico — "doença")
+    "esquizofrenia", "esquizofrênico", "esquizofrenico",
+    "bipolaridade", "transtorno bipolar", "transtornos mentais",
+    "toc", "transtorno mental",
+    "depressão clínica", "depressao clinica",
+    "ansiedade clínica", "ansiedade clinica",
+
+    # === SINTOMAS / DORES ===
+    "dor", "dores",
+    "febre", "calafrio", "calafrios",
+    "náusea", "nausea", "náuseas", "nauseas",
+    "enjoo", "enjôo", "vômito", "vomito", "vômitos", "vomitos",
+    "diarreia", "diarréia",
+    "tontura", "tonturas", "vertigem", "vertigens",
+    "tpm", "ciclo menstrual", "menstrual",
+    "fadiga crônica", "fadiga cronica",
+    "dispneia", "falta de ar",
+    "palpitação", "palpitacao", "palpitações", "palpitacoes",
+
+    # === SISTEMA DE SAÚDE / INSTITUIÇÕES ===
+    "oms", "sus", "anvisa", "fiocruz", "ans",
+    "ministério da saúde", "ministerio da saude",
+    "secretaria de saúde", "secretaria de saude",
+    "hospital", "hospitais", "hospitalar",
+    "uti", "utis", "upa", "upas",
+    "pronto-socorro", "pronto socorro",
+    "ambulância", "ambulancia", "ambulâncias", "ambulancias",
+    "posto de saúde", "posto de saude",
+    "unidade básica de saúde", "unidade basica de saude",
+    "plano de saúde", "plano de saude", "convênio médico", "convenio medico",
+    "internação", "internacao", "internado", "internada",
+    "hospitalização", "hospitalizacao",
+
+    # === TRATAMENTOS E MEDICAÇÕES ===
+    "medicamento", "medicamentos",
+    "remédio", "remedio", "remédios", "remedios",
+    "fármaco", "farmaco", "fármacos", "farmacos",
+    "dose", "doses", "reforço vacinal", "reforco vacinal",
+    "cirurgia", "cirurgias", "cirúrgico", "cirurgico", "cirúrgica", "cirurgica",
+    "operação cirúrgica", "operacao cirurgica",
+    "transplante", "transplantes",
+    "hemodiálise", "hemodialise", "diálise", "dialise",
+    "transfusão", "transfusao",
+    "biópsia", "biopsia", "biópsias", "biopsias",
+
+    # === DIAGNÓSTICOS / EXAMES ===
+    "diagnóstico", "diagnostico", "diagnósticos", "diagnosticos",
+    "prognóstico", "prognostico",
+    "ressonância magnética", "ressonancia magnetica",
+    "tomografia", "raio-x", "raio x",
+    "exame de sangue", "hemograma",
+
+    # === EPIDEMIOLOGIA / MORTALIDADE ===
+    "surto", "surtos",
+    "mortalidade", "letalidade",
+    "falecimento", "morre", "morreu", "morrer",
+    "casos confirmados", "caso confirmado",
+    "caso suspeito", "casos suspeitos",
+    "calendário vacinal", "calendario vacinal",
+    "campanha de vacinação", "campanha de vacinacao",
+
+    # === GESTAÇÃO / REPRODUTIVO MÉDICO ===
+    "gravidez de risco", "parto prematuro", "aborto espontâneo", "aborto espontaneo",
+    "pré-eclampsia", "eclampsia", "pre-eclampsia",
+    "menopausa precoce",
+)
+import re as _re
+
+# Constrói regex unificado: raízes (com \w* pra pegar variações) + palavras inteiras (com \b)
+_root_pattern = "|".join(_re.escape(r) for r in WELLNESS_BLACKLIST_ROOTS)
+_keyword_pattern = "|".join(_re.escape(k) for k in WELLNESS_BLACKLIST_KEYWORDS)
+_WELLNESS_RE = _re.compile(
+    r"(?:\b(?:" + _root_pattern + r")\w*\b)|(?:\b(?:" + _keyword_pattern + r")\b)",
+    _re.IGNORECASE,
+)
+
+
+def _is_wellness_theme(label):
+    """Detecta se o tema é wellness/bem-estar (case insensitive)."""
+    if not label:
+        return False
+    l = label.lower()
+    return any(p in l for p in WELLNESS_THEME_PATTERNS)
+
+
+def _filter_wellness_medical(raw_sections):
+    """
+    Remove matérias médicas/doenças/dores/vacinas/tratamentos de temas wellness/bem-estar.
+    Wellness é APENAS lifestyle preventivo positivo (yoga, alimentação, exercício, sono, etc).
+
+    Roda APÓS curate_news + anti-aluc, ANTES de sections.append final.
+    Esquema dos raw_sections: lista de dicts {tema, noticias: [{manchete, resumo, fatos_chave, link, ...}]}.
+
+    Estratégia:
+    - Raízes (\\braiz\\w*\\b): pega vacina/vacinação/vacinal/vacinada, doença/doenças/doente, etc.
+    - Palavras inteiras (\\bpalavra\\b): evita falsos positivos (versus≠sus, doutorado≠doutor).
+    """
+    if not raw_sections:
+        return 0
+    removed = 0
+    for sec in raw_sections:
+        tema = sec.get("tema", "")
+        if not _is_wellness_theme(tema):
+            continue
+        kept = []
+        for n in sec.get("noticias", []):
+            content_parts = [
+                n.get("manchete") or "",
+                n.get("resumo") or "",
+            ]
+            fk = n.get("fatos_chave") or []
+            if isinstance(fk, list):
+                content_parts.append(" ".join(str(x) for x in fk))
+            content = " ".join(content_parts)
+            m = _WELLNESS_RE.search(content)
+            if m:
+                removed += 1
+                log(f"  🚫 wellness blacklist: '{n.get('manchete','?')[:60]}' (match: {m.group(0)!r})")
+                continue
+            kept.append(n)
+        sec["noticias"] = kept
+    if removed:
+        log(f"  🧹 wellness blacklist: removidas {removed} matéria(s) médica(s) de tema wellness/bem-estar")
+    return removed
+
+
+# ============================================================================
+# EDITOR CHEFE — revisão editorial final por Claude Sonnet
+# Roda APÓS curate+anti-aluc+filtros+dedup, ANTES do render_email.
+# Simula um editor humano sênior lendo a edição final, podendo:
+#   - KEEP: manter como está
+#   - REWRITE: reescrever manchete/resumo/fatos_chave (mantém link/fonte/img)
+#   - DROP: descartar com motivo
+# Guard rail: se >30% dos itens forem descartados, ROLLBACK automático.
+# ============================================================================
+_EDITOR_SYSTEM_PROMPT = """Você é editor-chefe sênior do Recorte ✂, newsletter brasileira premium curada com IA. Sua função: revisar a edição FINAL ANTES de publicar, como um leitor crítico humano leria.
+
+Você é o ÚLTIMO filtro de qualidade. Pode REESCREVER, DESCARTAR ou APROVAR cada item.
+
+📋 CRITÉRIOS DE REVISÃO POR ITEM:
+- **COERÊNCIA TEMA↔MATÉRIA**: a matéria realmente cabe nesse tema? (ex: Wellness sobre vacina/dor/doença = DROP, vai pra outro tema)
+- **MANCHETE**: clickbait? confusa? promete e não entrega? Falta sujeito? Vaga? → REWRITE
+- **RESUMO**: redundante com manchete? jargão técnico sem tradução? frase incompleta? incoerente? → REWRITE
+- **FATOS_CHAVE**: cada um deve adicionar info NOVA (não repetir resumo). Devem ser factuais, não opinião. 3-4 itens ideais. → REWRITE
+- **FORMATO**: HTML residual (`<strong>`, `<em>`), markdown (`**`, `*`), aspas tortas misturadas, emoji estranho → REWRITE limpando
+- **TOM**: deve soar conversacional inteligente (amigo informado contando), não voz de imprensa tradicional, sem floreio jornalístico
+
+📋 CRITÉRIOS NA EDIÇÃO INTEIRA:
+- **DUPLICATA**: 2 manchetes sobre o MESMO evento em seções diferentes? → DROP a mais fraca
+- **MAINSTREAM em "saiba_antes"**: item com fonte óbvia tipo Folha/G1/Estadão/Valor/UOL/Globo? → DROP (era pra ser exclusivo)
+- **REDUNDÂNCIA dentro do mesmo tema**: 2 manchetes muito parecidas? → DROP a fraca
+
+⚖️ LIMITES:
+- NÃO INVENTE FATOS: REWRITE usa apenas informação que já está nos campos do item
+- NÃO TOQUE em link, fonte, img_url — só mexe em manchete, resumo, fatos_chave
+- Em dúvida entre REWRITE e KEEP → KEEP (reescreva só quando claramente melhora)
+- Em dúvida entre DROP e KEEP → KEEP (descarte só quando claramente prejudica)
+- Manchete: 6-12 palavras ideais
+- Texto sempre PT-BR fluente, TEXTO PURO sem nenhuma tag HTML ou markdown
+"""
+
+
+def editorial_review(user_name, sections, trending, undercovered,
+                     weekly=False, max_drop_ratio=0.30):
+    """
+    Revisão editorial final por Claude (modelo MODEL_SMALL=Sonnet) sobre a edição completa.
+    Aplica decisões in-place em sections/trending/undercovered.
+
+    Retorna dict com stats: {kept, rewritten, dropped, rolled_back, drops: [motivos]}.
+
+    Modifica:
+    - Items REWRITE: atualiza manchete/resumo/fatos_chave in-place
+    - Items DROP: remove da lista
+    - Sections vazias após DROPs: removidas
+
+    Guard rail: se DROPs > max_drop_ratio do total, ROLLBACK (mantém originais).
+    Tolera falhas: API erro / JSON inválido → retorna stats vazios, NÃO bloqueia.
+    """
+    stats = {"kept": 0, "rewritten": 0, "dropped": 0, "rolled_back": False, "drops": []}
+
+    # Monta lista compacta de items pra Claude
+    all_items = []
+    for s_idx, sec in enumerate(sections or []):
+        for n_idx, n in enumerate(sec.get("noticias", [])):
+            all_items.append({
+                "id": f"sec_{s_idx}_{n_idx}",
+                "kind": f"tema:{sec.get('tema') or sec.get('topic', '?')}",
+                "manchete": n.get("manchete", ""),
+                "resumo": n.get("resumo", ""),
+                "fatos_chave": n.get("fatos_chave", []),
+                "fonte": n.get("fonte", ""),
+            })
+    for t_idx, t in enumerate(trending or []):
+        all_items.append({
+            "id": f"tre_{t_idx}",
+            "kind": "em_alta",
+            "manchete": t.get("manchete", ""),
+            "resumo": t.get("resumo", ""),
+            "fatos_chave": t.get("fatos_chave", []),
+            "fonte": t.get("fonte", ""),
+        })
+    for u_idx, u in enumerate(undercovered or []):
+        all_items.append({
+            "id": f"und_{u_idx}",
+            "kind": "saiba_antes",
+            "manchete": u.get("manchete", ""),
+            "resumo": u.get("resumo", ""),
+            "fatos_chave": u.get("fatos_chave", []),
+            "fonte": u.get("fonte", ""),
+        })
+
+    if not all_items:
+        return stats
+
+    initial_count = len(all_items)
+    log(f"  ✏️ editor chefe: revisando {initial_count} items da edição final...")
+
+    user_message = (
+        f"Leitor: {user_name}{' (edição SEMANAL — Minha Semana)' if weekly else ''}.\n\n"
+        f"Edição completa pra revisar ({initial_count} itens):\n"
+        f"{json.dumps({'items': all_items}, ensure_ascii=False, separators=(',', ':'))}\n\n"
+        "Pra cada item, retorne decisão. JSON exato neste formato:\n"
+        '{"decisions":[\n'
+        '  {"id":"<id>","action":"KEEP"},\n'
+        '  {"id":"<id>","action":"REWRITE","manchete":"<nova>","resumo":"<novo>","fatos_chave":["...","..."]},\n'
+        '  {"id":"<id>","action":"DROP","motivo":"<motivo curto>"}\n'
+        ']}\n\n'
+        f"Inclua TODOS os {initial_count} itens. Use somente os ids exatos da lista. "
+        "Em REWRITE, só inclua campos que mudou (omitir = mantém original). "
+        "Responda APENAS o JSON, sem comentários antes/depois."
+    )
+
+    try:
+        parsed = _call_claude_json(
+            user_message, max_tokens=10000, retries=2,
+            log_prefix=" (editor)",
+            model=MODEL,  # Sonnet
+            system_prompt=_EDITOR_SYSTEM_PROMPT,
+        )
+    except Exception as e:
+        log(f"  ⚠ editor falhou (não bloqueia): {e}")
+        return stats
+
+    if not parsed or "decisions" not in parsed:
+        log(f"  ⚠ editor: resposta sem 'decisions', pulando review")
+        return stats
+
+    raw_decisions = parsed.get("decisions") or []
+    decisions = {}
+    for d in raw_decisions:
+        if isinstance(d, dict) and isinstance(d.get("id"), str):
+            decisions[d["id"]] = d
+
+    # Guard rail: rollback se DROPs > threshold
+    n_drops_proposed = sum(1 for d in decisions.values() if d.get("action") == "DROP")
+    drop_pct = n_drops_proposed / initial_count if initial_count > 0 else 0
+    if drop_pct > max_drop_ratio:
+        log(f"  ⚠ editor: {n_drops_proposed}/{initial_count} ({drop_pct:.0%}) descartes > {max_drop_ratio:.0%} — ROLLBACK, mantém originais")
+        stats["rolled_back"] = True
+        return stats
+
+    # Aplica decisões (marca DROPs com _drop, aplica REWRITEs in-place)
+    n_rewritten = 0
+    drops_log = []
+
+    def _apply_rewrite(item, d):
+        nonlocal n_rewritten
+        changed = False
+        if d.get("manchete") and d["manchete"] != item.get("manchete"):
+            item["manchete"] = d["manchete"]; changed = True
+        if d.get("resumo") and d["resumo"] != item.get("resumo"):
+            item["resumo"] = d["resumo"]; changed = True
+        if isinstance(d.get("fatos_chave"), list) and d["fatos_chave"] != item.get("fatos_chave"):
+            item["fatos_chave"] = d["fatos_chave"]; changed = True
+        if changed:
+            n_rewritten += 1
+
+    # Sections
+    for s_idx, sec in enumerate(sections or []):
+        for n_idx, n in enumerate(sec.get("noticias", [])):
+            d = decisions.get(f"sec_{s_idx}_{n_idx}")
+            if not d:
+                continue
+            action = d.get("action")
+            if action == "DROP":
+                n["_drop"] = True
+                drops_log.append(f"tema/{sec.get('tema','?')}: '{n.get('manchete','?')[:50]}' ({d.get('motivo','?')[:80]})")
+            elif action == "REWRITE":
+                _apply_rewrite(n, d)
+
+    # Trending
+    for t_idx, t in enumerate(trending or []):
+        d = decisions.get(f"tre_{t_idx}")
+        if not d:
+            continue
+        action = d.get("action")
+        if action == "DROP":
+            t["_drop"] = True
+            drops_log.append(f"em_alta: '{t.get('manchete','?')[:50]}' ({d.get('motivo','?')[:80]})")
+        elif action == "REWRITE":
+            _apply_rewrite(t, d)
+
+    # Undercovered
+    for u_idx, u in enumerate(undercovered or []):
+        d = decisions.get(f"und_{u_idx}")
+        if not d:
+            continue
+        action = d.get("action")
+        if action == "DROP":
+            u["_drop"] = True
+            drops_log.append(f"saiba_antes: '{u.get('manchete','?')[:50]}' ({d.get('motivo','?')[:80]})")
+        elif action == "REWRITE":
+            _apply_rewrite(u, d)
+
+    # Filtra _drop e remove sections vazias
+    n_actual_drops = 0
+    if sections:
+        for sec in sections:
+            before = len(sec.get("noticias", []))
+            sec["noticias"] = [n for n in sec.get("noticias", []) if not n.get("_drop")]
+            n_actual_drops += before - len(sec["noticias"])
+        # Remove sections que ficaram sem nenhuma noticia
+        sections[:] = [s for s in sections if s.get("noticias")]
+    if trending is not None:
+        before_t = len(trending)
+        trending[:] = [t for t in trending if not t.get("_drop")]
+        n_actual_drops += before_t - len(trending)
+    if undercovered is not None:
+        before_u = len(undercovered)
+        undercovered[:] = [u for u in undercovered if not u.get("_drop")]
+        n_actual_drops += before_u - len(undercovered)
+
+    stats["dropped"] = n_actual_drops
+    stats["rewritten"] = n_rewritten
+    stats["kept"] = initial_count - n_actual_drops - n_rewritten
+    stats["drops"] = drops_log
+
+    log(f"  ✏️ editor chefe: kept={stats['kept']} rewritten={stats['rewritten']} dropped={stats['dropped']}/{initial_count} ({n_actual_drops/initial_count:.0%})")
+    for drop_msg in drops_log[:8]:
+        log(f"     ✗ {drop_msg}")
+    if len(drops_log) > 8:
+        log(f"     ... e mais {len(drops_log) - 8} drops")
+
+    return stats
+
+
 def curate_trends(user_name, scope_label, trends, learned_profile="",
                   user_topics_labels=None, filtered_items=None, max_out=None, weekly=False):
     if not trends:
@@ -978,6 +1516,7 @@ Você está montando a seção "🔥 Em Alta" da edição diária do Recorte ✂
 🚫 **REGRA CRÍTICA DE DEDUPLICAÇÃO**: NUNCA inclua duas manchetes sobre o MESMO evento.
 🇧🇷 **REGRA CRÍTICA DE IDIOMA**: TODO conteúdo DEVE estar em **português brasileiro fluente**.
 ⚠️ **REGRA CRÍTICA DE FORMATO**: Retorne APENAS JSON VÁLIDO, sem markdown.
+🚫 **REGRA CRÍTICA DE TEXTO PURO**: TODAS as manchetes, resumos e fatos_chave são TEXTO PURO. NUNCA use tags HTML (<strong>, <em>, <b>, <i>, <span>) nem markdown (**, *, __). O template do email cuida da tipografia — se você inserir uma tag, aparece como texto literal escapado no email do leitor.
 📰 **OBJETIVO EDITORIAL**: O leitor entende cada evento sem precisar abrir o link. PORÉM tudo deve vir EXPLICITAMENTE da fonte (regra anti-alucinação acima).
 🎯 **CRITÉRIOS DE CURADORIA DE TRENDING**:
 - Priorize: eventos significativos, lançamentos importantes, esporte/cultura de impacto
@@ -1016,6 +1555,8 @@ Trends brutos:
     items = _dedupe_trends(items)
     if len(items) < before:
         log(f"  ⚠ dedup removeu {before - len(items)} duplicatas do Em Alta")
+    # SAFETY: remove HTML que Claude possa ter inserido (<strong>, <em>, etc.)
+    _strip_html_from_items(items)
     return items
 def generate_daily_recap(user_name, sections, trending, learned_profile=""):
     if not sections and not trending:
@@ -1466,6 +2007,13 @@ def process_user(user, now_brt, weekly=False):
                     f"descartados={val_stats['discarded_critical']+val_stats['discarded_moderate']} "
                     f"(crit={val_stats['discarded_critical']}/mod={val_stats['discarded_moderate']}) "
                     f"sem_fonte={val_stats['no_source']}")
+            # CAMADA 2 (defesa programática): blacklist médica em temas wellness/bem-estar.
+            # Camada 1 (system prompt) tenta prevenir, mas curador às vezes deixa passar
+            # gripe/dor menstrual/epidemia em Wellness. Esse filtro garante "nunca doenças e dores".
+            try:
+                _filter_wellness_medical(raw_sections)
+            except Exception as e:
+                log(f"  ⚠ wellness blacklist falhou (não bloqueia): {e}")
             # Trunca cada seção pra news_per_topic (depois do buffer +2 que pedimos ao Claude)
             for s in raw_sections:
                 if s.get("noticias"):
@@ -1659,6 +2207,18 @@ def process_user(user, now_brt, weekly=False):
     if dropped_empty > 0:
         log(f"  🧹 removidos {dropped_empty} tema(s) sem notícias")
     sections = add_feedback_links(uid, sections)
+
+    # ============ EDITOR CHEFE — revisão editorial final ============
+    # Última camada antes do render. Revisa edição INTEIRA simulando leitor humano.
+    # Pode reescrever ou descartar items. Guard rail interno: rollback se >30% DROPs.
+    try:
+        editorial_review(user["name"], sections, trending, undercovered, weekly=weekly)
+        # Sections vazias (todos os items descartados) já foram filtradas dentro do editor.
+        # Re-aplica defesa redundante por segurança:
+        sections = [s for s in sections if s.get("noticias")]
+    except Exception as e:
+        log(f"  ⚠ editor chefe falhou (não bloqueia): {e}")
+
     log(f"  gerando recap executivo...")
     recap_data = generate_daily_recap(user["name"], sections, trending, learned)
     daily_recap = recap_data.get("recap", "") if isinstance(recap_data, dict) else (recap_data or "")

@@ -347,6 +347,11 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
                     f"descartados={val_stats['discarded_critical']+val_stats['discarded_moderate']} "
                     f"(crit={val_stats['discarded_critical']}/mod={val_stats['discarded_moderate']}) "
                     f"sem_fonte={val_stats['no_source']}")
+            # CAMADA 2 (defesa programática): blacklist médica em temas wellness/bem-estar.
+            try:
+                dd._filter_wellness_medical(raw_sections)
+            except Exception as e:
+                log(f"  ⚠ wellness blacklist falhou (não bloqueia): {e}")
             # Trunca cada seção pra news_per_topic (depois do buffer +2 do Claude)
             for s in raw_sections:
                 if s.get("noticias"):
@@ -549,6 +554,15 @@ def prepare_user(user, now_brt, scheduled_for, weekly=False):
         log(f"  🧹 removidos {dropped_empty} tema(s) sem notícias")
 
     sections = dd.add_feedback_links(uid, sections)
+
+    # ============ EDITOR CHEFE — revisão editorial final ============
+    # Última camada antes do render. Revisa edição INTEIRA simulando leitor humano.
+    # Pode reescrever ou descartar items. Guard rail interno: rollback se >30% DROPs.
+    try:
+        dd.editorial_review(user["name"], sections, trending, undercovered, weekly=weekly)
+        sections = [s for s in sections if s.get("noticias")]
+    except Exception as e:
+        log(f"  ⚠ editor chefe falhou (não bloqueia): {e}")
 
     recap_data = dd.generate_daily_recap(user["name"], sections, trending, learned)
     daily_recap = recap_data.get("recap", "") if isinstance(recap_data, dict) else ""
