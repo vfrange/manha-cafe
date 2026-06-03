@@ -1616,13 +1616,19 @@ Responda APENAS JSON VÁLIDO neste formato exato:
 # ============ EMAIL ITEMS + FEEDBACK LINKS ============
 def create_email_item(user_id, kind, payload):
     iid = short_id()
+    # UPSERT em vez de INSERT pra ser idempotente sob retry.
+    # Bug que isso corrige: se a 1ª tentativa do INSERT chega no banco mas
+    # a resposta se perde por RemoteProtocolError, o retry refaz o mesmo
+    # INSERT com o mesmo `iid` e quebra com "duplicate key (23505)".
+    # Com UPSERT + on_conflict="id", o retry é safe: 2ª tentativa "atualiza"
+    # o registro com os mesmos valores (no-op funcional) e retorna ok.
     _supabase_retry(
-        lambda: supabase.table("email_items").insert({
+        lambda: supabase.table("email_items").upsert({
             "id": iid,
             "user_id": user_id,
             "kind": kind,
             "payload": payload,
-        }).execute(),
+        }, on_conflict="id").execute(),
         label=f"create_email_item({kind})",
     )
     return iid
