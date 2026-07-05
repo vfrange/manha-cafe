@@ -11,6 +11,7 @@ import re
 import json
 import time
 from datetime import datetime, timezone, timedelta
+from email.utils import parsedate_to_datetime  # parseia data RFC 822 do RSS (Google News)
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import resend
 from supabase import create_client
@@ -43,6 +44,18 @@ TARGET_HOUR_BRT = int(os.environ.get("TARGET_HOUR_BRT", "-1"))
 DRY_RUN = os.environ.get("DRY_RUN", "false").lower() == "true"
 MODEL = "claude-haiku-4-5-20251001"
 MODEL_PREMIUM = "claude-sonnet-4-6"
+
+# ============================================================================
+# FEATURE FLAG — "Saiba antes de todos" (undercovered / sinal fraco)
+# Desligado a pedido: some do email (email_template já pula seção vazia),
+# do cadastro e das preferências (frontend removeu o toggle).
+# Com False, fetch_undercovered retorna [] imediatamente — ZERO tokens,
+# zero latência, sem curadoria. Pra REATIVAR: trocar pra True e restaurar
+# as etapas nos HTMLs (versões _com_toggle guardadas no zip do deploy).
+# A coluna undercovered_enabled no Supabase fica quieta (sem efeito).
+# ============================================================================
+UNDERCOVERED_ENABLED = False
+
 MAX_NEWS_OUT_PER_TOPIC = 2
 MAX_TRENDING_OUT = 10
 # ============================================================================
@@ -217,27 +230,69 @@ def get_stale_window_hours(weekly: bool, now_brt) -> int:
     if now_brt.weekday() == 0:
         return 48
     return 30
+def _parse_pub_date(pub_str):
+    """Parseia data de publicação em múltiplos formatos.
+    Retorna datetime tz-aware (UTC) ou None se não conseguir.
+
+    Formatos suportados:
+    - ISO 8601: "2026-04-06T15:22:04-03:00" / "2026-04-06T15:22:04Z"
+    - RFC 822 (RSS/Google News): "Sun, 06 Apr 2026 15:22:04 GMT"
+
+    BUG que isso corrige: Google News RSS entrega RFC 822, mas o filtro
+    antigo só tentava datetime.fromisoformat() → exceção → notícia passava.
+    Resultado: TODAS as notícias do Google News furavam o filtro de frescor.
+    """
+    if not pub_str:
+        return None
+    s = pub_str.strip()
+    # 1) Tenta ISO 8601
+    try:
+        dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except (ValueError, TypeError):
+        pass
+    # 2) Tenta RFC 822 (formato RSS: "Sun, 06 Apr 2026 15:22:04 GMT")
+    try:
+        dt = parsedate_to_datetime(s)
+        if dt is None:
+            return None
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except (ValueError, TypeError, IndexError):
+        pass
+    return None
+
+
 def _filter_stale_news(news_list, max_age_hours):
+    """Descarta notícias mais velhas que max_age_hours.
+
+    POLÍTICA FAIL-CLOSED (defense-in-depth):
+    - Se a notícia NÃO tem `published_at` ou `published` → DESCARTA
+    - Se o parse da data falhar (nenhum formato reconhecido) → DESCARTA
+    - Só MANTÉM quando temos data confiável E ela está dentro da janela
+
+    Parse suporta ISO 8601 E RFC 822 (Google News RSS manda RFC 822).
+    """
     cutoff = datetime.now(timezone.utc) - timedelta(hours=max_age_hours)
     kept = []
-    dropped = 0
+    dropped_stale = 0
+    dropped_no_date = 0
     for n in news_list:
         pub_str = n.get("published_at") or n.get("published") or ""
-        if not pub_str:
-            kept.append(n)
-            continue
-        try:
-            pub_dt = datetime.fromisoformat(pub_str.replace("Z", "+00:00"))
-            if pub_dt.tzinfo is None:
-                pub_dt = pub_dt.replace(tzinfo=timezone.utc)
-            if pub_dt < cutoff:
-                dropped += 1
-                continue
-        except Exception:
-            kept.append(n)
+        pub_dt = _parse_pub_date(pub_str)
+        if pub_dt is None:
+            dropped_no_date += 1
+            continue  # FAIL-CLOSED: sem data confiável ou parse falhou = descarta
+        if pub_dt < cutoff:
+            dropped_stale += 1
             continue
         kept.append(n)
-    return kept, dropped
+    if dropped_no_date:
+        log(f"  📅 fail-closed frescor: descartadas {dropped_no_date} notícia(s) sem data parseável")
+    return kept, dropped_stale
 # ============ MULTI-SOURCE FETCH ============
 def fetch_all_sources(query, country, category=None, label=None, source_type="curated",
                       weekly=False, max_age_hours=None):
@@ -399,6 +454,10 @@ def fetch_undercovered(country="BR", weekly=False, max_age_hours=None):
     2. Filtro de frescor (idade máxima)
     3. Dedup por título
     """
+    # FEATURE FLAG: desligado → não busca nada (zero tokens/latência).
+    if not UNDERCOVERED_ENABLED:
+        return []
+
     items = []
 
     # 1. Substack — newsletters anglo (2 posts por feed, 72h)
@@ -1344,7 +1403,7 @@ def editorial_review(user_name, sections, trending, undercovered,
         parsed = _call_claude_json(
             user_message, max_tokens=10000, retries=2,
             log_prefix=" (editor)",
-            model=MODEL,  # Sonnet
+            model=MODEL,  # Haiku (mais barato) — editorial review não precisa de Sonnet
             system_prompt=_EDITOR_SYSTEM_PROMPT,
         )
     except Exception as e:
