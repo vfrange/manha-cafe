@@ -266,13 +266,18 @@ def _parse_pub_date(pub_str):
     return None
 
 
-def _filter_stale_news(news_list, max_age_hours):
+def _filter_stale_news(news_list, max_age_hours, strict=True):
     """Descarta notícias mais velhas que max_age_hours.
 
-    POLÍTICA FAIL-CLOSED (defense-in-depth):
-    - Se a notícia NÃO tem `published_at` ou `published` → DESCARTA
-    - Se o parse da data falhar (nenhum formato reconhecido) → DESCARTA
-    - Só MANTÉM quando temos data confiável E ela está dentro da janela
+    Parâmetro `strict` controla o que fazer com item SEM data parseável:
+    - strict=True (FAIL-CLOSED): sem data = DESCARTA.
+      Usado pra notícias por tema (Google News RSS traz data confiável;
+      se não tem, é suspeito → descarta pra não vazar matéria velha).
+    - strict=False (FAIL-OPEN): sem data = MANTÉM.
+      Usado pro TRENDING/top stories, que por design NÃO carregam data
+      (fetch_trends monta item sem published_at). Trending é "o que está
+      bombando agora" — inerentemente recente. Mas se TIVER data e for
+      velha, descarta mesmo assim (preserva o fix do caso SpaceX 22/05).
 
     Parse suporta ISO 8601 E RFC 822 (Google News RSS manda RFC 822).
     """
@@ -284,8 +289,13 @@ def _filter_stale_news(news_list, max_age_hours):
         pub_str = n.get("published_at") or n.get("published") or ""
         pub_dt = _parse_pub_date(pub_str)
         if pub_dt is None:
-            dropped_no_date += 1
-            continue  # FAIL-CLOSED: sem data confiável ou parse falhou = descarta
+            # Sem data parseável
+            if strict:
+                dropped_no_date += 1
+                continue  # FAIL-CLOSED
+            else:
+                kept.append(n)  # FAIL-OPEN (trending: sem data = recente por natureza)
+                continue
         if pub_dt < cutoff:
             dropped_stale += 1
             continue
@@ -374,11 +384,13 @@ def fetch_trending(country, weekly=False, max_age_hours=None):
         trends.extend(youtube_trending.fetch_trending(country=country, max_items=8))
     except Exception as e:
         log(f"  ⚠ youtube trending: {e}")
-    # Aplica filtro de frescor (igual ao fetch_all_sources).
-    # Pega agregadores que re-indexam manchetes antigas.
+    # Aplica filtro de frescor com strict=False (FAIL-OPEN).
+    # Trending/top stories não carregam published_at por design → sem data
+    # = mantém (é recente por natureza). Mas item COM data velha ainda é
+    # descartado (preserva fix SpaceX 22/05: agregador re-indexando manchete antiga).
     if max_age_hours is not None and trends:
         before = len(trends)
-        trends, stale_count = _filter_stale_news(trends, max_age_hours=max_age_hours)
+        trends, stale_count = _filter_stale_news(trends, max_age_hours=max_age_hours, strict=False)
         if stale_count > 0:
             log(f"  🕐 trending frescor ({max_age_hours}h): descartadas {stale_count}/{before} velha(s)")
     return trends
