@@ -799,18 +799,41 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
         else:
             saudacao = "Olá"
 
-    total_noticias = sum(len(s["noticias"]) for s in sections) + len(trending)
+    # Contagem coerente: os 3 stats (exclusivas + em alta + seus temas) somam
+    # exatamente o total do título. Como render_email roda DEPOIS do editor chefe
+    # e de todos os filtros, essas contagens refletem o conteúdo FINAL que o leitor recebe.
+    stat_undercovered = len(undercovered)                              # "Exclusivas" (Saiba antes)
+    stat_trending = len(trending)                                      # "Em alta"
+    stat_temas = sum(len(s.get("noticias", [])) for s in sections)     # "Seus temas" = nº de NOTÍCIAS dos temas
+
+    total_noticias = stat_undercovered + stat_trending + stat_temas    # título bate com a soma dos stats
     if total_noticias:
         intro_count = f"{total_noticias} notícia{'s' if total_noticias != 1 else ''}"
     else:
         intro_count = "novidades"
 
     stat_noticias = total_noticias or 0
-    stat_trending = len(trending)
-    stat_undercovered = len(undercovered)
-    stat_temas = len(sections)
     secs_each = 10 if email_mode == "espresso" else 20
     stat_minutos = max(2, round(stat_noticias * secs_each / 60))
+
+    # Monta os cards de stats dinamicamente. "Exclusivas" (Saiba antes) só aparece
+    # quando há undercovered (>0) — com a feature desligada, o card some do painel
+    # em vez de mostrar um "0" fixo. Se reativar, volta sozinho.
+    def _stat_cell(num, label):
+        return (
+            f'<td align="center" style="padding:14px 4px;">'
+            f'<div class="stat-num" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:24px;color:{COLORS["mint_dark"]};line-height:1;letter-spacing:-0.02em;">{num}</div>'
+            f'<div style="font-family:{SANS_FONT};font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:{COLORS["ink_muted"]};margin-top:5px;">{label}</div>'
+            f'</td>'
+        )
+    _divider = f'<td width="1" style="background:{COLORS["line"]};">&nbsp;</td>'
+    _cells = []
+    if stat_undercovered > 0:
+        _cells.append(_stat_cell(stat_undercovered, "Exclusivas"))
+    _cells.append(_stat_cell(stat_trending, "Em alta"))
+    _cells.append(_stat_cell(stat_temas, "Seus temas"))
+    _cells.append(_stat_cell(f"{stat_minutos}'", "Leitura"))
+    stat_cells_html = _divider.join(_cells)
 
     if weekly_mode:
         hero_h1 = f'<span style="background:linear-gradient(180deg,transparent 60%,{COLORS["mint"]} 60%);padding:0 2px;">Sua semana</span><br/>em {intro_count}.'
@@ -975,25 +998,7 @@ def render_email(user_name, date_obj, trending=None, trending_label="",
 
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid {COLORS['line']};border-bottom:1px solid {COLORS['line']};">
           <tr>
-            <td align="center" style="padding:14px 4px;">
-              <div class="stat-num" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:24px;color:{COLORS['mint_dark']};line-height:1;letter-spacing:-0.02em;">{stat_undercovered}</div>
-              <div style="font-family:{SANS_FONT};font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:{COLORS['ink_muted']};margin-top:5px;">Exclusivas</div>
-            </td>
-            <td width="1" style="background:{COLORS['line']};">&nbsp;</td>
-            <td align="center" style="padding:14px 4px;">
-              <div class="stat-num" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:24px;color:{COLORS['mint_dark']};line-height:1;letter-spacing:-0.02em;">{stat_trending}</div>
-              <div style="font-family:{SANS_FONT};font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:{COLORS['ink_muted']};margin-top:5px;">Em alta</div>
-            </td>
-            <td width="1" style="background:{COLORS['line']};">&nbsp;</td>
-            <td align="center" style="padding:14px 4px;">
-              <div class="stat-num" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:24px;color:{COLORS['mint_dark']};line-height:1;letter-spacing:-0.02em;">{stat_temas}</div>
-              <div style="font-family:{SANS_FONT};font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:{COLORS['ink_muted']};margin-top:5px;">Seus temas</div>
-            </td>
-            <td width="1" style="background:{COLORS['line']};">&nbsp;</td>
-            <td align="center" style="padding:14px 4px;">
-              <div class="stat-num" style="font-family:{SERIF_FONT};font-weight:400;font-style:italic;font-size:24px;color:{COLORS['mint_dark']};line-height:1;letter-spacing:-0.02em;">{stat_minutos}'</div>
-              <div style="font-family:{SANS_FONT};font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:{COLORS['ink_muted']};margin-top:5px;">Leitura</div>
-            </td>
+            {stat_cells_html}
           </tr>
         </table>
       </td></tr>
